@@ -1,0 +1,268 @@
+import type { Payment } from "@/types/veil";
+import { Button } from "@/components/ui/button";
+import { ExternalLink, Lock, WalletCards, X } from "lucide-react";
+import { formatAmount, formatDateTime } from "@/lib/format";
+import { cn } from "@/lib/utils";
+
+type ExtendedPayment = Payment & {
+  liquiditySource?: string;
+  sourceChain?: string;
+  destinationChain?: string;
+  memo?: string;
+  bridgeUsed?: boolean;
+  bridgeTxHashes?: string[];
+  batchId?: string;
+  batchCount?: number;
+};
+
+function modeLabel(mode: string) {
+  return mode === "confidential" ? "Private" : "Open";
+}
+
+function getLiquiditySource(payment: ExtendedPayment) {
+  return payment.liquiditySource || payment.sourceChain || "Arc Direct";
+}
+
+function getDestination(payment: ExtendedPayment) {
+  return payment.destinationChain || "Arc Testnet";
+}
+
+function isUnifiedPayment(payment: ExtendedPayment) {
+  return getLiquiditySource(payment).toLowerCase().includes("unified");
+}
+
+function getExplorerUrl(txHash: string) {
+  return `https://testnet.arcscan.app/tx/${txHash}`;
+}
+
+function Row({
+  label,
+  value,
+  mono,
+  children,
+}: {
+  label: string;
+  value?: string;
+  mono?: boolean;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="grid gap-1 rounded-lg border bg-background p-3">
+      <div className="text-xs uppercase tracking-wider text-muted-foreground">
+        {label}
+      </div>
+
+      {children ? (
+        children
+      ) : (
+        <div className={cn("text-sm font-medium break-all", mono && "font-mono text-xs")}>
+          {value || "—"}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ModeBadge({ mode }: { mode: string }) {
+  const isPrivate = mode === "confidential";
+
+  return (
+    <span
+      className={cn(
+        "inline-flex w-fit items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium",
+        isPrivate
+          ? "border-purple-200 bg-purple-50 text-purple-700"
+          : "border-amber-200 bg-amber-50 text-amber-800"
+      )}
+    >
+      {isPrivate && <Lock className="h-3 w-3" />}
+      {modeLabel(mode)}
+    </span>
+  );
+}
+
+function SourceBadge({ payment }: { payment: ExtendedPayment }) {
+  const source = getLiquiditySource(payment);
+  const unified = isUnifiedPayment(payment);
+
+  return (
+    <span
+      className={cn(
+        "inline-flex w-fit items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium",
+        unified
+          ? "border-blue-200 bg-blue-50 text-blue-700"
+          : "border-stone-200 bg-stone-50 text-stone-700"
+      )}
+    >
+      {unified && <WalletCards className="h-3 w-3" />}
+      {source}
+    </span>
+  );
+}
+
+export function PaymentDetailsDrawer({
+  payment,
+  onClose,
+}: {
+  payment: Payment | null;
+  onClose: () => void;
+}) {
+  if (!payment) return null;
+
+  const p = payment as ExtendedPayment;
+  const isPrivate = p.mode === "confidential";
+  const isUnified = isUnifiedPayment(p);
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/20 backdrop-blur-sm">
+      <button
+        aria-label="Close payment details"
+        className="absolute inset-0 cursor-default"
+        onClick={onClose}
+      />
+
+      <aside className="relative h-full w-full max-w-xl overflow-y-auto border-l bg-background shadow-xl">
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b bg-background/95 p-5 backdrop-blur">
+          <div>
+            <div className="text-xs uppercase tracking-wider text-muted-foreground">
+              Payment details
+            </div>
+            <h2 className="font-display text-2xl font-semibold">
+              {p.recipientLabel || "Arc payment"}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {isUnified
+                ? "Unified Balance USDC payment settled on Arc."
+                : "Arc Direct payment settled on Arc."}
+            </p>
+          </div>
+
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="space-y-5 p-5">
+          <div className="rounded-xl border bg-secondary/30 p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <ModeBadge mode={p.mode} />
+              <SourceBadge payment={p} />
+              <span className="inline-flex w-fit rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-medium capitalize text-emerald-700">
+                {p.status}
+              </span>
+            </div>
+
+            <div className="mt-4 text-3xl font-semibold">
+              {formatAmount(p.amount, p.token)}
+            </div>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              Completed on {getDestination(p)}
+            </p>
+          </div>
+
+          <div className="grid gap-3">
+            <Row label="Payment ID" value={p.id} mono />
+
+            <Row label="Recipient">
+              <div className="space-y-1">
+                <div className="text-sm font-medium">
+                  {p.recipientLabel || p.recipient}
+                </div>
+                <div className="break-all font-mono text-xs text-muted-foreground">
+                  {p.recipient}
+                </div>
+              </div>
+            </Row>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Row label="Mode">
+                <ModeBadge mode={p.mode} />
+              </Row>
+
+              <Row label="Type" value={`${p.type} payment`} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Row label="Liquidity source">
+                <SourceBadge payment={p} />
+              </Row>
+
+              <Row label="Destination" value={getDestination(p)} />
+            </div>
+
+            <Row label="Created" value={formatDateTime(p.createdAt)} />
+
+            {p.memo && <Row label="Memo / reference" value={p.memo} />}
+
+            {p.batchId && <Row label="Batch ID" value={p.batchId} mono />}
+
+            {p.batchCount !== undefined && (
+              <Row label="Batch recipients" value={String(p.batchCount)} />
+            )}
+          </div>
+
+          {p.txHash && (
+            <div className="rounded-xl border p-4">
+              <div className="mb-2 text-sm font-medium">Final Arc transaction</div>
+              <div className="break-all font-mono text-xs text-muted-foreground">
+                {p.txHash}
+              </div>
+
+              <Button asChild variant="outline" size="sm" className="mt-3">
+                <a href={getExplorerUrl(p.txHash)} target="_blank" rel="noreferrer">
+                  <ExternalLink className="mr-2 h-3.5 w-3.5" />
+                  View on Arc explorer
+                </a>
+              </Button>
+            </div>
+          )}
+
+          {isPrivate && (
+            <div className="rounded-xl border border-purple-200 bg-purple-50/50 p-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-purple-800">
+                <Lock className="h-4 w-4" />
+                Private payment context protected
+              </div>
+
+              <p className="mt-2 text-sm text-muted-foreground">
+                Veil encrypted the memo, recipient label, and payment context. Only authorized viewers can request disclosure.
+              </p>
+
+              {p.commitmentId && (
+                <div className="mt-3 rounded-lg border bg-background p-3">
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground">
+                    Commitment reference
+                  </div>
+                  <div className="mt-1 break-all font-mono text-xs">
+                    {p.commitmentId}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {Array.isArray(p.bridgeTxHashes) && p.bridgeTxHashes.length > 0 && (
+            <div className="rounded-xl border p-4">
+              <div className="mb-3 text-sm font-medium">Related transaction hashes</div>
+
+              <div className="space-y-2">
+                {p.bridgeTxHashes.map((tx, idx) => (
+                  <a
+                    key={`${tx}-${idx}`}
+                    href={getExplorerUrl(tx)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block break-all rounded-lg border bg-background p-3 font-mono text-xs underline"
+                  >
+                    {tx}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </aside>
+    </div>
+  );
+}

@@ -1,0 +1,165 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   VEIL DESIGN SYSTEM
+   Premium fintech, refined brown palette
+   ============================================ */
+
+@layer base {
+  :root {
+    /* Surfaces */
+    --background: 36 22% 96%;          /* warm parchment */
+    --foreground: 24 30% 12%;          /* near-espresso ink */
+
+    --card: 36 30% 99%;
+    --card-foreground: 24 30% 12%;
+
+    --popover: 36 30% 99%;
+    --popover-foreground: 24 30% 12%;
+
+    /* Brand — espresso */
+    --primary: 22 35% 18%;             /* deep espresso */
+    --primary-foreground: 36 30% 96%;
+    --primary-glow: 25 45% 32%;        /* walnut highlight */
+
+    /* Brown system */
+    --espresso: 22 35% 14%;
+    --walnut: 24 30% 28%;
+    --cocoa: 25 38% 42%;
+    --caramel: 28 45% 55%;
+    --sand: 32 35% 78%;
+    --beige: 36 28% 88%;
+    --parchment: 36 22% 96%;
+    --cream: 38 30% 99%;
+
+    /* Secondary / muted */
+    --secondary: 32 22% 90%;
+    --secondary-foreground: 22 35% 18%;
+
+    --muted: 32 18% 92%;
+    --muted-foreground: 24 12% 38%;
+
+    --accent: 28 38% 88%;
+    --accent-foreground: 22 35% 18%;
+
+    /* Status — refined, non-loud */
+    --success: 145 28% 32%;
+    --success-foreground: 36 30% 98%;
+    --warning: 32 70% 42%;
+    --warning-foreground: 36 30% 98%;
+    --destructive: 8 55% 42%;
+    --destructive-foreground: 36 30% 98%;
+    --info: 210 35% 38%;
+    --info-foreground: 36 30% 98%;
+
+    /* Confidential — distinct privacy tone */
+    --confidential: 280 18% 28%;
+    --confidential-foreground: 36 30% 98%;
+    --confidential-soft: 280 14% 92%;
+
+    /* Lines */
+    --border: 30 18% 86%;
+    --input: 30 18% 86%;
+    --ring: 22 35% 25%;
+
+    --radius: 0.625rem;
+
+    /* Sidebar — slightly darker than canvas */
+    --sidebar-background: 30 20% 14%;
+    --sidebar-foreground: 36 22% 86%;
+    --sidebar-primary: 28 45% 55%;
+    --sidebar-primary-foreground: 22 35% 12%;
+    --sidebar-accent: 24 22% 20%;
+    --sidebar-accent-foreground: 36 30% 96%;
+    --sidebar-border: 24 18% 22%;
+    --sidebar-ring: 28 45% 55%;
+
+    /* Gradients */
+    --gradient-brand: linear-gradient(135deg, hsl(22 35% 18%) 0%, hsl(25 38% 32%) 100%);
+    --gradient-warm: linear-gradient(180deg, hsl(36 28% 96%) 0%, hsl(32 22% 92%) 100%);
+    --gradient-confidential: linear-gradient(135deg, hsl(280 18% 22%) 0%, hsl(22 35% 18%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(36 30% 99%) 0%, hsl(36 24% 96%) 100%);
+
+    /* Shadows */
+    --shadow-xs: 0 1px 2px 0 hsl(24 30% 12% / 0.04);
+    --shadow-sm: 0 1px 3px 0 hsl(24 30% 12% / 0.06), 0 1px 2px -1px hsl(24 30% 12% / 0.05);
+    --shadow-md: 0 4px 12px -2px hsl(24 30% 12% / 0.08), 0 2px 4px -2px hsl(24 30% 12% / 0.04);
+    --shadow-lg: 0 10px 28px -8px hsl(24 30% 12% / 0.14), 0 4px 10px -4px hsl(24 30% 12% / 0.06);
+    --shadow-elevated: 0 24px 48px -16px hsl(22 35% 14% / 0.18);
+
+    /* Type */
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-sans: 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+    --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dark {
+    --background: 24 22% 8%;
+    --foreground: 36 22% 92%;
+    --card: 24 22% 11%;
+    --card-foreground: 36 22% 92%;
+    --popover: 24 22% 11%;
+    --popover-foreground: 36 22% 92%;
+    --primary: 28 45% 60%;
+    --primary-foreground: 22 35% 12%;
+    --secondary: 24 18% 16%;
+    --secondary-foreground: 36 22% 92%;
+    --muted: 24 18% 14%;
+    --muted-foreground: 32 12% 62%;
+    --accent: 24 22% 18%;
+    --accent-foreground: 36 22% 92%;
+    --border: 24 18% 18%;
+    --input: 24 18% 18%;
+    --ring: 28 45% 55%;
+    --confidential-soft: 280 14% 18%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+  }
+  h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.02em; font-weight: 500; }
+  .font-mono, code, kbd { font-family: var(--font-mono); }
+}
+
+@layer components {
+  .surface-card {
+    @apply bg-card border border-border rounded-xl;
+    box-shadow: var(--shadow-sm);
+  }
+  .surface-elevated {
+    @apply bg-card border border-border rounded-xl;
+    box-shadow: var(--shadow-md);
+  }
+  .text-balance { text-wrap: balance; }
+  .grain {
+    background-image:
+      radial-gradient(hsl(24 30% 12% / 0.025) 1px, transparent 1px),
+      radial-gradient(hsl(24 30% 12% / 0.018) 1px, transparent 1px);
+    background-size: 24px 24px, 16px 16px;
+    background-position: 0 0, 8px 8px;
+  }
+  .ring-confidential {
+    box-shadow: 0 0 0 1px hsl(var(--confidential) / 0.25), var(--shadow-sm);
+  }
+}
+
+@layer utilities {
+  .bg-gradient-brand { background-image: var(--gradient-brand); }
+  .bg-gradient-warm { background-image: var(--gradient-warm); }
+  .bg-gradient-confidential { background-image: var(--gradient-confidential); }
+  .bg-gradient-card { background-image: var(--gradient-card); }
+  .shadow-elevated { box-shadow: var(--shadow-elevated); }
+  .font-display { font-family: var(--font-display); }
+  .font-sans { font-family: var(--font-sans); }
+  .font-mono { font-family: var(--font-mono); }
+}
