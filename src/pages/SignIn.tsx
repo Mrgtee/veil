@@ -2,51 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Wallet, ShieldCheck, WalletCards, Lock } from "lucide-react";
 import { VeilWordmark } from "@/components/brand/VeilLogo";
-
-const ARC_TESTNET = {
-  chainIdHex: "0x4CEF52",
-  chainName: "Arc Testnet",
-  rpcUrl: "https://rpc.testnet.arc.network",
-  explorer: "https://testnet.arcscan.app",
-  nativeCurrency: {
-    name: "USDC",
-    symbol: "USDC",
-    decimals: 18,
-  },
-};
-
-async function ensureArcTestnet() {
-  const eth = (window as any).ethereum;
-
-  if (!eth) {
-    throw new Error("No wallet found. Please open Veil in a wallet-enabled browser.");
-  }
-
-  try {
-    await eth.request({
-      method: "wallet_switchEthereumChain",
-      params: [{ chainId: ARC_TESTNET.chainIdHex }],
-    });
-  } catch (err: any) {
-    if (err?.code === 4902) {
-      await eth.request({
-        method: "wallet_addEthereumChain",
-        params: [
-          {
-            chainId: ARC_TESTNET.chainIdHex,
-            chainName: ARC_TESTNET.chainName,
-            rpcUrls: [ARC_TESTNET.rpcUrl],
-            nativeCurrency: ARC_TESTNET.nativeCurrency,
-            blockExplorerUrls: [ARC_TESTNET.explorer],
-          },
-        ],
-      });
-      return;
-    }
-
-    throw err;
-  }
-}
+import { requestWalletAccount } from "@/lib/payments/wallet";
 
 export default function SignIn() {
   const navigate = useNavigate();
@@ -58,21 +14,7 @@ export default function SignIn() {
       setLoading(true);
       setStatus("Connecting wallet...");
 
-      const eth = (window as any).ethereum;
-
-      if (!eth) {
-        throw new Error("No wallet detected. Open Veil inside MetaMask, Rabby, Rainbow, OKX Wallet, or another EVM wallet browser.");
-      }
-
-      const accounts = await eth.request({ method: "eth_requestAccounts" });
-      const account = accounts?.[0];
-
-      if (!account) {
-        throw new Error("Wallet connection failed.");
-      }
-
-      localStorage.setItem("veil.wallet", account);
-      localStorage.setItem("veil.operator", account);
+      await requestWalletAccount({ request: true });
 
       setStatus("Wallet connected. Opening Veil...");
       navigate("/app");
@@ -86,10 +28,8 @@ export default function SignIn() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="grid min-h-screen lg:grid-cols-2">
-        <section className="hidden lg:flex relative overflow-hidden bg-gradient-to-br from-[#2b1f18] via-[#5a3724] to-[#8a5a36] text-white">
-          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_30%_20%,white,transparent_25%),radial-gradient(circle_at_80%_70%,white,transparent_20%)]" />
-
-          <div className="relative z-10 flex min-h-screen flex-col justify-between p-10 xl:p-12">
+        <section className="hidden lg:flex bg-gradient-to-br from-slate-950 via-teal-950 to-indigo-950 text-white">
+          <div className="flex min-h-screen flex-col justify-between p-10 xl:p-12">
             <div className="[&_span]:text-white">
               <VeilWordmark size="lg" />
             </div>
@@ -100,7 +40,7 @@ export default function SignIn() {
               </div>
 
               <h1 className="font-display text-5xl leading-tight font-semibold">
-                Open and private payments on Arc, powered by Unified Balance USDC.
+                Open payments on Arc, with VeilShield architecture for closed hidden-amount settlement.
               </h1>
 
               <p className="mt-6 max-w-lg text-base leading-7 text-white/75">
@@ -120,7 +60,7 @@ export default function SignIn() {
 
                 <div className="flex items-center gap-3">
                   <Lock className="h-4 w-4" />
-                  Private payments for protected memo, label, and reference context.
+                  Closed payments focus on hiding amounts onchain through VeilShield.
                 </div>
               </div>
             </div>
@@ -144,7 +84,7 @@ export default function SignIn() {
                 </h2>
 
                 <p className="text-muted-foreground">
-                  Connect your wallet to access open and private Arc payments powered by Unified Balance USDC.
+                  Connect your wallet to access Arc Direct and Unified Balance USDC payments.
                 </p>
               </div>
             </div>
@@ -162,7 +102,7 @@ export default function SignIn() {
               <div className="rounded-xl border bg-secondary/40 p-4 text-sm text-muted-foreground">
                 <div className="font-medium text-foreground">What Veil does</div>
                 <p className="mt-1">
-                  Veil helps you complete open or private payments on Arc using Unified Balance USDC.
+                  Veil helps you complete open Arc payments and prepare closed hidden-amount settlement.
                 </p>
               </div>
 

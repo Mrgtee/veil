@@ -52,8 +52,8 @@ app.get("/api/unified/health", (_req, res) => {
   res.json({
     ok: true,
     service: "veil-unified-balance",
-    model: "deposit -> unified balance -> spend to Arc",
-    status: "ready"
+    model: "browser wallet deposit -> user-owned unified balance -> browser wallet spend to Arc",
+    status: "frontend-wallet-required"
   });
 });
 
@@ -167,52 +167,20 @@ const bridgeSchema = z.object({
 });
 
 app.post("/api/bridge/execute", async (req, res) => {
-  try {
-    const body = bridgeSchema.parse(req.body);
-
-    let confidential = null;
-    if (body.mode === "confidential") {
-      confidential = encryptJson({
-        route: body.route,
-        amount: body.amount,
-        memo: body.memo,
-        recipientLabel: body.recipientLabel,
-        createdAt: new Date().toISOString()
-      });
-    }
-
-    const rawResult =
-      body.route === "eth-to-arc"
-        ? await bridgeEthSepoliaToArcTestnet(body.amount)
-        : await bridgeArcTestnetToEthSepolia(body.amount);
-
-    const result = toJsonSafe(rawResult);
-
-    res.json({
-      ok: true,
-      route: body.route,
-      mode: body.mode,
-      confidential,
-      result
-    });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Bridge execution failed";
-    res.status(400).json({ ok: false, error: message });
-  }
+  res.status(410).json({
+    ok: false,
+    error:
+      "Managed bridge execution is retired for user-facing Veil flows. Use the browser wallet Unified Balance deposit flow instead."
+  });
 });
 
 
 app.get("/api/unified/balance", async (_req, res) => {
-  try {
-    const result = await getUnifiedBalance();
-    res.json({
-      ok: true,
-      balance: toJsonSafe(result)
-    });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unable to fetch Unified Balance";
-    res.status(400).json({ ok: false, error: message });
-  }
+  res.status(410).json({
+    ok: false,
+    error:
+      "Backend-managed Unified Balance reads are disabled for user-facing flows. Read balances in the browser from the connected wallet."
+  });
 });
 
 const unifiedSpendSchema = z.object({
@@ -224,42 +192,11 @@ const unifiedSpendSchema = z.object({
 });
 
 app.post("/api/unified/spend", async (req, res) => {
-  try {
-    const body = unifiedSpendSchema.parse(req.body);
-
-    let confidential = null;
-
-    if (body.mode === "confidential") {
-      confidential = encryptJson({
-        amount: body.amount,
-        recipientAddress: body.recipientAddress,
-        recipientLabel: body.recipientLabel,
-        memo: body.memo,
-        source: "Unified Balance USDC",
-        destination: "Arc Testnet",
-        createdAt: new Date().toISOString()
-      });
-    }
-
-    const rawResult = await spendUnifiedBalanceToArc({
-      amount: body.amount,
-      recipientAddress: body.recipientAddress
-    });
-
-    res.json({
-      ok: true,
-      mode: body.mode,
-      amount: body.amount,
-      recipientAddress: body.recipientAddress,
-      recipientLabel: body.recipientLabel,
-      memo: body.memo,
-      confidential,
-      result: toJsonSafe(rawResult)
-    });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unified Balance spend failed";
-    res.status(400).json({ ok: false, error: message });
-  }
+  res.status(410).json({
+    ok: false,
+    error:
+      "Backend-managed Unified Balance spend is disabled for user-facing flows. Spend in the browser with the connected wallet."
+  });
 });
 
 

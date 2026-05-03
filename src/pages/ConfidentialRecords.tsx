@@ -27,16 +27,16 @@ export default function ConfidentialRecords() {
     <div className="space-y-6">
       <SectionHeader
         eyebrow="Privacy"
-        title="Confidential records"
-        description="Protected payments and disclosure status. Only authorized viewers can decrypt sensitive fields."
+        title="Closed payment records"
+        description="Experimental VeilShield references and disclosure status for future hidden-amount settlement."
       />
 
       <div className="surface-card p-5 bg-confidential-soft/40 ring-confidential">
         <div className="flex items-start gap-3">
           <Lock className="h-4 w-4 mt-0.5 text-confidential" />
           <div className="text-sm">
-            <div className="font-medium">Confidential channel active</div>
-            <p className="text-muted-foreground text-xs mt-0.5">All records below have on-chain commitments. Off-chain payloads remain encrypted until disclosure is granted.</p>
+            <div className="font-medium">VeilShield is experimental</div>
+            <p className="text-muted-foreground text-xs mt-0.5">Closed payments are about hiding the amount onchain. These records track commitments and access state, but full Noir/ZK hidden-amount transfers still require audit and deployment.</p>
           </div>
         </div>
       </div>

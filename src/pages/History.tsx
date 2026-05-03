@@ -23,7 +23,7 @@ type Filter =
 const FILTERS: { id: Filter; label: string }[] = [
   { id: "all", label: "All" },
   { id: "open", label: "Open" },
-  { id: "confidential", label: "Private" },
+  { id: "confidential", label: "Closed" },
   { id: "unified", label: "Unified Balance" },
   { id: "single", label: "Single" },
   { id: "batch", label: "Batch" },
@@ -55,7 +55,7 @@ function isUnifiedPayment(payment: Payment) {
 }
 
 function modeLabel(mode: string) {
-  return mode === "confidential" ? "Private" : "Open";
+  return mode === "confidential" ? "Closed" : "Open";
 }
 
 function ModeBadge({ mode }: { mode: string }) {
@@ -204,7 +204,7 @@ export default function History() {
       <SectionHeader
         eyebrow="Ledger"
         title="Payment history"
-        description="Search and inspect open or private Arc payments powered by Unified Balance USDC."
+        description="Search and inspect open payments, pending settlements, and closed-payment references."
         actions={
           <Button variant="outline" onClick={exportCsv}>
             <Download className="h-4 w-4 mr-2" /> Export CSV

@@ -1,6 +1,24 @@
 export type PaymentMode = "open" | "confidential";
 export type PaymentType = "single" | "batch";
-export type PaymentStatus = "pending" | "settled" | "failed";
+export type PaymentStatus =
+  | "idle"
+  | "validating"
+  | "encrypting"
+  | "awaiting_signature"
+  | "submitting"
+  | "pending"
+  | "settled"
+  | "failed";
+export type BatchStatus =
+  | "uploaded"
+  | "validating"
+  | "invalid_rows"
+  | "ready"
+  | "encrypting"
+  | "awaiting_signature"
+  | "submitted"
+  | "completed"
+  | "partially_failed";
 export type DisclosureStatus = "private" | "requested" | "granted" | "revoked";
 
 export interface Payment {
@@ -19,6 +37,12 @@ export interface Payment {
   batchCount?: number;
   memo?: string;
   createdAt: string;
+  liquiditySource?: string;
+  sourceChain?: string;
+  destinationChain?: string;
+  bridgeUsed?: boolean;
+  bridgeTxHashes?: string[];
+  settlementNote?: string;
 }
 
 export interface ConfidentialRecord {

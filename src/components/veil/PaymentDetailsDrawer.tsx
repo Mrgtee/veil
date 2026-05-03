@@ -16,7 +16,7 @@ type ExtendedPayment = Payment & {
 };
 
 function modeLabel(mode: string) {
-  return mode === "confidential" ? "Private" : "Open";
+  return mode === "confidential" ? "Closed" : "Open";
 }
 
 function getLiquiditySource(payment: ExtendedPayment) {
@@ -64,18 +64,18 @@ function Row({
 }
 
 function ModeBadge({ mode }: { mode: string }) {
-  const isPrivate = mode === "confidential";
+  const isClosed = mode === "confidential";
 
   return (
     <span
       className={cn(
         "inline-flex w-fit items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium",
-        isPrivate
+        isClosed
           ? "border-purple-200 bg-purple-50 text-purple-700"
           : "border-amber-200 bg-amber-50 text-amber-800"
       )}
     >
-      {isPrivate && <Lock className="h-3 w-3" />}
+      {isClosed && <Lock className="h-3 w-3" />}
       {modeLabel(mode)}
     </span>
   );
@@ -110,8 +110,11 @@ export function PaymentDetailsDrawer({
   if (!payment) return null;
 
   const p = payment as ExtendedPayment;
-  const isPrivate = p.mode === "confidential";
+  const isClosed = p.mode === "confidential";
   const isUnified = isUnifiedPayment(p);
+  const transactionRefs = p.txHash
+    ? p.txHash.split(",").map((item) => item.trim()).filter(Boolean)
+    : [];
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/20 backdrop-blur-sm">
@@ -202,31 +205,36 @@ export function PaymentDetailsDrawer({
             )}
           </div>
 
-          {p.txHash && (
+          {transactionRefs.length > 0 && (
             <div className="rounded-xl border p-4">
-              <div className="mb-2 text-sm font-medium">Final Arc transaction</div>
-              <div className="break-all font-mono text-xs text-muted-foreground">
-                {p.txHash}
+              <div className="mb-3 text-sm font-medium">Arc transaction or settlement reference</div>
+              <div className="space-y-2">
+                {transactionRefs.map((tx) => (
+                  <div key={tx} className="rounded-lg border bg-background p-3">
+                    <div className="break-all font-mono text-xs text-muted-foreground">{tx}</div>
+                    {!tx.startsWith("pending_") && (
+                      <Button asChild variant="outline" size="sm" className="mt-3">
+                        <a href={getExplorerUrl(tx)} target="_blank" rel="noreferrer">
+                          <ExternalLink className="mr-2 h-3.5 w-3.5" />
+                          View on Arc explorer
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+                ))}
               </div>
-
-              <Button asChild variant="outline" size="sm" className="mt-3">
-                <a href={getExplorerUrl(p.txHash)} target="_blank" rel="noreferrer">
-                  <ExternalLink className="mr-2 h-3.5 w-3.5" />
-                  View on Arc explorer
-                </a>
-              </Button>
             </div>
           )}
 
-          {isPrivate && (
+          {isClosed && (
             <div className="rounded-xl border border-purple-200 bg-purple-50/50 p-4">
               <div className="flex items-center gap-2 text-sm font-medium text-purple-800">
                 <Lock className="h-4 w-4" />
-                Private payment context protected
+                Closed payment reference
               </div>
 
               <p className="mt-2 text-sm text-muted-foreground">
-                Veil encrypted the memo, recipient label, and payment context. Only authorized viewers can request disclosure.
+                Closed payments are intended to hide the amount onchain through VeilShield. Records here are references only unless a deployed VeilShield settlement produced them.
               </p>
 
               {p.commitmentId && (

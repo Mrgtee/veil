@@ -4,90 +4,90 @@
 
 /* ============================================
    VEIL DESIGN SYSTEM
-   Premium fintech, refined brown palette
+   Payment operations palette
    ============================================ */
 
 @layer base {
   :root {
     /* Surfaces */
-    --background: 36 22% 96%;          /* warm parchment */
-    --foreground: 24 30% 12%;          /* near-espresso ink */
+    --background: 210 24% 98%;
+    --foreground: 222 28% 11%;
 
-    --card: 36 30% 99%;
-    --card-foreground: 24 30% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 28% 11%;
 
-    --popover: 36 30% 99%;
-    --popover-foreground: 24 30% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 28% 11%;
 
-    /* Brand — espresso */
-    --primary: 22 35% 18%;             /* deep espresso */
-    --primary-foreground: 36 30% 96%;
-    --primary-glow: 25 45% 32%;        /* walnut highlight */
+    /* Brand */
+    --primary: 188 72% 28%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 221 70% 44%;
 
-    /* Brown system */
-    --espresso: 22 35% 14%;
-    --walnut: 24 30% 28%;
-    --cocoa: 25 38% 42%;
-    --caramel: 28 45% 55%;
-    --sand: 32 35% 78%;
-    --beige: 36 28% 88%;
-    --parchment: 36 22% 96%;
-    --cream: 38 30% 99%;
+    /* Legacy token names kept for existing components */
+    --espresso: 222 28% 11%;
+    --walnut: 215 22% 35%;
+    --cocoa: 188 50% 34%;
+    --caramel: 38 84% 55%;
+    --sand: 215 24% 86%;
+    --beige: 210 22% 94%;
+    --parchment: 210 24% 98%;
+    --cream: 0 0% 100%;
 
     /* Secondary / muted */
-    --secondary: 32 22% 90%;
-    --secondary-foreground: 22 35% 18%;
+    --secondary: 214 25% 93%;
+    --secondary-foreground: 222 28% 18%;
 
-    --muted: 32 18% 92%;
-    --muted-foreground: 24 12% 38%;
+    --muted: 214 22% 94%;
+    --muted-foreground: 216 12% 38%;
 
-    --accent: 28 38% 88%;
-    --accent-foreground: 22 35% 18%;
+    --accent: 188 36% 91%;
+    --accent-foreground: 188 72% 24%;
 
-    /* Status — refined, non-loud */
-    --success: 145 28% 32%;
-    --success-foreground: 36 30% 98%;
-    --warning: 32 70% 42%;
-    --warning-foreground: 36 30% 98%;
-    --destructive: 8 55% 42%;
-    --destructive-foreground: 36 30% 98%;
-    --info: 210 35% 38%;
-    --info-foreground: 36 30% 98%;
+    /* Status */
+    --success: 151 55% 32%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 84% 45%;
+    --warning-foreground: 222 28% 11%;
+    --destructive: 0 65% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --info: 221 70% 44%;
+    --info-foreground: 0 0% 100%;
 
-    /* Confidential — distinct privacy tone */
-    --confidential: 280 18% 28%;
-    --confidential-foreground: 36 30% 98%;
-    --confidential-soft: 280 14% 92%;
+    /* Closed payment / VeilShield */
+    --confidential: 250 42% 36%;
+    --confidential-foreground: 0 0% 100%;
+    --confidential-soft: 245 45% 94%;
 
     /* Lines */
-    --border: 30 18% 86%;
-    --input: 30 18% 86%;
-    --ring: 22 35% 25%;
+    --border: 214 20% 86%;
+    --input: 214 20% 86%;
+    --ring: 188 72% 28%;
 
     --radius: 0.625rem;
 
-    /* Sidebar — slightly darker than canvas */
-    --sidebar-background: 30 20% 14%;
-    --sidebar-foreground: 36 22% 86%;
-    --sidebar-primary: 28 45% 55%;
-    --sidebar-primary-foreground: 22 35% 12%;
-    --sidebar-accent: 24 22% 20%;
-    --sidebar-accent-foreground: 36 30% 96%;
-    --sidebar-border: 24 18% 22%;
-    --sidebar-ring: 28 45% 55%;
+    /* Sidebar */
+    --sidebar-background: 222 30% 13%;
+    --sidebar-foreground: 214 22% 88%;
+    --sidebar-primary: 38 84% 55%;
+    --sidebar-primary-foreground: 222 28% 11%;
+    --sidebar-accent: 222 22% 20%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 222 18% 24%;
+    --sidebar-ring: 188 72% 40%;
 
     /* Gradients */
-    --gradient-brand: linear-gradient(135deg, hsl(22 35% 18%) 0%, hsl(25 38% 32%) 100%);
-    --gradient-warm: linear-gradient(180deg, hsl(36 28% 96%) 0%, hsl(32 22% 92%) 100%);
-    --gradient-confidential: linear-gradient(135deg, hsl(280 18% 22%) 0%, hsl(22 35% 18%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(36 30% 99%) 0%, hsl(36 24% 96%) 100%);
+    --gradient-brand: linear-gradient(135deg, hsl(188 72% 28%) 0%, hsl(221 70% 44%) 100%);
+    --gradient-warm: linear-gradient(180deg, hsl(210 24% 98%) 0%, hsl(214 25% 93%) 100%);
+    --gradient-confidential: linear-gradient(135deg, hsl(250 42% 36%) 0%, hsl(221 70% 34%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(214 25% 97%) 100%);
 
     /* Shadows */
-    --shadow-xs: 0 1px 2px 0 hsl(24 30% 12% / 0.04);
-    --shadow-sm: 0 1px 3px 0 hsl(24 30% 12% / 0.06), 0 1px 2px -1px hsl(24 30% 12% / 0.05);
-    --shadow-md: 0 4px 12px -2px hsl(24 30% 12% / 0.08), 0 2px 4px -2px hsl(24 30% 12% / 0.04);
-    --shadow-lg: 0 10px 28px -8px hsl(24 30% 12% / 0.14), 0 4px 10px -4px hsl(24 30% 12% / 0.06);
-    --shadow-elevated: 0 24px 48px -16px hsl(22 35% 14% / 0.18);
+    --shadow-xs: 0 1px 2px 0 hsl(222 28% 11% / 0.04);
+    --shadow-sm: 0 1px 3px 0 hsl(222 28% 11% / 0.06), 0 1px 2px -1px hsl(222 28% 11% / 0.05);
+    --shadow-md: 0 4px 12px -2px hsl(222 28% 11% / 0.08), 0 2px 4px -2px hsl(222 28% 11% / 0.04);
+    --shadow-lg: 0 10px 28px -8px hsl(222 28% 11% / 0.14), 0 4px 10px -4px hsl(222 28% 11% / 0.06);
+    --shadow-elevated: 0 24px 48px -16px hsl(222 28% 11% / 0.18);
 
     /* Type */
     --font-display: 'Fraunces', Georgia, serif;
@@ -98,24 +98,24 @@
   }
 
   .dark {
-    --background: 24 22% 8%;
-    --foreground: 36 22% 92%;
-    --card: 24 22% 11%;
-    --card-foreground: 36 22% 92%;
-    --popover: 24 22% 11%;
-    --popover-foreground: 36 22% 92%;
-    --primary: 28 45% 60%;
-    --primary-foreground: 22 35% 12%;
-    --secondary: 24 18% 16%;
-    --secondary-foreground: 36 22% 92%;
-    --muted: 24 18% 14%;
-    --muted-foreground: 32 12% 62%;
-    --accent: 24 22% 18%;
-    --accent-foreground: 36 22% 92%;
-    --border: 24 18% 18%;
-    --input: 24 18% 18%;
-    --ring: 28 45% 55%;
-    --confidential-soft: 280 14% 18%;
+    --background: 222 28% 8%;
+    --foreground: 214 22% 92%;
+    --card: 222 24% 11%;
+    --card-foreground: 214 22% 92%;
+    --popover: 222 24% 11%;
+    --popover-foreground: 214 22% 92%;
+    --primary: 188 70% 46%;
+    --primary-foreground: 222 28% 8%;
+    --secondary: 222 18% 16%;
+    --secondary-foreground: 214 22% 92%;
+    --muted: 222 18% 14%;
+    --muted-foreground: 214 12% 64%;
+    --accent: 188 24% 18%;
+    --accent-foreground: 214 22% 92%;
+    --border: 222 18% 20%;
+    --input: 222 18% 20%;
+    --ring: 188 70% 46%;
+    --confidential-soft: 250 22% 18%;
   }
 }
 

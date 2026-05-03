@@ -226,10 +226,13 @@ export const veilApi = {
     txHash: string;
     commitmentId?: string;
     externalId?: string;
+    status?: Payment["status"];
+    liquiditySource?: string;
     bridgeUsed?: boolean;
     sourceChain?: string;
     destinationChain?: string;
     bridgeTxHashes?: string[];
+    settlementNote?: string;
   }): Promise<void> {
     const payments = getPayments();
 
@@ -237,7 +240,7 @@ export const veilApi = {
       id: makeId("pmt"),
       type: "single",
       mode: input.mode,
-      status: "settled",
+      status: input.status || "settled",
       recipient: input.recipient,
       recipientLabel: input.recipientLabel,
       amount: formatDisplayAmountFromBase(input.amountBase),
@@ -247,10 +250,12 @@ export const veilApi = {
       externalId: input.externalId,
       memo: input.memo,
       createdAt: nowIso(),
+      liquiditySource: input.liquiditySource,
       bridgeUsed: input.bridgeUsed,
       sourceChain: input.sourceChain,
       destinationChain: input.destinationChain,
       bridgeTxHashes: input.bridgeTxHashes,
+      settlementNote: input.settlementNote,
     } as Payment;
 
     payments.unshift(payment);
@@ -282,10 +287,13 @@ export const veilApi = {
     txHash: string;
     batchId: string;
     batchCommitment?: string;
+    status?: Payment["status"];
+    liquiditySource?: string;
     bridgeUsed?: boolean;
     sourceChain?: string;
     destinationChain?: string;
     bridgeTxHashes?: string[];
+    settlementNote?: string;
   }): Promise<void> {
     const payments = getPayments();
 
@@ -295,7 +303,7 @@ export const veilApi = {
       id: makeId("pmt"),
       type: "batch",
       mode: input.mode,
-      status: "settled",
+      status: input.status || "settled",
       recipient: `${input.rows.length} recipients`,
       recipientLabel: `${input.rows.length} recipients`,
       amount: formatDisplayAmountFromBase(String(totalBase)),
@@ -305,10 +313,12 @@ export const veilApi = {
       batchId: input.batchId,
       batchCount: input.rows.length,
       createdAt: nowIso(),
+      liquiditySource: input.liquiditySource,
       bridgeUsed: input.bridgeUsed,
       sourceChain: input.sourceChain,
       destinationChain: input.destinationChain,
       bridgeTxHashes: input.bridgeTxHashes,
+      settlementNote: input.settlementNote,
     } as Payment;
 
     payments.unshift(payment);

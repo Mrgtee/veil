@@ -24,6 +24,7 @@ import { formatAmount, formatRelative } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useAccount } from "wagmi";
+import type { UnifiedBalanceData } from "@/lib/payments/unifiedBalance";
 
 type ExtendedPayment = Payment & {
   liquiditySource?: string;
@@ -32,7 +33,7 @@ type ExtendedPayment = Payment & {
 };
 
 function modeLabel(mode: string) {
-  return mode === "confidential" ? "Private" : "Open";
+  return mode === "confidential" ? "Closed" : "Open";
 }
 
 function getLiquiditySource(payment: ExtendedPayment) {
@@ -174,7 +175,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [activity, setActivity] = useState<ActivityEvent[]>([]);
   const [payments, setPayments] = useState<ExtendedPayment[]>([]);
-  const [unifiedBalance, setUnifiedBalance] = useState<any>(null);
+  const [unifiedBalance, setUnifiedBalance] = useState<UnifiedBalanceData | null>(null);
   const [balanceStatus, setBalanceStatus] = useState("");
 
   async function loadDashboard() {
@@ -217,7 +218,7 @@ export default function Dashboard() {
       <SectionHeader
         eyebrow="Operations"
         title="Payment workspace"
-        description="Open and private Arc payments powered by Unified Balance USDC."
+        description="Open Arc payments today, with VeilShield architecture for future hidden-amount closed payments."
         actions={
           <>
             <Button asChild variant="outline" className="h-10">
@@ -246,12 +247,12 @@ export default function Dashboard() {
             </div>
 
             <h2 className="font-display text-xl sm:text-2xl font-semibold mt-4">
-              Complete open or private payments on Arc from unified USDC liquidity.
+              Complete open Arc payments from direct wallet or unified USDC liquidity.
             </h2>
 
             <p className="text-sm text-muted-foreground mt-2 max-w-2xl">
               Veil lets users deposit USDC into a unified balance, spend into Arc settlement,
-              and protect sensitive payment context when private mode is selected.
+              and prepare for audited hidden-amount closed payments through VeilShield.
             </p>
           </div>
 
@@ -310,11 +311,11 @@ export default function Dashboard() {
             />
 
             <StatCard
-              label="Private payments"
+              label="Closed payments"
               value={stats.confidentialPayments.toLocaleString()}
               accent="confidential"
               icon={<Lock className="h-5 w-5" />}
-              hint="protected context"
+              hint="hidden amount layer"
             />
 
             <StatCard
@@ -336,7 +337,7 @@ export default function Dashboard() {
               <div>
                 <h3 className="font-display text-lg">Recent payments</h3>
                 <p className="text-xs text-muted-foreground">
-                  Latest open and private Arc payments
+                  Latest open and closed Arc payment records
                 </p>
               </div>
 
@@ -401,7 +402,7 @@ export default function Dashboard() {
               to="/app/payments/new"
               icon={<Send className="h-4 w-4" />}
               title="New payment"
-              desc="Open or private Arc payment"
+              desc="Choose mode and source"
             />
 
             <QuickAction
@@ -421,8 +422,8 @@ export default function Dashboard() {
             <QuickAction
               to="/app/confidential"
               icon={<Lock className="h-4 w-4" />}
-              title="Private records"
-              desc="Manage protected context"
+              title="Closed records"
+              desc="VeilShield references"
               confidential
             />
           </div>
@@ -474,7 +475,7 @@ export default function Dashboard() {
           <div className="surface-card p-5">
             <div className="flex items-center gap-2 mb-4">
               <KeyRound className="h-4 w-4 text-confidential" />
-              <h3 className="font-display text-base">Private context</h3>
+              <h3 className="font-display text-base">Closed records</h3>
             </div>
 
             <ul className="space-y-3">

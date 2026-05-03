@@ -47,3 +47,43 @@ export const batchPayoutAbi = [
     outputs: []
   }
 ] as const;
+
+export const veilHubAbi = [
+  {
+    type: "function",
+    name: "payOpen",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "paymentId", type: "bytes32" },
+      { name: "recipient", type: "address" },
+      { name: "amount", type: "uint256" },
+      { name: "reference", type: "bytes32" }
+    ],
+    outputs: []
+  },
+  {
+    type: "function",
+    name: "payOpenBatch",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "batchId", type: "bytes32" },
+      { name: "recipients", type: "address[]" },
+      { name: "amounts", type: "uint256[]" },
+      { name: "paymentIds", type: "bytes32[]" },
+      { name: "reference", type: "bytes32" }
+    ],
+    outputs: []
+  },
+  {
+    type: "function",
+    name: "recordUnifiedBalanceOpenPayment",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "paymentId", type: "bytes32" },
+      { name: "recipient", type: "address" },
+      { name: "amount", type: "uint256" },
+      { name: "settlementReference", type: "bytes32" }
+    ],
+    outputs: []
+  }
+] as const;

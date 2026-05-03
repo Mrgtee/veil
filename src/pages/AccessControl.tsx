@@ -48,16 +48,16 @@ export default function AccessControl() {
       <SectionHeader
         eyebrow="Compliance"
         title="Access control"
-        description="Manage disclosure permissions for confidential payments and review the audit trail."
+        description="Manage disclosure permissions for closed-payment records and review the audit trail."
       />
 
       <div className="grid lg:grid-cols-[1fr_360px] gap-6">
         <div className="space-y-6">
-          {/* Records → grant access */}
+          {/* Records -> grant access */}
           <div className="surface-card overflow-hidden">
             <div className="px-5 py-4 border-b border-border flex items-center justify-between">
               <div>
-                <h3 className="font-display text-lg">Confidential records</h3>
+                <h3 className="font-display text-lg">Closed records</h3>
                 <p className="text-xs text-muted-foreground">Grant or revoke disclosure access</p>
               </div>
             </div>

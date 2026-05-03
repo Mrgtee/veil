@@ -39,7 +39,7 @@ export function ModeBadge({ mode, subtle = false }: { mode: PaymentMode; subtle?
   if (mode === "confidential") {
     return (
       <span className={cn(base, subtle ? "bg-confidential-soft text-confidential border-confidential/15" : "bg-confidential text-confidential-foreground border-confidential")}>
-        <Lock className="h-3 w-3" /> Confidential
+        <Lock className="h-3 w-3" /> Closed
       </span>
     );
   }
@@ -60,7 +60,7 @@ export function ConfidentialLockBadge() {
 
 export function DisclosureBadge({ status }: { status: DisclosureStatus }) {
   const map: Record<DisclosureStatus, { label: string; cls: string; icon: React.ReactNode }> = {
-    private:   { label: "Private",            cls: "bg-confidential-soft text-confidential border-confidential/20", icon: <Lock className="h-3 w-3" /> },
+    private:   { label: "Closed",             cls: "bg-confidential-soft text-confidential border-confidential/20", icon: <Lock className="h-3 w-3" /> },
     requested: { label: "Awaiting approval",  cls: "bg-warning/10 text-warning border-warning/20",                  icon: <KeyRound className="h-3 w-3" /> },
     granted:   { label: "Access granted",     cls: "bg-success/10 text-success border-success/20",                  icon: <ShieldCheck className="h-3 w-3" /> },
     revoked:   { label: "Revoked",            cls: "bg-muted text-muted-foreground border-border",                  icon: <AlertTriangle className="h-3 w-3" /> },

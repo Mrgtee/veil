@@ -9,8 +9,8 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "TMPDIR=/tmp TEMP=/tmp TMP=/tmp vitest run",
+    "test:watch": "TMPDIR=/tmp TEMP=/tmp TMP=/tmp vitest"
   },
   "dependencies": {
     "@circle-fin/adapter-viem-v2": "^1.8.3",
