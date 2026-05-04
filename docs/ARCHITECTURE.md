@@ -1,64 +1,97 @@
 # Architecture
 
-Veil has three layers:
+Veil has four layers:
 
-1. Frontend wallet app
-2. Optional API for non-custodial metadata and operator diagnostics
-3. Arc contracts for payment identity and future shielded settlement
+1. Vite React wallet app
+2. API-owned temporary testnet ledger
+3. Arc contracts for VeilHub identity and future VeilShield settlement
+4. Future database/indexer infrastructure for production truth
 
 ## Frontend
 
-The frontend is a Vite React app under `src`.
-
 Main app areas:
 
-- `NewPayment`: single open payments with explicit mode and source selection.
-- `BatchPayments`: form-based batch payments with per-recipient progress.
-- `UnifiedBalance`: connected-wallet deposits and balance reads.
-- `Dashboard`: current app data from recorded payments.
-- `History`: searchable payment ledger with pending and failed states.
-- `ConfidentialRecords` and `AccessControl`: VeilShield/closed-payment references and disclosure workflow.
+- `NewPayment`: single payments with explicit mode/source selection.
+- `BatchPayments`: form-based recipients, total USDC, validation, and per-recipient progress.
+- `UnifiedBalance`: connected-wallet balance reads and deposits through Circle AppKit.
+- `Dashboard`, `History`, `PaymentDetailsDrawer`: API ledger views.
+- `ConfidentialRecords`, `AccessControl`: VeilShield/Closed Payment records and disclosure workflow.
 - `Settings`: workspace preferences.
 
 Shared payment logic lives in `src/lib/payments`:
 
-- `wallet.ts`: wallet account memory and EVM chain switching.
-- `arcDirect.ts`: Arc Direct amount parsing, recipient validation, direct sends, and batch validation.
-- `unifiedBalance.ts`: Circle AppKit loading, wallet adapter creation, balance cache, deposit, spend, settlement steps, and balance math.
-- `recording.ts`: successful, pending, and failed payment recording.
-- `errors.ts`: user-friendly error formatting and delayed settlement detection.
-- `types.ts`: payment mode/source labels and options.
+- `wallet.ts`: account handling and network switching.
+- `arcDirect.ts`: VeilHub setup checks, USDC decimals/balance/allowance reads, conditional approval, `payOpen`, `payOpenBatch`, and Unified Balance reference registration.
+- `unifiedBalance.ts`: Circle AppKit browser-wallet adapter, deposit, balance read, spend, pending balance handling, and settlement step parsing.
+- `recording.ts`: API ledger writes after real transaction or explicit pending reference exists.
+- `errors.ts`: wallet rejection, contract revert, insufficient balance, API failure, and delayed settlement formatting.
 
 ## Wallet Model
 
-Wallet connection is global. Users connect once at sign-in, and the connected address appears in the top bar. Payment pages do not ask for duplicate wallet connections.
+Wallet connection is global. Payment pages use the wallet visible in the app shell and do not ask users to reconnect in the middle of the flow.
+
+## Arc Direct Model
+
+Arc Direct is VeilHub-only. It requires `VITE_USE_VEIL_HUB=true`, `VITE_VEIL_HUB_ADDRESS`, and `VITE_ARC_USDC_ADDRESS`.
+
+Flow:
+
+1. Validate recipient and amount.
+2. Switch/request Arc.
+3. Read USDC decimals, wallet balance, and VeilHub allowance.
+4. Request `approve` only if allowance is too low.
+5. Call `VeilHub.payOpen` or `VeilHub.payOpenBatch`.
+6. Write the settled payment to the API ledger.
+
+No native-transfer fallback exists.
 
 ## Unified Balance Model
 
-User-facing Unified Balance flows use the browser wallet adapter from Circle AppKit. Backend-managed Unified Balance HTTP spend and bridge endpoints are disabled because user-facing spend must not use backend wallets.
+Unified Balance user flows stay connected-wallet owned through Circle AppKit. The API does not spend from backend-managed wallets.
 
-Confirmed balance is spendable. Pending balance is shown but not treated as available.
+If spend succeeds:
 
-## Payment Recording
+- with VeilHub configured: record the API ledger and register `recordUnifiedBalanceOpenPayment`
+- without VeilHub configured: record `pending_veilhub_registration`
+- with delayed final settlement and balance deducted: record `pending_settlement`
+- with no deduction: record no success
 
-Records are stored in browser localStorage in this version:
+## API Ledger
 
-- `veil.live.payments`
-- `veil.live.records`
-- `veil.live.access`
-- `veil.live.audit`
+The API JSON ledger is temporary testnet infrastructure. It uses Zod validation, server-side IDs, `createdAt` timestamps, and atomic writes.
 
-Successful payments are recorded as `settled`. If Unified Balance appears deducted but Arc settlement confirmation is delayed, Veil records `pending` with a settlement note. If spend fails without deduction, Veil does not record success.
+Ledger statuses:
 
-## Contracts
+- `settled`
+- `pending_settlement`
+- `pending_veilhub_registration`
+- `failed`
 
-`VeilHub` is the main on-chain identity for open ERC20 USDC payments on Arc. It emits single, batch, and Unified Balance reference events.
+Ledger sources:
 
-`VeilShield` is the experimental hidden-amount layer. It is intentionally separate from visible open payment routing.
+- `arc_direct`
+- `unified_balance`
+- `veilshield_closed`, reserved for future closed settlement
 
-## API
+Production direction is a database/indexer stack with VeilHub event indexing and VeilShield event indexing when closed payments are live.
 
-The API in `apps/api` still provides health/config and metadata intent endpoints, but user-facing backend-managed bridge and Unified Balance spend endpoints return `410 Gone`.
+## Closed Payment And VeilShield
 
-Operator scripts under `apps/api/src/unified` are testnet diagnostics only and require private keys. They are not used by the frontend payment flow.
+Closed Payment means sender visible, recipient visible, and amount hidden onchain. The frontend blocks settlement until VeilShield verifier/circuits are deployed and wired.
 
+`VeilShield` is separate from VeilHub because visible ERC20 routing cannot hide amount. It defines deposit, private note commitments, nullifiers, hidden transfer proof hooks, and withdraw proof hooks. It remains experimental/testnet-only until audited.
+
+## API Endpoints
+
+- `GET /api/payments`
+- `POST /api/payments`
+- `GET /api/dashboard`
+- `GET /api/activity`
+- `GET /api/confidential-records`
+- `POST /api/confidential-records/:id/reveal-request`
+- `GET /api/disclosure-access`
+- `POST /api/disclosure-access`
+- `POST /api/disclosure-access/:id/revoke`
+- `GET /api/audit-trail`
+
+Managed bridge and backend-managed Unified Balance endpoints return `410 Gone`.

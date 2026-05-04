@@ -1,53 +1,3 @@
-export const paymentVaultAbi = [
-  {
-    type: "function",
-    name: "payOpen",
-    stateMutability: "payable",
-    inputs: [
-      { name: "recipient", type: "address" },
-      { name: "externalId", type: "bytes32" }
-    ],
-    outputs: []
-  },
-  {
-    type: "function",
-    name: "payConfidential",
-    stateMutability: "payable",
-    inputs: [
-      { name: "recipient", type: "address" },
-      { name: "commitmentId", type: "bytes32" },
-      { name: "externalId", type: "bytes32" }
-    ],
-    outputs: []
-  }
-] as const;
-
-export const batchPayoutAbi = [
-  {
-    type: "function",
-    name: "payBatchOpen",
-    stateMutability: "payable",
-    inputs: [
-      { name: "recipients", type: "address[]" },
-      { name: "amounts", type: "uint256[]" },
-      { name: "batchId", type: "bytes32" }
-    ],
-    outputs: []
-  },
-  {
-    type: "function",
-    name: "payBatchConfidential",
-    stateMutability: "payable",
-    inputs: [
-      { name: "recipients", type: "address[]" },
-      { name: "amounts", type: "uint256[]" },
-      { name: "batchCommitment", type: "bytes32" },
-      { name: "batchId", type: "bytes32" }
-    ],
-    outputs: []
-  }
-] as const;
-
 export const veilHubAbi = [
   {
     type: "function",
@@ -85,5 +35,42 @@ export const veilHubAbi = [
       { name: "settlementReference", type: "bytes32" }
     ],
     outputs: []
+  }
+] as const;
+
+export const erc20Abi = [
+  {
+    type: "function",
+    name: "decimals",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint8" }]
+  },
+  {
+    type: "function",
+    name: "balanceOf",
+    stateMutability: "view",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }]
+  },
+  {
+    type: "function",
+    name: "allowance",
+    stateMutability: "view",
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" }
+    ],
+    outputs: [{ name: "", type: "uint256" }]
+  },
+  {
+    type: "function",
+    name: "approve",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint256" }
+    ],
+    outputs: [{ name: "", type: "bool" }]
   }
 ] as const;

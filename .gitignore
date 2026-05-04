@@ -7,10 +7,21 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies and builds
 node_modules
 dist
 dist-ssr
-*.local
+.vite
+.cache
+tmp
+apps/api/data/
+
+# Local secrets
+.env
+.env.*
+!.env.example
+apps/api/.env
+apps/api/.env.*
 
 # Editor directories and files
 .vscode/*
@@ -22,57 +33,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+*.local
 
-# local secrets
-.env
-.env.*
-apps/api/.env
-apps/api/.env.*
-
-# build/cache/logs
-dist
-.vite
-.cache
-tmp
-*.log
-
-# local backup files
-*.before-*.tsx
-*.backup.tsx
-*.bak.tsx
-
-# local secrets
-.env
-.env.*
-apps/api/.env
-apps/api/.env.*
-
-# build/cache/logs
-dist
-.vite
-.cache
-tmp
-*.log
-
-# local backup files
-*.before-*.tsx
-*.backup.tsx
-*.bak.tsx
-
-# local secrets
-.env
-.env.*
-apps/api/.env
-apps/api/.env.*
-
-# build/cache/logs
-dist
-.vite
-.cache
-tmp
-*.log
-
-# local backup files
+# Local backup files
 *.before-*.tsx
 *.backup.tsx
 *.bak.tsx

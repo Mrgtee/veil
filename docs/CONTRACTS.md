@@ -5,6 +5,7 @@
 File: `contracts/src/VeilHub.sol`
 
 VeilHub is the main on-chain identity for open Veil payments on Arc.
+The frontend Arc Direct flow is wired to this contract and does not use the retired native-value vault or batch payout contracts.
 
 Features:
 
@@ -89,3 +90,12 @@ Deploy order:
 
 Do not deploy VeilShield as production-ready until circuits and audits are complete.
 
+Frontend Arc Direct requires:
+
+```bash
+VITE_USE_VEIL_HUB=true
+VITE_VEIL_HUB_ADDRESS=<deployed VeilHub>
+VITE_ARC_USDC_ADDRESS=<Arc USDC ERC20>
+```
+
+Unified Balance can spend without VeilHub, but those records stay `pending_veilhub_registration` until a VeilHub reference transaction is submitted.

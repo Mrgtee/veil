@@ -15,9 +15,14 @@ import {
   getPaymentSourceLabel,
   type PaymentSource,
 } from "@/lib/payments/types";
-import { parseUsdcAmount, sendArcDirectPayment } from "@/lib/payments/arcDirect";
-import { formatPaymentError, isSettlementDelay } from "@/lib/payments/errors";
-import { makeCommitmentId, makeId } from "@/lib/payments/ids";
+import {
+  getVeilHubSetup,
+  parseUsdcAmount,
+  registerUnifiedBalanceReference,
+  sendVeilHubOpenPayment,
+} from "@/lib/payments/arcDirect";
+import { formatPaymentError, getErrorMessage, isSettlementDelay } from "@/lib/payments/errors";
+import { makeBytes32Id, makeCommitmentId, makeId } from "@/lib/payments/ids";
 import { recordSinglePayment } from "@/lib/payments/recording";
 import {
   balanceReducedEnough,
@@ -110,6 +115,7 @@ export default function NewPayment() {
   const [loading, setLoading] = useState(false);
   const [balance, setBalance] = useState<UnifiedBalanceData | null>(null);
   const [balanceStatus, setBalanceStatus] = useState("");
+  const veilHubSetup = getVeilHubSetup();
 
   const isClosedMode = mode === "confidential";
   const confirmedBalance = getBalanceNumber(balance, "totalConfirmedBalance");
@@ -118,6 +124,7 @@ export default function NewPayment() {
   const amountNumber = Number(amount || "0");
   const unifiedBalanceTooLow =
     source === "unified-balance" && amountNumber > 0 && confirmedBalance < amountNumber;
+  const arcDirectSetupMissing = source === "arc-direct" && !veilHubSetup.ready;
 
   const canSubmit = useMemo(() => {
     if (!mode || !source || isClosedMode) return false;
@@ -129,12 +136,16 @@ export default function NewPayment() {
       return false;
     }
 
+    if (source === "arc-direct" && arcDirectSetupMissing) {
+      return false;
+    }
+
     if (source === "unified-balance") {
       return !unifiedBalanceTooLow;
     }
 
     return true;
-  }, [amount, isClosedMode, mode, recipient, source, unifiedBalanceTooLow]);
+  }, [amount, arcDirectSetupMissing, isClosedMode, mode, recipient, source, unifiedBalanceTooLow]);
 
   async function loadUnifiedBalance(showCached = true) {
     if (!address) return;
@@ -166,7 +177,9 @@ export default function NewPayment() {
     }
   }, [address, source]);
 
-  async function submitUnifiedBalancePayment(commitmentId?: string) {
+  async function submitUnifiedBalancePayment(paymentId: `0x${string}`, commitmentId?: string) {
+    if (!address) throw new Error("Wallet is not connected in the app.");
+
     const latestBefore = balance || (await readUnifiedBalance(address));
     const beforeBalance = getBalanceNumber(latestBefore, "totalConfirmedBalance");
     const spendAmount = Number(amount);
@@ -179,23 +192,58 @@ export default function NewPayment() {
         })
       );
       const txHash = getFinalTxHash(raw);
+      const pendingReference = makeId("pending_veilhub");
+      let veilHubTxHash: string | undefined;
+      let recordStatus: "settled" | "pending_settlement" | "pending_veilhub_registration" = "settled";
+      let settlementNote = "Unified Balance spend settled on Arc and was registered with VeilHub.";
 
-      await recordSinglePayment({
-        mode: mode as PaymentMode,
-        source: "unified-balance",
-        recipient,
-        recipientLabel,
-        amount,
-        memo,
-        txHash,
-        commitmentId,
-        status: "settled",
-      });
+      if (!txHash) {
+        recordStatus = "pending_settlement";
+        settlementNote = "Unified Balance spend returned without a final Arc transaction hash. Confirm settlement before treating it as complete.";
+      } else {
+        const registration = await registerUnifiedBalanceReference({
+          paymentId,
+          recipient: recipient as `0x${string}`,
+          amount,
+          settlementReference: txHash as `0x${string}`,
+        }).catch((registrationErr) => ({
+          registered: false as const,
+          missing: [getErrorMessage(registrationErr, "VeilHub registration failed.")],
+        }));
+
+        if (registration.registered) {
+          veilHubTxHash = registration.txHash;
+        } else {
+          recordStatus = "pending_veilhub_registration";
+          settlementNote = `Unified Balance spend settled on Arc, but VeilHub registration is pending: ${registration.missing.join(", ")}.`;
+        }
+      }
+
+      try {
+        await recordSinglePayment({
+          mode: mode as PaymentMode,
+          source: "unified-balance",
+          recipient,
+          recipientLabel,
+          amount,
+          memo,
+          txHash,
+          pendingReference: recordStatus === "settled" ? undefined : pendingReference,
+          veilHubTxHash,
+          paymentId,
+          commitmentId,
+          status: recordStatus,
+          settlementNote,
+        });
+      } catch (ledgerErr) {
+        throw new Error(`Transaction submitted (${txHash || pendingReference}), but API ledger write failed: ${getErrorMessage(ledgerErr)}`);
+      }
 
       return {
-        status: "settled" as const,
-        txHash,
-        message: "Unified Balance spend settled on Arc.",
+        status: recordStatus === "settled" ? "settled" as const : "pending" as const,
+        txHash: txHash || undefined,
+        reference: recordStatus === "settled" ? undefined : pendingReference,
+        message: settlementNote,
         raw,
       };
     } catch (err) {
@@ -209,20 +257,25 @@ export default function NewPayment() {
         throw new Error("Arc settlement was not confirmed and your Unified Balance was not deducted. No payment was recorded.");
       }
 
-      const pendingRef = makeId("pending_unified");
+      const pendingRef = makeId("pending_settlement");
 
-      await recordSinglePayment({
-        mode: mode as PaymentMode,
-        source: "unified-balance",
-        recipient,
-        recipientLabel,
-        amount,
-        memo,
-        txHash: pendingRef,
-        commitmentId,
-        status: "pending",
-        settlementNote: "Unified Balance was deducted but final Arc settlement confirmation was delayed.",
-      });
+      try {
+        await recordSinglePayment({
+          mode: mode as PaymentMode,
+          source: "unified-balance",
+          recipient,
+          recipientLabel,
+          amount,
+          memo,
+          pendingReference: pendingRef,
+          paymentId,
+          commitmentId,
+          status: "pending_settlement",
+          settlementNote: "Unified Balance was deducted but final Arc settlement confirmation was delayed.",
+        });
+      } catch (ledgerErr) {
+        throw new Error(`Unified Balance appears deducted (${pendingRef}), but API ledger write failed: ${getErrorMessage(ledgerErr)}`);
+      }
 
       return {
         status: "pending" as const,
@@ -244,39 +297,55 @@ export default function NewPayment() {
       parseUsdcAmount(amount);
 
       if (isClosedMode) {
-        throw new Error("Closed Payment needs the VeilShield hidden-amount contract layer before it can settle. This build includes the architecture and contracts, but does not fake a hidden amount with a visible transfer.");
+        throw new Error("Closed Payment needs the VeilShield hidden-amount contract layer before it can settle. This build includes the architecture and contracts, but does not label a visible transfer as amount-hidden.");
       }
 
       const commitmentId = mode === "confidential" ? makeCommitmentId() : undefined;
+      const paymentId = makeBytes32Id();
       let nextResult: PaymentResult;
 
       if (source === "unified-balance") {
         setStatus("Spending confirmed Unified Balance USDC into Arc...");
-        nextResult = await submitUnifiedBalancePayment(commitmentId);
+        nextResult = await submitUnifiedBalancePayment(paymentId, commitmentId);
         await loadUnifiedBalance(false);
       } else {
-        setStatus("Switching to Arc and sending from your connected wallet...");
-        const txHash = await sendArcDirectPayment({
+        if (!veilHubSetup.ready) {
+          throw new Error(`Arc Direct requires VeilHub setup: ${veilHubSetup.missing.join(", ")}.`);
+        }
+
+        setStatus("Checking USDC allowance and submitting through VeilHub...");
+        const hubResult = await sendVeilHubOpenPayment({
+          paymentId,
           recipient: recipient as `0x${string}`,
           amount,
         });
 
-        await recordSinglePayment({
-          mode,
-          source: "arc-direct",
-          recipient,
-          recipientLabel,
-          amount,
-          memo,
-          txHash,
-          commitmentId,
-          status: "settled",
-        });
+        try {
+          await recordSinglePayment({
+            mode,
+            source: "arc-direct",
+            recipient,
+            recipientLabel,
+            amount,
+            amountBase: hubResult.amountBase,
+            decimals: hubResult.decimals,
+            memo,
+            txHash: hubResult.txHash,
+            paymentId,
+            commitmentId,
+            status: "settled",
+            settlementNote: hubResult.approvalTxHash
+              ? `USDC approval ${hubResult.approvalTxHash} confirmed before VeilHub payment.`
+              : "Existing USDC allowance was sufficient for VeilHub.",
+          });
+        } catch (ledgerErr) {
+          throw new Error(`Transaction submitted (${hubResult.txHash}), but API ledger write failed: ${getErrorMessage(ledgerErr)}`);
+        }
 
         nextResult = {
           status: "settled",
-          txHash,
-          message: "Arc Direct payment settled on Arc.",
+          txHash: hubResult.txHash,
+          message: "Arc Direct payment settled through VeilHub on Arc.",
         };
       }
 
@@ -297,7 +366,9 @@ export default function NewPayment() {
         ? "Choose payment source"
         : isClosedMode
           ? "Closed Payment needs VeilShield"
-          : unifiedBalanceTooLow
+          : arcDirectSetupMissing
+            ? "VeilHub setup required"
+            : unifiedBalanceTooLow
             ? "Insufficient Unified Balance"
             : "Submit Open Payment";
 
@@ -410,6 +481,27 @@ export default function NewPayment() {
                 </p>
               </div>
             </div>
+          </div>
+        )}
+
+        {source === "arc-direct" && (
+          <div
+            className={cn(
+              "rounded-lg border p-4 text-sm",
+              veilHubSetup.ready ? "border-success/30 bg-success/5" : "border-warning/30 bg-warning/5"
+            )}
+          >
+            <div className="font-medium">
+              {veilHubSetup.ready ? "Arc Direct will route through VeilHub." : "Arc Direct setup required."}
+            </div>
+            <p className="mt-1 text-muted-foreground">
+              Arc Direct uses ERC20 USDC allowance and `VeilHub.payOpen`; native wallet-transfer fallback is disabled.
+            </p>
+            {!veilHubSetup.ready && (
+              <div className="mt-2 font-mono text-xs">
+                Missing: {veilHubSetup.missing.join(", ")}
+              </div>
+            )}
           </div>
         )}
 

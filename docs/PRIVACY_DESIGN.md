@@ -50,6 +50,8 @@ Without a zero-knowledge proof, a contract cannot know that a hidden note is val
 - Withdraw proof hook and token transfer.
 - `IVeilShieldVerifier` interface.
 - Tests for deposits, duplicate commitments, invalid proof, withdraw, and nullifier reuse.
+- Frontend Closed Payment selection that blocks visible settlement instead of simulating privacy.
+- API ledger support for future `veilshield_closed` records.
 
 ## What Remains
 
@@ -59,10 +61,10 @@ Without a zero-knowledge proof, a contract cannot know that a hidden note is val
 - Proof generation in the frontend.
 - Verifier contract deployment.
 - Event indexing and recipient note discovery.
+- Production database/indexer storage for closed records.
 - Formal threat model.
 - External security audit.
 
 ## Security Requirements
 
 VeilShield must remain experimental and testnet-only until audited. The skeleton is not production cryptography, and no UI should imply that a normal visible Arc transfer hides the amount.
-

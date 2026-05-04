@@ -19,28 +19,54 @@ export default function AccessControl() {
   const [viewer, setViewer] = useState("");
   const [days, setDays] = useState("30");
   const [open, setOpen] = useState(false);
+  const [status, setStatus] = useState("");
+
+  async function loadAccessState() {
+    try {
+      const [nextRecords, nextAccess, nextAudit] = await Promise.all([
+        veilApi.listConfidentialRecords(),
+        veilApi.listDisclosureAccess(),
+        veilApi.listAuditTrail(),
+      ]);
+      setRecords(nextRecords);
+      setAccess(nextAccess);
+      setAudit(nextAudit);
+      setStatus("");
+    } catch (err) {
+      setRecords([]);
+      setAccess([]);
+      setAudit([]);
+      setStatus(err instanceof Error ? err.message : "Veil API ledger is unavailable.");
+    }
+  }
 
   useEffect(() => {
-    veilApi.listConfidentialRecords().then(setRecords);
-    veilApi.listDisclosureAccess().then(setAccess);
-    veilApi.listAuditTrail().then(setAudit);
+    loadAccessState();
   }, []);
 
   const grant = async () => {
     if (!selected || !viewer) return;
-    await veilApi.grantAccess({ recordId: selected.id, viewer, durationDays: parseInt(days) || undefined });
-    setAccess((a) => [
-      ...a,
-      { id: `acc_${Date.now()}`, recordId: selected.id, viewer, viewerLabel: viewer, grantedBy: "ops@veil.app", grantedAt: new Date().toISOString(), expiresAt: new Date(Date.now() + (parseInt(days) || 30) * 86400e3).toISOString(), revoked: false },
-    ]);
-    toast.success("Access granted", { description: `${viewer} can now view ${selected.commitmentId}` });
-    setOpen(false); setViewer("");
+    try {
+      const nextAccess = await veilApi.grantAccess({ recordId: selected.id, viewer, durationDays: parseInt(days) || undefined });
+      setAccess((a) => [nextAccess, ...a]);
+      setRecords((rs) => rs.map((r) => r.id === selected.id ? { ...r, disclosureStatus: "granted", authorizedViewers: [...new Set([...r.authorizedViewers, viewer])] } : r));
+      await veilApi.listAuditTrail().then(setAudit);
+      toast.success("Access granted", { description: `${viewer} can now view ${selected.commitmentId}` });
+      setOpen(false); setViewer("");
+    } catch (err) {
+      toast.error("Access grant failed", { description: err instanceof Error ? err.message : "Veil API ledger is unavailable." });
+    }
   };
 
   const revoke = async (a: DisclosureAccess) => {
-    await veilApi.revokeAccess(a.id);
-    setAccess((all) => all.map((x) => x.id === a.id ? { ...x, revoked: true } : x));
-    toast.success("Access revoked");
+    try {
+      await veilApi.revokeAccess(a.id);
+      setAccess((all) => all.map((x) => x.id === a.id ? { ...x, revoked: true } : x));
+      await veilApi.listAuditTrail().then(setAudit);
+      toast.success("Access revoked");
+    } catch (err) {
+      toast.error("Access revoke failed", { description: err instanceof Error ? err.message : "Veil API ledger is unavailable." });
+    }
   };
 
   return (
@@ -48,8 +74,19 @@ export default function AccessControl() {
       <SectionHeader
         eyebrow="Compliance"
         title="Access control"
-        description="Manage disclosure permissions for closed-payment records and review the audit trail."
+        description="Manage disclosure permissions for VeilShield closed-payment records and review the audit trail."
       />
+
+      <div className="rounded-lg border border-confidential/30 bg-confidential-soft/60 p-4 text-sm">
+        Closed-payment access is ready for VeilShield records, but hidden-amount settlement is blocked until verifier/circuit-backed VeilShield transfers are deployed and audited.
+      </div>
+
+      {status && (
+        <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 text-sm">
+          <div className="font-medium">API ledger unavailable</div>
+          <p className="mt-1 text-muted-foreground">{status}</p>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-[1fr_360px] gap-6">
         <div className="space-y-6">
@@ -119,6 +156,11 @@ export default function AccessControl() {
                   </div>
                 );
               })}
+              {records.length === 0 && !status && (
+                <div className="px-5 py-8 text-sm text-muted-foreground">
+                  No VeilShield records are available yet. Closed settlement remains setup-required.
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -140,6 +182,9 @@ export default function AccessControl() {
                   <div className="text-[11px] text-muted-foreground mt-0.5">{formatDateTime(e.timestamp)}</div>
                 </li>
               ))}
+              {audit.length === 0 && (
+                <li className="text-sm text-muted-foreground">No audit events yet.</li>
+              )}
             </ol>
           </div>
         </div>

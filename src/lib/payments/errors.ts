@@ -52,8 +52,20 @@ export function formatPaymentError(err: unknown, fallback = "Payment failed") {
     return "The wallet request was rejected. No payment was submitted.";
   }
 
-  if (lower.includes("insufficient funds")) {
+  if (lower.includes("insufficient allowance")) {
+    return "USDC allowance is not high enough for VeilHub. Approve the requested USDC allowance and submit again.";
+  }
+
+  if (lower.includes("insufficient funds") || lower.includes("below this payment amount") || lower.includes("below the batch total")) {
     return "The connected wallet does not have enough spendable USDC for this payment.";
+  }
+
+  if (lower.includes("execution reverted") || lower.includes("contract function execution reverted")) {
+    return `VeilHub rejected the transaction: ${message}`;
+  }
+
+  if (lower.includes("veil api is unavailable")) {
+    return message;
   }
 
   return message || fallback;

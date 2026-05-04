@@ -1,7 +1,8 @@
 import { defineChain } from "viem";
+import { ARC_CHAIN_ID, ARC_RPC_URL } from "./env";
 
 export const arcTestnet = defineChain({
-  id: 5042002,
+  id: ARC_CHAIN_ID,
   name: "Arc Testnet",
   nativeCurrency: {
     name: "USDC",
@@ -10,11 +11,11 @@ export const arcTestnet = defineChain({
   },
   rpcUrls: {
     default: {
-      http: ["https://rpc.testnet.arc.network"],
+      http: [ARC_RPC_URL],
       webSocket: ["wss://rpc.testnet.arc.network"],
     },
     public: {
-      http: ["https://rpc.testnet.arc.network"],
+      http: [ARC_RPC_URL],
       webSocket: ["wss://rpc.testnet.arc.network"],
     },
   },

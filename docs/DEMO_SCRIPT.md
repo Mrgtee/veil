@@ -5,6 +5,7 @@
 "Veil is an Arc-based USDC payment workspace. Users connect one wallet globally, then choose payment mode and payment source before sending."
 
 Show the top bar wallet and mobile menu.
+Mention that Dashboard and History now read from the API-owned testnet ledger, not browser payment storage.
 
 ## 0:30-1:10 - Unified Balance
 
@@ -16,7 +17,7 @@ Open Unified Balance, choose a source chain, show deposit amount, and explain wa
 
 "For a normal payment, choose Open Payment and a source: Arc Direct or Unified Balance USDC."
 
-Enter recipient, amount, optional label/reference, select Open Payment, select source, and point to clear status/result handling.
+Enter recipient, amount, optional label/reference, select Open Payment, select source, and point to clear status/result handling. For Arc Direct, call out that it requires VeilHub + Arc USDC env values and routes through ERC20 approval plus `VeilHub.payOpen`. For Unified Balance, call out that it remains usable even if VeilHub registration is pending.
 
 ## 1:55-2:30 - Batch Payments and History
 
@@ -29,4 +30,3 @@ Open Batch Payments, add a second row, show total, then open History and point o
 "Closed Payment means the amount is hidden onchain, not just hidden in the UI. Normal ERC20 transfers cannot do that. VeilShield is the experimental deposit-note-nullifier-ZK architecture. Until it is deployed and audited, Veil blocks visible transfers from pretending to be closed payments."
 
 Open Closed Records or Privacy Design docs and end with the roadmap to full Noir/ZK settlement.
-

@@ -35,6 +35,10 @@ function getExplorerUrl(txHash: string) {
   return `https://testnet.arcscan.app/tx/${txHash}`;
 }
 
+function isExplorerTx(value: string) {
+  return /^0x[a-fA-F0-9]{64}$/.test(value);
+}
+
 function Row({
   label,
   value,
@@ -151,7 +155,7 @@ export function PaymentDetailsDrawer({
               <ModeBadge mode={p.mode} />
               <SourceBadge payment={p} />
               <span className="inline-flex w-fit rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-medium capitalize text-emerald-700">
-                {p.status}
+                {p.status.replaceAll("_", " ")}
               </span>
             </div>
 
@@ -212,7 +216,7 @@ export function PaymentDetailsDrawer({
                 {transactionRefs.map((tx) => (
                   <div key={tx} className="rounded-lg border bg-background p-3">
                     <div className="break-all font-mono text-xs text-muted-foreground">{tx}</div>
-                    {!tx.startsWith("pending_") && (
+                    {isExplorerTx(tx) && (
                       <Button asChild variant="outline" size="sm" className="mt-3">
                         <a href={getExplorerUrl(tx)} target="_blank" rel="noreferrer">
                           <ExternalLink className="mr-2 h-3.5 w-3.5" />

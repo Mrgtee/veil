@@ -54,6 +54,10 @@ function isUnifiedPayment(payment: Payment) {
   return getLiquiditySource(payment).toLowerCase().includes("unified");
 }
 
+function isExplorerTx(value?: string) {
+  return Boolean(value && /^0x[a-fA-F0-9]{64}$/.test(value));
+}
+
 function modeLabel(mode: string) {
   return mode === "confidential" ? "Closed" : "Open";
 }
@@ -78,6 +82,7 @@ function ModeBadge({ mode }: { mode: string }) {
 
 function StatusBadge({ status }: { status: string }) {
   const ok = status === "settled";
+  const label = status.replaceAll("_", " ");
 
   return (
     <span
@@ -88,7 +93,7 @@ function StatusBadge({ status }: { status: string }) {
           : "border-orange-200 bg-orange-50 text-orange-700"
       )}
     >
-      {status}
+      {label}
     </span>
   );
 }
@@ -117,9 +122,19 @@ export default function History() {
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
   const [active, setActive] = useState<Payment | null>(null);
+  const [ledgerStatus, setLedgerStatus] = useState("");
 
   useEffect(() => {
-    veilApi.listPayments().then(setPayments);
+    veilApi
+      .listPayments()
+      .then((items) => {
+        setPayments(items);
+        setLedgerStatus("");
+      })
+      .catch((err) => {
+        setLedgerStatus(err instanceof Error ? err.message : "Veil API ledger is unavailable.");
+        setPayments([]);
+      });
   }, []);
 
   const filtered = useMemo(() => {
@@ -147,7 +162,9 @@ export default function History() {
           ? p.type === "single"
           : filter === "batch"
           ? p.type === "batch"
-          : p.status === filter;
+          : filter === "pending"
+            ? p.status === "pending" || p.status === "pending_settlement" || p.status === "pending_veilhub_registration"
+            : p.status === filter;
 
       return matchesQ && matchesF;
     });
@@ -213,6 +230,13 @@ export default function History() {
       />
 
       <div className="surface-card p-4 space-y-4">
+        {ledgerStatus && (
+          <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 text-sm">
+            <div className="font-medium">API ledger unavailable</div>
+            <p className="mt-1 text-muted-foreground">{ledgerStatus}</p>
+          </div>
+        )}
+
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -300,7 +324,7 @@ export default function History() {
                   </td>
 
                   <td className="px-5 py-3.5 font-mono text-xs max-w-[240px]">
-                    {p.txHash ? (
+                    {isExplorerTx(p.txHash) ? (
                       <a
                         className="underline break-all"
                         href={`https://testnet.arcscan.app/tx/${p.txHash}`}
@@ -309,6 +333,8 @@ export default function History() {
                       >
                         {p.txHash}
                       </a>
+                    ) : p.txHash || p.pendingReference ? (
+                      <span className="break-all text-muted-foreground">{p.txHash || p.pendingReference}</span>
                     ) : p.mode === "confidential" && p.commitmentId ? (
                       <span className="inline-flex items-center gap-1 text-confidential break-all">
                         <Lock className="h-3 w-3 shrink-0" />
@@ -329,7 +355,7 @@ export default function History() {
                         <Eye className="h-3.5 w-3.5 mr-1" /> View
                       </Button>
 
-                      {p.txHash && (
+                      {isExplorerTx(p.txHash) && (
                         <Button variant="ghost" size="sm" aria-label="Open in explorer" asChild>
                           <a
                             href={`https://testnet.arcscan.app/tx/${p.txHash}`}

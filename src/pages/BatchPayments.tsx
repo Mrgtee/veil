@@ -1,15 +1,11 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { parseUnits } from "viem";
-import { useAccount, useSwitchChain, useWriteContract } from "wagmi";
+import { useAccount } from "wagmi";
 import { AlertCircle, ExternalLink, Plus, Send, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SectionHeader } from "@/components/veil/SectionHeader";
-import { arcTestnet } from "@/lib/arc";
-import { batchPayoutAbi } from "@/lib/abi";
-import { BATCH_PAYOUT_ADDRESS } from "@/lib/env";
 import {
   PAYMENT_MODE_OPTIONS,
   PAYMENT_SOURCE_OPTIONS,
@@ -17,7 +13,14 @@ import {
   type PaymentSource,
 } from "@/lib/payments/types";
 import type { PaymentMode } from "@/types/veil";
-import { cleanBatchRows, getBatchTotal, type BatchRecipientRow } from "@/lib/payments/arcDirect";
+import {
+  cleanBatchRows,
+  getBatchTotal,
+  getVeilHubSetup,
+  registerUnifiedBalanceReference,
+  sendVeilHubOpenBatch,
+  type BatchRecipientRow,
+} from "@/lib/payments/arcDirect";
 import { formatPaymentError, getErrorMessage, isSettlementDelay } from "@/lib/payments/errors";
 import { makeBytes32Id, makeId } from "@/lib/payments/ids";
 import { recordBatchPayment } from "@/lib/payments/recording";
@@ -35,8 +38,9 @@ type RowResult = {
   recipientLabel: string;
   recipient: string;
   amount: string;
-  status: "pending" | "processing" | "settled" | "pending_settlement" | "failed";
+  status: "pending" | "processing" | "settled" | "pending_settlement" | "pending_veilhub_registration" | "failed";
   txHash?: string;
+  veilHubTxHash?: string;
   error?: string;
 };
 
@@ -102,9 +106,7 @@ function SelectionButton({
 }
 
 export default function BatchPayments() {
-  const { address, isConnected, chainId } = useAccount();
-  const { switchChainAsync } = useSwitchChain();
-  const { writeContractAsync } = useWriteContract();
+  const { address, isConnected } = useAccount();
   const [rows, setRows] = useState<BatchRecipientRow[]>([emptyRow()]);
   const [mode, setMode] = useState<PaymentMode | null>(null);
   const [source, setSource] = useState<PaymentSource | null>(null);
@@ -112,6 +114,7 @@ export default function BatchPayments() {
   const [loading, setLoading] = useState(false);
   const [batchId, setBatchId] = useState("");
   const [results, setResults] = useState<RowResult[]>([]);
+  const veilHubSetup = getVeilHubSetup();
 
   const totalAmount = useMemo(() => getBatchTotal(rows), [rows]);
   const filledRows = useMemo(
@@ -122,13 +125,14 @@ export default function BatchPayments() {
 
   const canSubmit = useMemo(() => {
     if (!mode || !source || isClosedMode) return false;
+    if (source === "arc-direct" && !veilHubSetup.ready) return false;
     try {
       cleanBatchRows(rows);
       return true;
     } catch {
       return false;
     }
-  }, [isClosedMode, mode, rows, source]);
+  }, [isClosedMode, mode, rows, source, veilHubSetup.ready]);
 
   function updateRow(id: string, field: keyof BatchRecipientRow, value: string) {
     setRows((current) => current.map((row) => (row.id === id ? { ...row, [field]: value } : row)));
@@ -147,18 +151,13 @@ export default function BatchPayments() {
   }
 
   async function submitArcDirectBatch(cleanRows: BatchRecipientRow[], nextBatchId: `0x${string}`) {
-    if (!BATCH_PAYOUT_ADDRESS) {
-      throw new Error("VITE_BATCH_PAYOUT_ADDRESS is required for Arc Direct batch payments.");
-    }
-
-    if (chainId !== arcTestnet.id) {
-      setStatus("Switching wallet to Arc Testnet...");
-      await switchChainAsync({ chainId: arcTestnet.id });
+    if (!veilHubSetup.ready) {
+      throw new Error(`Arc Direct requires VeilHub setup: ${veilHubSetup.missing.join(", ")}.`);
     }
 
     const recipients = cleanRows.map((row) => row.recipient as `0x${string}`);
-    const amounts = cleanRows.map((row) => parseUnits(row.amount, 18));
-    const total = amounts.reduce((sum, value) => sum + value, 0n);
+    const amounts = cleanRows.map((row) => row.amount);
+    const paymentIds = cleanRows.map(() => makeBytes32Id());
 
     setResults(
       cleanRows.map((row) => ({
@@ -170,34 +169,45 @@ export default function BatchPayments() {
       }))
     );
 
-    setStatus("Submitting Arc Direct batch. Confirm in your wallet...");
-    const hash = await writeContractAsync({
-      address: BATCH_PAYOUT_ADDRESS,
-      abi: batchPayoutAbi,
-      functionName: "payBatchOpen",
-      args: [recipients, amounts, nextBatchId],
-      value: total,
-      chainId: arcTestnet.id,
-    });
-
-    setResults((current) => current.map((row) => ({ ...row, status: "settled", txHash: hash })));
-
-    await recordBatchPayment({
-      mode: "open",
-      source: "arc-direct",
-      rows: cleanRows,
-      txHash: hash,
+    setStatus("Checking USDC allowance and submitting the batch through VeilHub...");
+    const hubResult = await sendVeilHubOpenBatch({
       batchId: nextBatchId,
-      status: "settled",
+      recipients,
+      amounts,
+      paymentIds,
     });
 
-    setStatus("Arc Direct batch settled on Arc.");
+    setResults((current) => current.map((row) => ({ ...row, status: "settled", txHash: hubResult.txHash })));
+
+    try {
+      await recordBatchPayment({
+        mode: "open",
+        source: "arc-direct",
+        rows: cleanRows,
+        txHash: hubResult.txHash,
+        batchId: nextBatchId,
+        amountBase: hubResult.amountBase,
+        decimals: hubResult.decimals,
+        status: "settled",
+        settlementNote: hubResult.approvalTxHash
+          ? `USDC approval ${hubResult.approvalTxHash} confirmed before VeilHub batch.`
+          : "Existing USDC allowance was sufficient for VeilHub.",
+      });
+    } catch (ledgerErr) {
+      throw new Error(`Batch transaction submitted (${hubResult.txHash}), but API ledger write failed: ${getErrorMessage(ledgerErr)}`);
+    }
+
+    setStatus("Arc Direct batch settled through VeilHub on Arc.");
   }
 
   async function submitUnifiedBalanceBatch(cleanRows: BatchRecipientRow[], nextBatchId: `0x${string}`) {
     if (!address) throw new Error("Wallet is not connected.");
 
     const settledTxHashes: string[] = [];
+    const veilHubTxHashes: string[] = [];
+    const pendingRegistrations: string[] = [];
+    const pendingSettlements: string[] = [];
+    const paymentIds = cleanRows.map(() => makeBytes32Id());
 
     setResults(
       cleanRows.map((row) => ({
@@ -227,7 +237,31 @@ export default function BatchPayments() {
 
         const txHash = getFinalTxHash(raw);
         settledTxHashes.push(txHash);
-        setRowResult(row.id, { status: "settled", txHash });
+        let rowStatus: RowResult["status"] = "settled";
+
+        if (txHash) {
+          const registration = await registerUnifiedBalanceReference({
+            paymentId: paymentIds[index],
+            recipient: row.recipient as `0x${string}`,
+            amount: row.amount,
+            settlementReference: txHash as `0x${string}`,
+          }).catch((registrationErr) => ({
+            registered: false as const,
+            missing: [getErrorMessage(registrationErr, "VeilHub registration failed.")],
+          }));
+
+          if (registration.registered) {
+            veilHubTxHashes.push(registration.txHash);
+          } else {
+            rowStatus = "pending_veilhub_registration";
+            pendingRegistrations.push(`recipient ${index + 1}: ${registration.missing.join(", ")}`);
+          }
+        } else {
+          rowStatus = "pending_settlement";
+          pendingSettlements.push(makeId(`pending_settlement_${index + 1}`));
+        }
+
+        setRowResult(row.id, { status: rowStatus, txHash });
       } catch (err) {
         const message = getErrorMessage(err, `Recipient ${index + 1} failed.`);
 
@@ -239,15 +273,21 @@ export default function BatchPayments() {
             const pendingRef = makeId("pending_unified_batch");
             setRowResult(row.id, { status: "pending_settlement", txHash: pendingRef, error: message });
 
-            await recordBatchPayment({
-              mode: "open",
-              source: "unified-balance",
-              rows: cleanRows,
-              txHash: [...settledTxHashes, pendingRef].filter(Boolean).join(","),
-              batchId: nextBatchId,
-              status: "pending",
-              settlementNote: `Unified Balance was deducted for recipient ${index + 1}, but final Arc settlement confirmation was delayed.`,
-            });
+            try {
+              await recordBatchPayment({
+                mode: "open",
+                source: "unified-balance",
+                rows: cleanRows,
+                txHash: settledTxHashes.filter(Boolean).join(",") || undefined,
+                pendingReference: pendingRef,
+                veilHubTxHash: veilHubTxHashes.join(",") || undefined,
+                batchId: nextBatchId,
+                status: "pending_settlement",
+                settlementNote: `Unified Balance was deducted for recipient ${index + 1}, but final Arc settlement confirmation was delayed.`,
+              });
+            } catch (ledgerErr) {
+              throw new Error(`Unified Balance was deducted (${pendingRef}), but API ledger write failed: ${getErrorMessage(ledgerErr)}`);
+            }
 
             setStatus("Unified Balance was deducted for a recipient, but final Arc settlement confirmation is delayed. The batch was saved as pending.");
             return;
@@ -262,9 +302,11 @@ export default function BatchPayments() {
             source: "unified-balance",
             rows: cleanRows,
             txHash: settledTxHashes.join(","),
+            veilHubTxHash: veilHubTxHashes.join(",") || undefined,
             batchId: nextBatchId,
             status: "failed",
             settlementNote: `Batch stopped at recipient ${index + 1}: ${message}`,
+            error: message,
           });
         }
 
@@ -272,16 +314,44 @@ export default function BatchPayments() {
       }
     }
 
-    await recordBatchPayment({
-      mode: "open",
-      source: "unified-balance",
-      rows: cleanRows,
-      txHash: settledTxHashes.join(","),
-      batchId: nextBatchId,
-      status: "settled",
-    });
+    const ledgerStatus =
+      pendingSettlements.length > 0
+        ? "pending_settlement"
+        : pendingRegistrations.length > 0
+          ? "pending_veilhub_registration"
+          : "settled";
 
-    setStatus(`Unified Balance batch settled for ${cleanRows.length} recipients.`);
+    try {
+      await recordBatchPayment({
+        mode: "open",
+        source: "unified-balance",
+        rows: cleanRows,
+        txHash: settledTxHashes.filter(Boolean).join(",") || undefined,
+        veilHubTxHash: veilHubTxHashes.join(",") || undefined,
+        pendingReference:
+          ledgerStatus === "settled"
+            ? undefined
+            : pendingSettlements[0] || makeId("pending_veilhub_batch"),
+        batchId: nextBatchId,
+        status: ledgerStatus,
+        settlementNote:
+          ledgerStatus === "settled"
+            ? "Unified Balance batch settled on Arc and was registered with VeilHub."
+            : ledgerStatus === "pending_settlement"
+              ? "Unified Balance batch returned without every final Arc settlement hash. Confirm settlement before treating it as complete."
+              : `Unified Balance batch settled on Arc, but VeilHub registration is pending: ${pendingRegistrations.join("; ")}.`,
+      });
+    } catch (ledgerErr) {
+      throw new Error(`Batch settlement submitted (${settledTxHashes.join(",")}), but API ledger write failed: ${getErrorMessage(ledgerErr)}`);
+    }
+
+    setStatus(
+      ledgerStatus === "settled"
+        ? `Unified Balance batch settled for ${cleanRows.length} recipients.`
+        : ledgerStatus === "pending_settlement"
+          ? "Unified Balance batch was saved as pending settlement."
+          : "Unified Balance batch settled on Arc and was saved as pending VeilHub registration."
+    );
   }
 
   async function submitBatch() {
@@ -295,7 +365,7 @@ export default function BatchPayments() {
       if (!mode) throw new Error("Choose Open Payment or Closed Payment.");
       if (!source) throw new Error("Choose Arc Direct or Unified Balance USDC.");
       if (isClosedMode) {
-        throw new Error("Closed batch payments need VeilShield hidden-amount settlement. Veil will not fake this with visible Arc transfers.");
+        throw new Error("Closed batch payments need VeilShield hidden-amount settlement. Veil will not label visible Arc transfers as amount-hidden.");
       }
 
       const cleanRows = cleanBatchRows(rows);
@@ -322,7 +392,9 @@ export default function BatchPayments() {
         ? "Choose payment source"
         : isClosedMode
           ? "Closed Batch needs VeilShield"
-          : "Submit Open Batch";
+          : source === "arc-direct" && !veilHubSetup.ready
+            ? "VeilHub setup required"
+            : "Submit Open Batch";
 
   return (
     <div className="space-y-6">
@@ -456,6 +528,27 @@ export default function BatchPayments() {
               />
             ))}
           </div>
+
+          {source === "arc-direct" && (
+            <div
+              className={cn(
+                "rounded-lg border p-3 text-sm",
+                veilHubSetup.ready ? "border-success/30 bg-success/5" : "border-warning/30 bg-warning/5"
+              )}
+            >
+              <div className="font-medium">
+                {veilHubSetup.ready ? "Arc Direct batch will route through VeilHub." : "Arc Direct setup required."}
+              </div>
+              <p className="mt-1 text-muted-foreground">
+                Batch payments use ERC20 USDC allowance and `VeilHub.payOpenBatch`; legacy batch contracts and native transfers are disabled.
+              </p>
+              {!veilHubSetup.ready && (
+                <div className="mt-2 font-mono text-xs">
+                  Missing: {veilHubSetup.missing.join(", ")}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -504,7 +597,7 @@ export default function BatchPayments() {
                   </div>
 
                   <div className="w-fit rounded-md border px-2 py-1 text-xs capitalize">
-                    {item.status.replace("_", " ")}
+                    {item.status.replaceAll("_", " ")}
                   </div>
                 </div>
 

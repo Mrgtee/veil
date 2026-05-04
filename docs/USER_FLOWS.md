@@ -4,66 +4,73 @@
 
 1. User opens Veil.
 2. User connects an EVM wallet once.
-3. Veil stores the connected address locally and opens `/app`.
-4. Top bar displays the connected wallet globally.
+3. Veil remembers the session locally and opens `/app`.
+4. The top bar displays the connected wallet globally.
 
 ## New Open Payment With Arc Direct
 
-1. Open `New Payment`.
-2. Enter recipient address.
-3. Enter USDC amount.
-4. Optionally add label/reference.
-5. Select `Open Payment`.
-6. Select `Arc Direct`.
-7. Submit and confirm the wallet request.
-8. Veil switches/request Arc Testnet as needed.
-9. On success, Veil records a settled payment in History.
+1. User opens `New Payment`.
+2. User enters recipient, amount, optional label, and optional reference.
+3. User selects `Open Payment`.
+4. User selects `Arc Direct`.
+5. If `VITE_USE_VEIL_HUB`, `VITE_VEIL_HUB_ADDRESS`, or `VITE_ARC_USDC_ADDRESS` is missing, Veil disables submit and shows setup-required details.
+6. Veil switches/request Arc, reads USDC decimals, balance, and allowance.
+7. If allowance is too low, Veil asks the wallet to approve VeilHub.
+8. Veil calls `VeilHub.payOpen`.
+9. On transaction success, Veil writes a settled API ledger record.
+10. If the transaction submits but the API write fails, Veil shows the transaction hash and the ledger-write failure.
 
 ## New Open Payment With Unified Balance
 
-1. Open `Unified Balance`.
-2. Deposit USDC from a supported source chain if needed.
-3. Wait until balance is confirmed.
-4. Open `New Payment`.
-5. Enter recipient, amount, optional label/reference.
-6. Select `Open Payment`.
-7. Select `Unified Balance USDC`.
-8. Submit and approve the wallet request.
-9. If settlement confirms, History records `settled`.
-10. If balance is deducted but final Arc confirmation is delayed, History records `pending`.
-11. If balance is not deducted, Veil does not record success.
+1. User opens `Unified Balance`.
+2. User deposits USDC from a supported source chain if needed.
+3. User waits until balance is confirmed.
+4. User opens `New Payment`.
+5. User enters recipient, amount, optional label, and optional reference.
+6. User selects `Open Payment`.
+7. User selects `Unified Balance USDC`.
+8. Veil spends through Circle AppKit with the connected wallet.
+9. If spend succeeds and VeilHub is configured, Veil registers a VeilHub reference and records `settled`.
+10. If spend succeeds and VeilHub is not configured or registration fails, Veil records `pending_veilhub_registration`.
+11. If balance is deducted but final Arc settlement is delayed, Veil records `pending_settlement`.
+12. If balance is not deducted, Veil does not record success.
 
 ## Batch Open Payment
 
-1. Open `Batch Payments`.
-2. Add recipient rows with address and amount.
-3. Remove rows if needed.
-4. Review recipient count and total amount.
-5. Select `Open Payment`.
-6. Select `Arc Direct` or `Unified Balance USDC`.
-7. Submit.
-8. Track progress per recipient.
-9. Review the batch record in History.
+1. User opens `Batch Payments`.
+2. User adds recipient rows with address, amount, optional label, and optional reference.
+3. User reviews recipient count and total USDC.
+4. User selects `Open Payment`.
+5. User selects `Arc Direct` or `Unified Balance USDC`.
+6. Arc Direct batch requires VeilHub env setup and calls `VeilHub.payOpenBatch`.
+7. Unified Balance batch spends per recipient through Circle AppKit and records settled, pending settlement, pending VeilHub registration, or failed state.
+8. User reviews per-recipient progress and the API ledger record in History.
 
 ## Unified Balance Deposit
 
-1. Open `Unified Balance`.
-2. Choose Base Sepolia, Ethereum Sepolia, or Arc Testnet as source.
+1. User opens `Unified Balance`.
+2. User chooses Base Sepolia, Ethereum Sepolia, or Arc Testnet as source.
 3. Veil requests a wallet network switch.
-4. Enter deposit amount.
-5. Submit and approve in wallet.
-6. Refresh until pending balance becomes confirmed.
+4. User enters deposit amount.
+5. User approves the deposit through Circle AppKit.
+6. Veil refreshes confirmed and pending balances from the connected wallet.
 
 ## Closed Payment Selection
 
 1. User can select `Closed Payment`.
-2. Veil explains that closed means hidden amount onchain.
-3. Veil blocks visible transfer settlement until VeilShield is fully deployed and audited.
-4. Users are not shown a misleading success state.
+2. Veil explains that closed means sender-visible, recipient-visible, amount-hidden settlement.
+3. Veil blocks visible ERC20 settlement because normal transfers expose amount.
+4. Veil points users to VeilShield setup/audit requirements.
+
+## Closed Records And Access
+
+1. `Closed Records` lists VeilShield commitment/disclosure records from the API ledger.
+2. `Access Control` grants or revokes disclosure permissions for those records.
+3. These pages do not imply hidden-amount settlement is live.
 
 ## Mobile Navigation
 
-The top-bar menu exposes:
+Mobile users can access:
 
 - Dashboard
 - New Payment
@@ -73,4 +80,3 @@ The top-bar menu exposes:
 - Closed Records
 - Access Control
 - Settings
-

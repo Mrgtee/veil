@@ -83,6 +83,7 @@ function SourceBadge({ payment }: { payment: ExtendedPayment }) {
 
 function StatusBadge({ status }: { status: string }) {
   const ok = status === "settled";
+  const label = status.replaceAll("_", " ");
 
   return (
     <span
@@ -93,7 +94,7 @@ function StatusBadge({ status }: { status: string }) {
           : "border-orange-200 bg-orange-50 text-orange-700"
       )}
     >
-      {status}
+      {label}
     </span>
   );
 }
@@ -177,11 +178,26 @@ export default function Dashboard() {
   const [payments, setPayments] = useState<ExtendedPayment[]>([]);
   const [unifiedBalance, setUnifiedBalance] = useState<UnifiedBalanceData | null>(null);
   const [balanceStatus, setBalanceStatus] = useState("");
+  const [ledgerStatus, setLedgerStatus] = useState("");
 
   async function loadDashboard() {
-    veilApi.getDashboardStats().then(setStats);
-    veilApi.listActivity().then(setActivity);
-    veilApi.listPayments().then((p) => setPayments(p.slice(0, 5) as ExtendedPayment[]));
+    try {
+      setLedgerStatus("");
+      const [nextStats, nextActivity, nextPayments] = await Promise.all([
+        veilApi.getDashboardStats(),
+        veilApi.listActivity(),
+        veilApi.listPayments(),
+      ]);
+      setStats(nextStats);
+      setActivity(nextActivity);
+      setPayments(nextPayments.slice(0, 5) as ExtendedPayment[]);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Veil API ledger is unavailable.";
+      setLedgerStatus(message);
+      setStats(null);
+      setActivity([]);
+      setPayments([]);
+    }
   }
 
   async function loadUnifiedBalance() {
@@ -291,6 +307,13 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {ledgerStatus && (
+        <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 text-sm">
+          <div className="font-medium">API ledger unavailable</div>
+          <p className="mt-1 text-muted-foreground">{ledgerStatus}</p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {stats ? (
@@ -440,7 +463,7 @@ export default function Dashboard() {
             </div>
 
             <ul className="space-y-3">
-              {payments.filter((p) => p.status === "pending").slice(0, 3).map((p) => (
+              {payments.filter((p) => p.status === "pending" || p.status === "pending_settlement" || p.status === "pending_veilhub_registration").slice(0, 3).map((p) => (
                 <li key={p.id} className="flex items-center gap-3 text-sm">
                   <span className="h-1.5 w-1.5 rounded-full bg-warning animate-pulse-subtle" />
                   <div className="flex-1 min-w-0">
@@ -453,7 +476,7 @@ export default function Dashboard() {
                 </li>
               ))}
 
-              {payments.filter((p) => p.status === "pending").length === 0 && (
+              {payments.filter((p) => p.status === "pending" || p.status === "pending_settlement" || p.status === "pending_veilhub_registration").length === 0 && (
                 <li className="text-sm text-muted-foreground">No pending payments.</li>
               )}
             </ul>

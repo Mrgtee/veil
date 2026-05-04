@@ -1,5 +1,6 @@
 export type PaymentMode = "open" | "confidential";
 export type PaymentType = "single" | "batch";
+export type PaymentSourceKind = "arc_direct" | "unified_balance" | "veilshield_closed";
 export type PaymentStatus =
   | "idle"
   | "validating"
@@ -7,6 +8,8 @@ export type PaymentStatus =
   | "awaiting_signature"
   | "submitting"
   | "pending"
+  | "pending_settlement"
+  | "pending_veilhub_registration"
   | "settled"
   | "failed";
 export type BatchStatus =
@@ -25,12 +28,17 @@ export interface Payment {
   id: string;
   type: PaymentType;
   mode: PaymentMode;
+  source?: PaymentSourceKind;
   status: PaymentStatus;
   recipient: string;
   recipientLabel?: string;
   amount: string;
+  amountBase?: string;
   token: string;
   txHash?: string;
+  pendingReference?: string;
+  veilHubTxHash?: string;
+  paymentId?: string;
   commitmentId?: string;
   externalId?: string;
   batchId?: string;
@@ -85,7 +93,7 @@ export interface DashboardStats {
   totalPayments: number;
   openPayments: number;
   confidentialPayments: number;
-  batchPayouts: number;
+  batchPayments: number;
   pendingCount: number;
   settledToday: number;
   volume30d: string;

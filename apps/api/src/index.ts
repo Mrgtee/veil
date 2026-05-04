@@ -1,59 +1,59 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import crypto from "crypto";
-import { z } from "zod";
-import { parse } from "csv-parse/sync";
-import { v4 as uuidv4 } from "uuid";
-import { bridgeEthSepoliaToArcTestnet, bridgeArcTestnetToEthSepolia } from "./circle/bridge.js";
-import { getUnifiedBalance, spendUnifiedBalanceToArc } from "./unified/service.js";
+import { ZodError } from "zod";
+import {
+  createPayment,
+  createPaymentSchema,
+  getActivity,
+  getAuditTrail,
+  getConfidentialRecords,
+  getDashboardStats,
+  getDisclosureAccess,
+  getPayments,
+  grantAccess,
+  grantAccessSchema,
+  requestReveal,
+  revokeAccess,
+} from "./ledger.js";
 
 const app = express();
 app.use(cors({ origin: true }));
 app.use(express.json({ limit: "2mb" }));
 
 const PORT = Number(process.env.PORT || 8787);
-const KEY = Buffer.from(process.env.ENCRYPTION_KEY_HEX || "", "hex");
 
-if (KEY.length !== 32) {
-  throw new Error("ENCRYPTION_KEY_HEX must be 32 bytes in hex");
+function sendOk<T>(res: express.Response, data: T) {
+  res.json({ ok: true, data });
 }
 
-function encryptJson(payload: unknown) {
-  const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv("aes-256-gcm", KEY, iv);
-  const plaintext = Buffer.from(JSON.stringify(payload), "utf8");
-  const encrypted = Buffer.concat([cipher.update(plaintext), cipher.final()]);
-  const tag = cipher.getAuthTag();
+function getErrorMessage(err: unknown) {
+  if (err instanceof ZodError) {
+    return err.issues.map((issue) => `${issue.path.join(".") || "body"}: ${issue.message}`).join("; ");
+  }
 
-  return {
-    iv: iv.toString("hex"),
-    tag: tag.toString("hex"),
-    ciphertext: encrypted.toString("hex")
+  if (err instanceof Error && err.message) return err.message;
+  return "Veil API request failed.";
+}
+
+function asyncRoute(handler: (req: express.Request, res: express.Response) => Promise<void>) {
+  return (req: express.Request, res: express.Response) => {
+    handler(req, res).catch((err) => {
+      res.status(400).json({ ok: false, error: getErrorMessage(err) });
+    });
   };
-}
-
-function sha256Hex(input: string) {
-  return "0x" + crypto.createHash("sha256").update(input).digest("hex");
-}
-
-function toJsonSafe<T>(value: T): T {
-  return JSON.parse(
-    JSON.stringify(value, (_key, v) => (typeof v === "bigint" ? v.toString() : v))
-  );
 }
 
 app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "veil-api" });
 });
 
-
 app.get("/api/unified/health", (_req, res) => {
   res.json({
     ok: true,
     service: "veil-unified-balance",
     model: "browser wallet deposit -> user-owned unified balance -> browser wallet spend to Arc",
-    status: "frontend-wallet-required"
+    status: "frontend-wallet-required",
   });
 });
 
@@ -62,143 +62,106 @@ app.get("/api/config", (_req, res) => {
     ok: true,
     network: {
       name: "Arc Testnet",
-      chainId: 5042002,
-      rpcUrl: "https://rpc.testnet.arc.network",
-      explorer: "https://testnet.arcscan.app"
-    }
+      chainId: Number(process.env.VITE_ARC_CHAIN_ID || 5042002),
+      rpcUrl: process.env.VITE_ARC_RPC_URL || "https://rpc.testnet.arc.network",
+      explorer: "https://testnet.arcscan.app",
+    },
+    ledger: {
+      model: "temporary-testnet-json-ledger",
+      productionDirection: "database/indexer with VeilHub and VeilShield event indexing",
+    },
   });
 });
 
-const singleSchema = z.object({
-  recipient: z.string().min(42),
-  amount: z.string().min(1),
-  memo: z.string().optional().default(""),
-  recipientLabel: z.string().optional().default(""),
-  mode: z.enum(["open", "confidential"])
-});
+app.get("/api/payments", asyncRoute(async (_req, res) => {
+  sendOk(res, await getPayments());
+}));
 
-app.post("/api/confidential/payment-intent", (req, res) => {
-  const body = singleSchema.parse(req.body);
-  const externalId = uuidv4();
+app.post("/api/payments", asyncRoute(async (req, res) => {
+  const body = createPaymentSchema.parse(req.body);
+  sendOk(res, await createPayment(body));
+}));
 
-  const encrypted = encryptJson({
-    recipient: body.recipient,
-    amount: body.amount,
-    memo: body.memo,
-    recipientLabel: body.recipientLabel,
-    createdAt: new Date().toISOString(),
-    externalId
-  });
+app.get("/api/dashboard", asyncRoute(async (_req, res) => {
+  sendOk(res, await getDashboardStats());
+}));
 
-  const commitmentId = sha256Hex(
-    [body.recipient, body.amount, body.memo, body.recipientLabel, encrypted.ciphertext, externalId].join("|")
-  );
+app.get("/api/activity", asyncRoute(async (_req, res) => {
+  sendOk(res, await getActivity());
+}));
 
-  res.json({
-    ok: true,
-    mode: body.mode,
-    externalId,
-    commitmentId,
-    encrypted
-  });
-});
+app.get("/api/confidential-records", asyncRoute(async (_req, res) => {
+  sendOk(res, await getConfidentialRecords());
+}));
 
-const batchSchema = z.object({
-  csv: z.string().min(1),
-  mode: z.enum(["open", "confidential"])
-});
+app.post("/api/confidential-records/:id/reveal-request", asyncRoute(async (req, res) => {
+  const id = String(req.params.id);
+  await requestReveal(id);
+  sendOk(res, { id });
+}));
 
-app.post("/api/batch/prepare", (req, res) => {
-  const body = batchSchema.parse(req.body);
+app.get("/api/disclosure-access", asyncRoute(async (_req, res) => {
+  sendOk(res, await getDisclosureAccess());
+}));
 
-  const rows = parse(body.csv, {
-    columns: true,
-    skip_empty_lines: true,
-    trim: true
-  }) as Array<Record<string, string>>;
+app.post("/api/disclosure-access", asyncRoute(async (req, res) => {
+  const body = grantAccessSchema.parse(req.body);
+  sendOk(res, await grantAccess(body));
+}));
 
-  const normalized = rows.map((row, i) => {
-    const recipient = row.recipient || row.address || "";
-    const amount = row.amount || "";
-    if (!recipient || !amount) {
-      throw new Error(`Invalid row at index ${i + 1}`);
-    }
-    return {
-      recipient,
-      amount,
-      memo: row.memo || "",
-      recipientLabel: row.recipientLabel || row.label || ""
-    };
-  });
+app.post("/api/disclosure-access/:id/revoke", asyncRoute(async (req, res) => {
+  const id = String(req.params.id);
+  await revokeAccess(id);
+  sendOk(res, { id });
+}));
 
-  const total = normalized.reduce((sum, row) => sum + BigInt(row.amount), 0n);
-  const batchId = sha256Hex(JSON.stringify(normalized) + Date.now().toString());
+app.get("/api/audit-trail", asyncRoute(async (_req, res) => {
+  sendOk(res, await getAuditTrail());
+}));
 
-  let batchCommitment = "0x" + "0".repeat(64);
-  let encrypted = null;
-
-  if (body.mode === "confidential") {
-    encrypted = encryptJson({
-      rows: normalized,
-      createdAt: new Date().toISOString(),
-      batchId
-    });
-    batchCommitment = sha256Hex(encrypted.ciphertext + batchId);
-  }
-
-  res.json({
-    ok: true,
-    mode: body.mode,
-    batchId,
-    batchCommitment,
-    count: normalized.length,
-    total: total.toString(),
-    rows: normalized,
-    encrypted
-  });
-});
-
-const bridgeSchema = z.object({
-  route: z.enum(["eth-to-arc", "arc-to-eth"]),
-  amount: z.string().min(1),
-  mode: z.enum(["open", "confidential"]).default("open"),
-  memo: z.string().optional().default(""),
-  recipientLabel: z.string().optional().default("")
-});
-
-app.post("/api/bridge/execute", async (req, res) => {
+app.post("/api/confidential/payment-intent", (_req, res) => {
   res.status(410).json({
     ok: false,
     error:
-      "Managed bridge execution is retired for user-facing Veil flows. Use the browser wallet Unified Balance deposit flow instead."
+      "Closed Payment settlement is not live. VeilShield requires deployed verifier/circuits before hidden-amount payments can be created.",
   });
 });
 
-
-app.get("/api/unified/balance", async (_req, res) => {
+app.post("/api/batch/prepare", (_req, res) => {
   res.status(410).json({
     ok: false,
     error:
-      "Backend-managed Unified Balance reads are disabled for user-facing flows. Read balances in the browser from the connected wallet."
+      "Server-side CSV batch preparation is retired. Use the form-based Batch Payments flow with connected-wallet settlement.",
   });
 });
 
-const unifiedSpendSchema = z.object({
-  amount: z.string().min(1),
-  recipientAddress: z.string().min(42),
-  mode: z.enum(["open", "confidential"]).default("open"),
-  memo: z.string().optional().default(""),
-  recipientLabel: z.string().optional().default("")
-});
-
-app.post("/api/unified/spend", async (req, res) => {
+app.post("/api/bridge/execute", (_req, res) => {
   res.status(410).json({
     ok: false,
     error:
-      "Backend-managed Unified Balance spend is disabled for user-facing flows. Spend in the browser with the connected wallet."
+      "Managed bridge execution is retired for user-facing Veil flows. Use the browser wallet Unified Balance deposit flow instead.",
   });
 });
 
+app.get("/api/unified/balance", (_req, res) => {
+  res.status(410).json({
+    ok: false,
+    error:
+      "Backend-managed Unified Balance reads are disabled for user-facing flows. Read balances in the browser from the connected wallet.",
+  });
+});
+
+app.post("/api/unified/spend", (_req, res) => {
+  res.status(410).json({
+    ok: false,
+    error:
+      "Backend-managed Unified Balance spend is disabled for user-facing flows. Spend in the browser with the connected wallet.",
+  });
+});
+
+app.use((_req, res) => {
+  res.status(404).json({ ok: false, error: "Veil API route not found." });
+});
 
 app.listen(PORT, () => {
   console.log(`Veil API listening on :${PORT}`);

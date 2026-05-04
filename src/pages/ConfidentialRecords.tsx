@@ -12,15 +12,32 @@ import { cn } from "@/lib/utils";
 export default function ConfidentialRecords() {
   const [records, setRecords] = useState<ConfidentialRecord[]>([]);
   const [loading, setLoading] = useState<string | null>(null);
+  const [status, setStatus] = useState("");
 
-  useEffect(() => { veilApi.listConfidentialRecords().then(setRecords); }, []);
+  useEffect(() => {
+    veilApi
+      .listConfidentialRecords()
+      .then((items) => {
+        setRecords(items);
+        setStatus("");
+      })
+      .catch((err) => {
+        setRecords([]);
+        setStatus(err instanceof Error ? err.message : "Veil API ledger is unavailable.");
+      });
+  }, []);
 
   const requestReveal = async (id: string) => {
-    setLoading(id);
-    await veilApi.requestReveal(id);
-    setRecords((rs) => rs.map((r) => r.id === id ? { ...r, disclosureStatus: "requested" } : r));
-    setLoading(null);
-    toast.success("Reveal request submitted", { description: "An authorizer will review shortly." });
+    try {
+      setLoading(id);
+      await veilApi.requestReveal(id);
+      setRecords((rs) => rs.map((r) => r.id === id ? { ...r, disclosureStatus: "requested" } : r));
+      toast.success("Reveal request submitted", { description: "An authorizer will review shortly." });
+    } catch (err) {
+      toast.error("Reveal request failed", { description: err instanceof Error ? err.message : "Veil API ledger is unavailable." });
+    } finally {
+      setLoading(null);
+    }
   };
 
   return (
@@ -36,10 +53,17 @@ export default function ConfidentialRecords() {
           <Lock className="h-4 w-4 mt-0.5 text-confidential" />
           <div className="text-sm">
             <div className="font-medium">VeilShield is experimental</div>
-            <p className="text-muted-foreground text-xs mt-0.5">Closed payments are about hiding the amount onchain. These records track commitments and access state, but full Noir/ZK hidden-amount transfers still require audit and deployment.</p>
+            <p className="text-muted-foreground text-xs mt-0.5">Closed payments are about hiding the amount onchain with sender and recipient still visible. This area is for VeilShield records and disclosure state; it does not mean hidden-amount settlement is live yet.</p>
           </div>
         </div>
       </div>
+
+      {status && (
+        <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 text-sm">
+          <div className="font-medium">API ledger unavailable</div>
+          <p className="mt-1 text-muted-foreground">{status}</p>
+        </div>
+      )}
 
       <div className="grid md:grid-cols-2 gap-4">
         {records.map((r) => (
@@ -86,6 +110,12 @@ export default function ConfidentialRecords() {
             </div>
           </article>
         ))}
+
+        {records.length === 0 && !status && (
+          <div className="surface-card p-5 text-sm text-muted-foreground md:col-span-2">
+            No VeilShield closed-payment records are present. Closed settlement remains blocked until real verifier/circuit-backed hidden-amount payments are deployed.
+          </div>
+        )}
       </div>
     </div>
   );
