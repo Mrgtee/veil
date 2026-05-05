@@ -1,0 +1,6 @@
+[package]
+name = "veil_shield_shared"
+type = "lib"
+authors = ["Veil"]
+
+[dependencies]

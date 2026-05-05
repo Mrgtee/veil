@@ -24,6 +24,7 @@ import {
 import { formatPaymentError, getErrorMessage, isSettlementDelay } from "@/lib/payments/errors";
 import { makeBytes32Id, makeCommitmentId, makeId } from "@/lib/payments/ids";
 import { recordSinglePayment } from "@/lib/payments/recording";
+import { getVeilShieldSetup } from "@/lib/payments/veilShield";
 import {
   balanceReducedEnough,
   getActiveUnifiedSources,
@@ -117,6 +118,7 @@ export default function NewPayment() {
   const [balanceStatus, setBalanceStatus] = useState("");
   const submittingRef = useRef(false);
   const veilHubSetup = getVeilHubSetup();
+  const veilShieldSetup = getVeilShieldSetup();
 
   const isClosedMode = mode === "confidential";
   const confirmedBalance = getBalanceNumber(balance, "totalConfirmedBalance");
@@ -301,7 +303,9 @@ export default function NewPayment() {
       parseUsdcAmount(amount);
 
       if (isClosedMode) {
-        throw new Error("Closed Payment needs the VeilShield hidden-amount contract layer before it can settle. This build includes the architecture and contracts, but does not label a visible transfer as amount-hidden.");
+        throw new Error(
+          `Closed Payment requires VeilShield deposit and proof generation. ${veilShieldSetup.statusLabel}. Visible Arc transfers remain blocked.`
+        );
       }
 
       const commitmentId = mode === "confidential" ? makeCommitmentId() : undefined;
@@ -480,10 +484,19 @@ export default function NewPayment() {
               <div>
                 <div className="font-medium">Closed Payment is hidden-amount settlement.</div>
                 <p className="mt-1 text-muted-foreground">
-                  A normal Arc wallet transfer exposes the amount onchain. VeilShield is included as the experimental
-                  architecture for deposit, private notes, hidden transfer, and withdraw, so this page will not pretend
-                  a visible transfer is closed.
+                  A normal Arc wallet transfer exposes the amount onchain. Closed Payment requires VeilShield deposit,
+                  private notes, proof generation, hidden transfer, and withdraw; this page will not submit a visible
+                  transfer as closed.
                 </p>
+                <div className="mt-3 rounded-md border border-confidential/20 bg-background/70 p-3">
+                  <div className="font-medium">{veilShieldSetup.statusLabel}</div>
+                  <p className="mt-1 text-muted-foreground">{veilShieldSetup.detail}</p>
+                  {veilShieldSetup.missing.length > 0 && (
+                    <div className="mt-2 font-mono text-xs">
+                      Missing: {veilShieldSetup.missing.join(", ")}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

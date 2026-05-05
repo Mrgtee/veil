@@ -4,43 +4,41 @@
 
 File: `contracts/src/VeilHub.sol`
 
-VeilHub is the main on-chain identity for open Veil payments on Arc.
-The frontend Arc Direct flow is wired to this contract and does not use the retired native-value vault or batch payout contracts.
+VeilHub is the main on-chain identity for open Veil payments on Arc. The frontend Arc Direct flow is wired to this contract and does not use retired native-transfer, vault, or batch-payout fallbacks.
 
 Features:
 
-- ERC20 USDC single payment routing.
-- ERC20 USDC batch payment routing.
-- Unified Balance open payment reference recording.
-- `bytes32` `paymentId` and `batchId` uniqueness checks.
-- Events for single, batch, and Unified Balance activity.
-- SafeERC20 transfer wrappers.
-- ReentrancyGuard.
-- Pausable.
-- Ownable.
+- ERC20 USDC single payment routing through `payOpen`
+- ERC20 USDC batch payment routing through `payOpenBatch`
+- Unified Balance open payment reference recording
+- `bytes32` `paymentId` and `batchId` uniqueness checks
+- events for single, batch, and Unified Balance activity
+- SafeERC20 transfer wrappers
+- ReentrancyGuard
+- Pausable
+- Ownable
 
-Important errors:
+Current Arc Testnet deployment:
 
-- `ZeroAddress`
-- `ZeroAmount`
-- `ZeroId`
-- `AlreadyRecorded`
-- `EmptyBatch`
-- `LengthMismatch`
+- Chain ID: `5042002`
+- Arc USDC: `0x3600000000000000000000000000000000000000`
+- VeilHub: `0x30c77c1C20A5cBB171DE9090789F3dB98aA9734b`
 
 ## VeilShield
 
 File: `contracts/src/VeilShield.sol`
 
-VeilShield is experimental/testnet-only and is not production-ready. It defines the hidden-amount architecture:
+VeilShield is experimental/testnet-only and is not production-ready. It defines the future hidden-amount architecture:
 
-- Deposit USDC into the shield.
-- Register private note commitments.
-- Spend notes with nullifiers.
-- Create recipient note commitments.
-- Withdraw using verifier-approved proofs.
+- deposit USDC into the shielded pool
+- register private note commitments
+- require existing input note commitments for shielded transfers
+- spend notes with nullifiers
+- create recipient output and sender change commitments
+- withdraw USDC using verifier-approved proofs
+- track `totalShieldedPool` so withdrawals cannot exceed known deposited/unwithdrawn pool accounting
 
-The transfer event does not include amount. The verifier interface must be backed by real Noir/ZK circuits before production use.
+The transfer event does not include amount. Sender, recipient, token, commitments, and nullifier are visible; transfer amount is intended to be proven privately by Noir.
 
 ## Verifier Interface
 
@@ -48,10 +46,41 @@ File: `contracts/src/interfaces/IVeilShieldVerifier.sol`
 
 The verifier exposes:
 
-- `verifyTransferProof`
-- `verifyWithdrawProof`
+- `verifyTransferProof(proof, nullifierHash, inputNoteCommitment, outputNoteCommitment, changeNoteCommitment, sender, recipient, token)`
+- `verifyWithdrawProof(proof, nullifierHash, noteCommitment, owner, token, amount)`
 
-These are placeholders for generated verifier contracts.
+This interface is ready for a verifier adapter, but no production verifier is committed or deployed yet. Tests use a mock verifier only inside `contracts/test`.
+
+## Noir Circuits
+
+Circuit files:
+
+- `circuits/veil_shield_transfer`
+- `circuits/veil_shield_withdraw`
+- `circuits/shared`
+
+The transfer circuit proves hidden amount conservation and commitment/nullifier correctness. The withdraw circuit proves a public withdrawal amount matches a hidden note. Withdrawal amount is public because ERC20 USDC exits the shielded pool.
+
+Run:
+
+```bash
+cd /home/gtee/projects/veil/circuits/veil_shield_transfer
+/home/gtee/.nargo/bin/nargo test
+
+cd /home/gtee/projects/veil/circuits/veil_shield_withdraw
+/home/gtee/.nargo/bin/nargo test
+```
+
+Generate verifier artifacts:
+
+```bash
+cd /home/gtee/projects/veil/circuits/veil_shield_transfer
+/home/gtee/.nargo/bin/nargo compile
+/home/gtee/.bb/bb write_vk -b target/veil_shield_transfer.json -o target/vk -t evm
+/home/gtee/.bb/bb write_solidity_verifier -k target/vk/vk -o target/VeilShieldTransferVerifier.sol -t evm
+```
+
+Repeat for `veil_shield_withdraw`. Generated artifacts need review before commit because current bb output uses generic contract names and may need adapter wiring.
 
 ## Tests
 
@@ -60,42 +89,53 @@ Foundry tests are in `contracts/test`.
 Run:
 
 ```bash
-cd contracts
-forge test
+cd /home/gtee/projects/veil/contracts
+/home/gtee/.foundry/bin/forge test -vvv
 ```
 
 The tests cover:
 
-- Invalid recipient.
-- Zero amount.
-- Empty batch.
-- Mismatched arrays.
-- Duplicate payment IDs.
-- Unified Balance reference recording.
-- Shield deposits.
-- Duplicate note commitments.
-- Invalid proof rejection.
-- Nullifier double-spend prevention.
-- Withdraw transfers.
+- invalid recipient
+- zero amount
+- empty batch
+- mismatched arrays
+- duplicate payment IDs
+- Unified Balance reference recording
+- Shield deposits
+- duplicate note commitments
+- unknown input commitment rejection
+- invalid proof rejection
+- nullifier double-spend prevention
+- pause blocking shield actions
+- withdraw transfers
+- withdraw over pool-accounting rejection
 
 ## Deployment
 
-Deploy order:
+Open payments:
 
-1. USDC token address on Arc.
-2. `VeilHub(usdc, owner)`.
-3. Test verifier.
-4. `VeilShield(usdc, verifier, owner)` on testnet only.
-5. Configure frontend addresses.
+1. Arc USDC token address.
+2. Deploy or use current `VeilHub(usdc, owner)`.
+3. Configure frontend addresses.
 
-Do not deploy VeilShield as production-ready until circuits and audits are complete.
+Closed payments:
+
+1. Compile and test Noir circuits.
+2. Generate transfer and withdraw verifier artifacts.
+3. Review/rename generated verifier contracts or add an adapter.
+4. Deploy verifier contracts on Arc Testnet.
+5. Deploy `VeilShield(usdc, verifier, owner)` on testnet only.
+6. Configure `VITE_VEIL_SHIELD_ADDRESS` and verifier/prover settings.
+7. Keep UI submit blocked until proof generation, indexing, and audits are complete.
+
+Do not deploy VeilShield as production-ready until circuits, verifier wiring, prover integration, note discovery, indexing, and audits are complete.
 
 Frontend Arc Direct requires:
 
 ```bash
 VITE_USE_VEIL_HUB=true
-VITE_VEIL_HUB_ADDRESS=<deployed VeilHub>
-VITE_ARC_USDC_ADDRESS=<Arc USDC ERC20>
+VITE_VEIL_HUB_ADDRESS=0x30c77c1C20A5cBB171DE9090789F3dB98aA9734b
+VITE_ARC_USDC_ADDRESS=0x3600000000000000000000000000000000000000
 ```
 
 Unified Balance can spend without VeilHub, but those records stay `pending_veilhub_registration` until a VeilHub reference transaction is submitted.

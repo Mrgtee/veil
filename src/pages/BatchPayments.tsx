@@ -24,6 +24,7 @@ import {
 import { formatPaymentError, getErrorMessage, isSettlementDelay } from "@/lib/payments/errors";
 import { makeBytes32Id, makeId } from "@/lib/payments/ids";
 import { recordBatchPayment } from "@/lib/payments/recording";
+import { getVeilShieldSetup } from "@/lib/payments/veilShield";
 import {
   balanceReducedEnough,
   getBalanceNumber,
@@ -159,6 +160,7 @@ export default function BatchPayments() {
   const [results, setResults] = useState<RowResult[]>([]);
   const submittingRef = useRef(false);
   const veilHubSetup = getVeilHubSetup();
+  const veilShieldSetup = getVeilShieldSetup();
 
   const totalAmount = useMemo(() => getBatchTotal(rows), [rows]);
   const filledRows = useMemo(
@@ -412,7 +414,9 @@ export default function BatchPayments() {
       if (!mode) throw new Error("Choose Open Payment or Closed Payment.");
       if (!source) throw new Error("Choose Arc Direct or Unified Balance USDC.");
       if (isClosedMode) {
-        throw new Error("Closed batch payments need VeilShield hidden-amount settlement. Veil will not label visible Arc transfers as amount-hidden.");
+        throw new Error(
+          `Closed batch payments require VeilShield deposit and proof generation. ${veilShieldSetup.statusLabel}. Visible batch transfers remain blocked.`
+        );
       }
 
       const cleanRows = cleanBatchRows(rows);
@@ -556,7 +560,20 @@ export default function BatchPayments() {
 
           {isClosedMode && (
             <div className="rounded-lg border border-confidential/30 bg-confidential-soft/60 p-3 text-sm">
-              Closed batch settlement must hide amounts onchain. That requires VeilShield; visible batch transfers are intentionally blocked.
+              <div className="font-medium">Closed batch settlement must hide amounts onchain.</div>
+              <p className="mt-1 text-muted-foreground">
+                That requires VeilShield deposit, proof generation, hidden transfer, and withdraw. Visible batch
+                transfers are intentionally blocked.
+              </p>
+              <div className="mt-3 rounded-md border border-confidential/20 bg-background/70 p-3">
+                <div className="font-medium">{veilShieldSetup.statusLabel}</div>
+                <p className="mt-1 text-muted-foreground">{veilShieldSetup.detail}</p>
+                {veilShieldSetup.missing.length > 0 && (
+                  <div className="mt-2 font-mono text-xs">
+                    Missing: {veilShieldSetup.missing.join(", ")}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

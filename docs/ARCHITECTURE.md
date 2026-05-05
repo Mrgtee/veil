@@ -25,6 +25,7 @@ Shared payment logic lives in `src/lib/payments`:
 - `unifiedBalance.ts`: Circle AppKit browser-wallet adapter, deposit, balance read, spend, pending balance handling, and settlement step parsing.
 - `recording.ts`: API ledger writes after real transaction or explicit pending reference exists.
 - `errors.ts`: wallet rejection, contract revert, insufficient balance, API failure, and delayed settlement formatting.
+- `veilShield.ts`: Closed Payment setup state for the testnet-only VeilShield prototype. It never enables visible-transfer settlement as closed.
 
 ## Wallet Model
 
@@ -108,9 +109,31 @@ Production direction is a database/indexer stack with VeilHub event indexing and
 
 ## Closed Payment And VeilShield
 
-Closed Payment means sender visible, recipient visible, and amount hidden onchain. The frontend blocks settlement until VeilShield verifier/circuits are deployed and wired.
+Closed Payment means sender visible, recipient visible, and amount hidden onchain. The frontend blocks settlement until VeilShield verifier/circuits are deployed, proof generation is wired, and the flow is audited.
 
-`VeilShield` is separate from VeilHub because visible ERC20 routing cannot hide amount. It defines deposit, private note commitments, nullifiers, hidden transfer proof hooks, and withdraw proof hooks. It remains experimental/testnet-only until audited.
+`VeilShield` is separate from VeilHub because visible ERC20 routing cannot hide amount. It defines deposit, private note commitments, nullifiers, hidden transfer proof hooks, withdraw proof hooks, and pool accounting. It remains experimental/testnet-only until audited.
+
+### Milestone 2 Circuit Prototype
+
+The new circuit workspace lives under `circuits/`:
+
+- `shared`: Pedersen-based commitment and nullifier helpers
+- `veil_shield_transfer`: proves hidden transfer amount conservation and creates output/change commitments
+- `veil_shield_withdraw`: proves a public withdrawal amount matches a hidden note
+
+Transfer public inputs are sender, recipient, token, input commitment, output commitment, change commitment, and nullifier. Transfer amounts remain private. Withdraw amount is public because public USDC leaves the shielded pool.
+
+The Solidity verifier interface is shaped for these public inputs, but generated verifier contracts are not committed or deployed yet. Current bb-generated Solidity uses generic verifier names, so the next architecture step is a reviewed verifier adapter plus deployment tests.
+
+### Closed Payment Runtime State
+
+Closed Payment remains blocked in the app. The UI can show:
+
+- setup required if Arc USDC is missing
+- prototype ready, deployment required if circuit files exist but `VITE_VEIL_SHIELD_ADDRESS` is absent
+- deployment configured, verifier/prover setup required if a shield address exists without verifier/prover configuration
+
+None of those states submit a payment. Visible Arc Direct or Unified Balance transfers are not accepted as Closed Payment settlement.
 
 ## API Endpoints
 

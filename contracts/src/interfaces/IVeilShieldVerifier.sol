@@ -6,16 +6,20 @@ interface IVeilShieldVerifier {
     function verifyTransferProof(
         bytes calldata proof,
         bytes32 nullifierHash,
-        bytes32 newNoteCommitment,
+        bytes32 inputNoteCommitment,
+        bytes32 outputNoteCommitment,
+        bytes32 changeNoteCommitment,
         address sender,
-        address recipient
+        address recipient,
+        address token
     ) external view returns (bool);
 
     function verifyWithdrawProof(
         bytes calldata proof,
         bytes32 nullifierHash,
-        address recipient,
+        bytes32 noteCommitment,
+        address owner,
+        address token,
         uint256 amount
     ) external view returns (bool);
 }
-

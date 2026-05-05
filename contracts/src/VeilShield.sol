@@ -18,6 +18,7 @@ contract VeilShield is Ownable, Pausable, ReentrancyGuard {
 
     IERC20 public immutable usdc;
     IVeilShieldVerifier public verifier;
+    uint256 public totalShieldedPool;
 
     mapping(bytes32 noteCommitment => bool exists) public noteCommitments;
     mapping(bytes32 nullifierHash => bool spent) public nullifiers;
@@ -28,7 +29,9 @@ contract VeilShield is Ownable, Pausable, ReentrancyGuard {
         address indexed sender,
         address indexed recipient,
         bytes32 indexed nullifierHash,
-        bytes32 newNoteCommitment,
+        bytes32 inputNoteCommitment,
+        bytes32 outputNoteCommitment,
+        bytes32 changeNoteCommitment,
         bytes32 encryptedNoteRef
     );
     event ShieldWithdraw(address indexed recipient, bytes32 indexed nullifierHash);
@@ -37,7 +40,9 @@ contract VeilShield is Ownable, Pausable, ReentrancyGuard {
     error ZeroAmount();
     error ZeroCommitment();
     error CommitmentAlreadyExists(bytes32 commitment);
+    error CommitmentNotFound(bytes32 commitment);
     error NullifierAlreadySpent(bytes32 nullifierHash);
+    error InsufficientPoolBalance(uint256 requested, uint256 available);
     error InvalidProof();
 
     constructor(IERC20 usdc_, IVeilShieldVerifier verifier_, address initialOwner) Ownable(initialOwner) {
@@ -70,39 +75,65 @@ contract VeilShield is Ownable, Pausable, ReentrancyGuard {
         _registerCommitment(noteCommitment);
 
         usdc.safeTransferFrom(msg.sender, address(this), amount);
+        totalShieldedPool += amount;
         emit ShieldDeposit(msg.sender, noteCommitment, encryptedNoteRef);
     }
 
     function transferNote(
         bytes calldata proof,
         bytes32 nullifierHash,
-        bytes32 newNoteCommitment,
+        bytes32 inputNoteCommitment,
+        bytes32 outputNoteCommitment,
+        bytes32 changeNoteCommitment,
         bytes32 encryptedNoteRef,
         address recipient
     ) external nonReentrant whenNotPaused {
         if (recipient == address(0)) revert ZeroAddress();
+        _requireCommitment(inputNoteCommitment);
         _spendNullifier(nullifierHash);
-        _registerCommitment(newNoteCommitment);
+        _registerCommitment(outputNoteCommitment);
+        _registerCommitment(changeNoteCommitment);
 
-        bool ok = verifier.verifyTransferProof(proof, nullifierHash, newNoteCommitment, msg.sender, recipient);
+        bool ok = verifier.verifyTransferProof(
+            proof,
+            nullifierHash,
+            inputNoteCommitment,
+            outputNoteCommitment,
+            changeNoteCommitment,
+            msg.sender,
+            recipient,
+            address(usdc)
+        );
         if (!ok) revert InvalidProof();
 
-        emit ShieldTransfer(msg.sender, recipient, nullifierHash, newNoteCommitment, encryptedNoteRef);
+        emit ShieldTransfer(
+            msg.sender,
+            recipient,
+            nullifierHash,
+            inputNoteCommitment,
+            outputNoteCommitment,
+            changeNoteCommitment,
+            encryptedNoteRef
+        );
     }
 
     function withdraw(
         bytes calldata proof,
         bytes32 nullifierHash,
+        bytes32 noteCommitment,
         address recipient,
         uint256 amount
     ) external nonReentrant whenNotPaused {
         if (recipient == address(0)) revert ZeroAddress();
         if (amount == 0) revert ZeroAmount();
+        _requireCommitment(noteCommitment);
         _spendNullifier(nullifierHash);
 
-        bool ok = verifier.verifyWithdrawProof(proof, nullifierHash, recipient, amount);
+        bool ok = verifier.verifyWithdrawProof(proof, nullifierHash, noteCommitment, msg.sender, address(usdc), amount);
         if (!ok) revert InvalidProof();
 
+        if (amount > totalShieldedPool) revert InsufficientPoolBalance(amount, totalShieldedPool);
+        totalShieldedPool -= amount;
         usdc.safeTransfer(recipient, amount);
         emit ShieldWithdraw(recipient, nullifierHash);
     }
@@ -113,10 +144,14 @@ contract VeilShield is Ownable, Pausable, ReentrancyGuard {
         noteCommitments[noteCommitment] = true;
     }
 
+    function _requireCommitment(bytes32 noteCommitment) internal view {
+        if (noteCommitment == bytes32(0)) revert ZeroCommitment();
+        if (!noteCommitments[noteCommitment]) revert CommitmentNotFound(noteCommitment);
+    }
+
     function _spendNullifier(bytes32 nullifierHash) internal {
         if (nullifierHash == bytes32(0)) revert ZeroCommitment();
         if (nullifiers[nullifierHash]) revert NullifierAlreadySpent(nullifierHash);
         nullifiers[nullifierHash] = true;
     }
 }
-

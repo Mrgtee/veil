@@ -15,3 +15,9 @@ export const ARC_CHAIN_ID =
 
 export const ARC_RPC_URL =
   import.meta.env.VITE_ARC_RPC_URL || "https://rpc.testnet.arc.network";
+
+export const VEIL_SHIELD_ADDRESS =
+  import.meta.env.VITE_VEIL_SHIELD_ADDRESS as `0x${string}` | undefined;
+
+export const VEIL_SHIELD_VERIFIER_ADDRESS =
+  import.meta.env.VITE_VEIL_SHIELD_VERIFIER_ADDRESS as `0x${string}` | undefined;

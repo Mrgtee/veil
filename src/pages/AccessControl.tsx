@@ -10,6 +10,7 @@ import { Plus, X, ShieldCheck, History as HistoryIcon } from "lucide-react";
 import { formatDateTime } from "@/lib/format";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { getVeilShieldSetup } from "@/lib/payments/veilShield";
 
 export default function AccessControl() {
   const [records, setRecords] = useState<ConfidentialRecord[]>([]);
@@ -20,6 +21,7 @@ export default function AccessControl() {
   const [days, setDays] = useState("30");
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState("");
+  const veilShieldSetup = getVeilShieldSetup();
 
   async function loadAccessState() {
     try {
@@ -78,7 +80,14 @@ export default function AccessControl() {
       />
 
       <div className="rounded-lg border border-confidential/30 bg-confidential-soft/60 p-4 text-sm">
-        Closed-payment access is ready for VeilShield records, but hidden-amount settlement is blocked until verifier/circuit-backed VeilShield transfers are deployed and audited.
+        <div className="font-medium">Closed-payment disclosure controls are ready for VeilShield records.</div>
+        <p className="mt-1 text-muted-foreground">
+          Hidden-amount settlement is blocked until verifier/circuit-backed VeilShield transfers are deployed,
+          proof generation is wired, and the system is audited.
+        </p>
+        <p className="mt-2 text-muted-foreground">
+          Milestone 2 status: {veilShieldSetup.statusLabel}. {veilShieldSetup.detail}
+        </p>
       </div>
 
       {status && (
@@ -158,7 +167,7 @@ export default function AccessControl() {
               })}
               {records.length === 0 && !status && (
                 <div className="px-5 py-8 text-sm text-muted-foreground">
-                  No VeilShield records are available yet. Closed settlement remains setup-required.
+                  No VeilShield records are available yet. Closed settlement remains setup-required until verifier-backed transfers are deployed.
                 </div>
               )}
             </div>

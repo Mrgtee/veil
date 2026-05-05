@@ -1,0 +1,7 @@
+[package]
+name = "veil_shield_withdraw"
+type = "bin"
+authors = ["Veil"]
+
+[dependencies]
+veil_shield_shared = { path = "../shared" }

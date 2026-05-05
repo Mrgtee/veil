@@ -8,11 +8,13 @@ import { Lock, Eye, ShieldAlert, ShieldCheck, KeyRound } from "lucide-react";
 import { formatDateTime } from "@/lib/format";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getVeilShieldSetup } from "@/lib/payments/veilShield";
 
 export default function ConfidentialRecords() {
   const [records, setRecords] = useState<ConfidentialRecord[]>([]);
   const [loading, setLoading] = useState<string | null>(null);
   const [status, setStatus] = useState("");
+  const veilShieldSetup = getVeilShieldSetup();
 
   useEffect(() => {
     veilApi
@@ -54,6 +56,9 @@ export default function ConfidentialRecords() {
           <div className="text-sm">
             <div className="font-medium">VeilShield is experimental</div>
             <p className="text-muted-foreground text-xs mt-0.5">Closed payments are about hiding the amount onchain with sender and recipient still visible. This area is for VeilShield records and disclosure state; it does not mean hidden-amount settlement is live yet.</p>
+            <p className="text-muted-foreground text-xs mt-2">
+              Milestone 2 status: {veilShieldSetup.statusLabel}. {veilShieldSetup.detail}
+            </p>
           </div>
         </div>
       </div>
@@ -113,7 +118,7 @@ export default function ConfidentialRecords() {
 
         {records.length === 0 && !status && (
           <div className="surface-card p-5 text-sm text-muted-foreground md:col-span-2">
-            No VeilShield closed-payment records are present. Closed settlement remains blocked until real verifier/circuit-backed hidden-amount payments are deployed.
+            No VeilShield closed-payment records are present. Closed settlement remains blocked until real verifier/circuit-backed hidden-amount payments are deployed and proof generation is wired.
           </div>
         )}
       </div>

@@ -73,7 +73,8 @@ Current SDK investigation:
 1. User can select `Closed Payment`.
 2. Veil explains that closed means sender-visible, recipient-visible, amount-hidden settlement.
 3. Veil blocks visible ERC20 settlement because normal transfers expose amount.
-4. Veil points users to VeilShield setup/audit requirements.
+4. Veil shows Milestone 2 setup state: prototype files exist, deployment/prover/verifier wiring is still required.
+5. Veil points users to VeilShield setup/audit requirements.
 
 ## Closed Records And Access
 
