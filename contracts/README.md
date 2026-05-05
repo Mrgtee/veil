@@ -17,6 +17,8 @@ forge test
 
 VeilShield is not production-ready and must not be deployed as audited confidential payment infrastructure until generated verifier contracts, a verifier adapter, prover integration, note discovery, indexing, and external audit are complete.
 
+The generated verifier contracts require size-focused optimization to fit under EIP-170. `foundry.toml` enables `optimizer = true` and `optimizer_runs = 1`; do not force deployment if Foundry reports oversized verifier bytecode.
+
 Regenerate verifier contracts after circuit changes:
 
 ```bash

@@ -2,5 +2,10 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+optimizer = true
+optimizer_runs = 1
+
+# The generated Barretenberg verifier contracts exceed EIP-170 without
+# size-focused optimization. via_ir currently fails on the generated assembly.
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

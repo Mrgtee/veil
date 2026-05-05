@@ -77,6 +77,8 @@ Copy the `VeilHub deployed 0x...` output into `.env.local` as `VITE_VEIL_HUB_ADD
 
 VeilShield is deploy-ready for an Arc Testnet developer preview, but it is not deployed by default and Closed Payment remains blocked in the frontend.
 
+Important: if Foundry prompts that `TransferVerifier` or `WithdrawVerifier` is above the contract size limit, answer `n`. The committed `contracts/foundry.toml` enables size-focused optimization with `optimizer_runs = 1`; rerun the deploy from the repo after pulling this config. Do not force-broadcast oversized verifier bytecode.
+
 1. Run the Noir tests:
 
 ```bash
