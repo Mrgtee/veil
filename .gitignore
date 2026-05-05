@@ -17,6 +17,7 @@ tmp
 apps/api/data/
 contracts/out/
 contracts/cache/
+contracts/broadcast/
 
 # Local secrets
 .env

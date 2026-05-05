@@ -17,7 +17,7 @@ Arc is the settlement target because it is designed around stablecoin payments a
 
 - Global wallet connection through the app shell and top bar.
 - API-backed payment ledger for Dashboard, History, Activity, Closed Records, Access Control, and Audit Trail.
-- Arc Direct single and batch Open Payments through `VeilHub` and ERC20 USDC when env values are configured.
+- Arc Direct single and batch Open Payments through the deployed Arc Testnet `VeilHub` and ERC20 USDC when env values are configured.
 - USDC allowance checks and `approve` requests only when VeilHub needs more allowance.
 - Unified Balance deposits, balance reads, and spends through Circle AppKit with the connected user wallet.
 - Unified Balance remains usable even when VeilHub is missing; successful spends are recorded as pending VeilHub registration.
@@ -55,8 +55,8 @@ Closed Payment is blocked/setup-required until VeilShield + Noir/ZK verifier/cir
 Arc Direct requires:
 
 - `VITE_USE_VEIL_HUB=true`
-- `VITE_VEIL_HUB_ADDRESS`
-- `VITE_ARC_USDC_ADDRESS`
+- `VITE_VEIL_HUB_ADDRESS=0x30c77c1C20A5cBB171DE9090789F3dB98aA9734b`
+- `VITE_ARC_USDC_ADDRESS=0x3600000000000000000000000000000000000000`
 
 When configured, the frontend reads USDC decimals, checks wallet balance and allowance, requests `approve` only when needed, then calls `VeilHub.payOpen` or `VeilHub.payOpenBatch`. There is no native-transfer fallback and no legacy batch-contract flow.
 
@@ -81,6 +81,15 @@ Dashboard and History read from the API ledger. They show settled, failed, pendi
 - `contracts/src/interfaces/IVeilShieldVerifier.sol`: verifier interface for future Noir/ZK circuits.
 - `contracts/test`: Foundry tests for VeilHub and VeilShield.
 
+## Current Arc Testnet Deployment
+
+- Chain ID: `5042002`
+- Deployer: `0xfE84F8661D575B4fEd8BEAFcbF6b3Fa9c4f9207F`
+- Arc USDC: `0x3600000000000000000000000000000000000000`
+- VeilHub: `0x30c77c1C20A5cBB171DE9090789F3dB98aA9734b`
+
+See `docs/DEPLOYMENT.md` for frontend env, contract env, and redeploy commands.
+
 ## Setup
 
 ```bash
@@ -96,8 +105,8 @@ Create local env files from `.env.example`. Do not commit real `.env` files or s
 ```bash
 VITE_API_BASE_URL=http://localhost:8787
 VITE_USE_VEIL_HUB=true
-VITE_VEIL_HUB_ADDRESS=0x...
-VITE_ARC_USDC_ADDRESS=0x...
+VITE_VEIL_HUB_ADDRESS=0x30c77c1C20A5cBB171DE9090789F3dB98aA9734b
+VITE_ARC_USDC_ADDRESS=0x3600000000000000000000000000000000000000
 VITE_ARC_CHAIN_ID=5042002
 VITE_ARC_RPC_URL=https://rpc.testnet.arc.network
 VEIL_LEDGER_PATH=./data/veil-ledger.json
@@ -126,25 +135,23 @@ Run `forge test` only when Foundry is installed.
 
 ## Deployment Notes
 
-1. Deploy or identify Arc USDC.
-2. Deploy `VeilHub(usdc, owner)` on Arc.
-3. Configure frontend env values for VeilHub and Arc USDC.
-4. Run the API with a durable `VEIL_LEDGER_PATH` for testnet.
-5. Move production records to database/indexer infrastructure before mainnet use.
-6. Keep VeilShield testnet-only until circuits, verifier, proving flow, and audits are complete.
+1. Use the current Arc Testnet VeilHub deployment above, or redeploy with `contracts/script/DeployVeilHub.s.sol`.
+2. Configure frontend env values for VeilHub and Arc USDC.
+3. Run the API with a durable `VEIL_LEDGER_PATH` for testnet.
+4. Move production records to database/indexer infrastructure before mainnet use.
+5. Keep VeilShield testnet-only until circuits, verifier, proving flow, and audits are complete.
 
 ## Known Limitations
 
 - The JSON ledger is temporary testnet infrastructure, not production storage.
-- VeilHub deployment addresses are not included in this repo.
-- Arc Direct is disabled until VeilHub env values are configured.
+- Arc Direct is disabled until VeilHub env values are configured in `.env.local`.
 - Closed Payment settlement is blocked until VeilShield + Noir/ZK is complete and audited.
 - Unified Balance availability depends on Circle AppKit and supported testnet chains.
 - Foundry must be installed locally to run Solidity tests.
 
 ## Roadmap
 
-- Deploy VeilHub on Arc and publish deployment addresses.
+- Add production monitoring and event indexing for the deployed Arc Testnet VeilHub.
 - Add database/indexer-backed ledger storage.
 - Index VeilHub events for open payments and Unified Balance references.
 - Build Noir circuits for VeilShield note creation, hidden transfer, and withdraw.
