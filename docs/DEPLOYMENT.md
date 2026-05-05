@@ -2,7 +2,7 @@
 
 ## Current Arc Testnet Deployment
 
-VeilHub is deployed on Arc Testnet and is the required on-chain route for Arc Direct open payments.
+VeilHub and the VeilShield developer-preview contracts are deployed on Arc Testnet. VeilHub is the required on-chain route for Arc Direct open payments. VeilShield is deployed for proof/verifier integration work, but Closed Payment remains blocked until frontend proof generation and note management are wired.
 
 | Item | Value |
 | --- | --- |
@@ -11,6 +11,17 @@ VeilHub is deployed on Arc Testnet and is the required on-chain route for Arc Di
 | Deployer | `0xfE84F8661D575B4fEd8BEAFcbF6b3Fa9c4f9207F` |
 | Arc USDC | `0x3600000000000000000000000000000000000000` |
 | VeilHub | `0x30c77c1C20A5cBB171DE9090789F3dB98aA9734b` |
+| TransferVerifier | `0xc5B31339159d9371Cb0efb49F001d5506407CE6a` |
+| WithdrawVerifier | `0xA1e76f8AC92220596AacC7009d62a2fe22a55253` |
+| VeilShieldVerifierAdapter | `0x9EfeBa2F99D7f79541A2e8824bFcd8Be628D0253` |
+| VeilShield | `0x1BC23d45aEc7229809841a6FCd578A9C61A5667D` |
+
+Deployment transactions:
+
+- TransferVerifier: `0x853300597a66658b8ce734d3f23af808d2d494490bd8e8bef0308efd9b93b35a`
+- WithdrawVerifier: `0x596193bacc60337fd84ef459ae503d7bb18745db22edc5dd2a7c55159a1ba582`
+- VeilShieldVerifierAdapter: `0xe92de510489c5d2d97380c4785c3abf7e19370407947beb08a8acaa4ee63977f`
+- VeilShield: `0xdd818e1c44f4b649bb699c0988c371a3c19bdcfe1ff37a99640135a49464592e`
 
 Arc Direct single and batch payments have been live-tested through this deployment. The API ledger should show those records as `source=arc_direct`, `status=settled`, with the VeilHub transaction hash plus `paymentId` or `batchId`.
 
@@ -25,6 +36,9 @@ VITE_VEIL_HUB_ADDRESS=0x30c77c1C20A5cBB171DE9090789F3dB98aA9734b
 VITE_ARC_USDC_ADDRESS=0x3600000000000000000000000000000000000000
 VITE_ARC_CHAIN_ID=5042002
 VITE_ARC_RPC_URL=https://rpc.testnet.arc.network
+VITE_VEIL_SHIELD_ADDRESS=0x1BC23d45aEc7229809841a6FCd578A9C61A5667D
+VITE_VEIL_SHIELD_TRANSFER_VERIFIER_ADDRESS=0xc5B31339159d9371Cb0efb49F001d5506407CE6a
+VITE_VEIL_SHIELD_WITHDRAW_VERIFIER_ADDRESS=0xA1e76f8AC92220596AacC7009d62a2fe22a55253
 ```
 
 With these values, Arc Direct single payments call `VeilHub.payOpen`, and Arc Direct batch payments call `VeilHub.payOpenBatch`. The frontend reads USDC decimals, checks wallet USDC balance and VeilHub allowance, requests `approve` only when needed, then records the real transaction result in the API ledger.
@@ -39,15 +53,15 @@ VEIL_LEDGER_PATH=./data/veil-ledger.json
 
 ## VeilShield Prototype Env
 
-Closed Payment remains blocked until verifier/prover wiring is real. The frontend accepts these placeholders only to show setup state:
+Closed Payment remains blocked until proof generation and note management are real. The frontend reads these public Arc Testnet addresses to show setup state:
 
 ```bash
-VITE_VEIL_SHIELD_ADDRESS=<future deployed VeilShield address>
-VITE_VEIL_SHIELD_TRANSFER_VERIFIER_ADDRESS=<future TransferVerifier address>
-VITE_VEIL_SHIELD_WITHDRAW_VERIFIER_ADDRESS=<future WithdrawVerifier address>
+VITE_VEIL_SHIELD_ADDRESS=0x1BC23d45aEc7229809841a6FCd578A9C61A5667D
+VITE_VEIL_SHIELD_TRANSFER_VERIFIER_ADDRESS=0xc5B31339159d9371Cb0efb49F001d5506407CE6a
+VITE_VEIL_SHIELD_WITHDRAW_VERIFIER_ADDRESS=0xA1e76f8AC92220596AacC7009d62a2fe22a55253
 ```
 
-Do not set these values to placeholder or mock contracts in a production-facing environment. A configured address is not enough to enable Closed Payment; proof generation, note discovery, indexing, and audits are still required.
+Do not set these values to placeholder or mock contracts in a production-facing environment. Configured addresses are not enough to enable Closed Payment; proof generation, note discovery, indexing, and audits are still required.
 
 ## Contract Deployment Command
 
@@ -75,7 +89,7 @@ Copy the `VeilHub deployed 0x...` output into `.env.local` as `VITE_VEIL_HUB_ADD
 
 ## VeilShield Deployment Step
 
-VeilShield is deploy-ready for an Arc Testnet developer preview, but it is not deployed by default and Closed Payment remains blocked in the frontend.
+VeilShield has been deployed for an Arc Testnet developer preview, but Closed Payment remains blocked in the frontend.
 
 Important: if Foundry prompts that `TransferVerifier` or `WithdrawVerifier` is above the contract size limit, answer `n`. The committed `contracts/foundry.toml` enables size-focused optimization with `optimizer_runs = 1`; rerun the deploy from the repo after pulling this config. Do not force-broadcast oversized verifier bytecode.
 
@@ -127,7 +141,7 @@ The script deploys:
 - `VeilShieldVerifierAdapter`
 - `VeilShield`
 
-Copy the logged addresses into `.env.local`:
+If redeploying, copy the logged addresses into `.env.local`:
 
 ```bash
 VITE_VEIL_SHIELD_ADDRESS=<VeilShield deployed address>
@@ -135,7 +149,7 @@ VITE_VEIL_SHIELD_TRANSFER_VERIFIER_ADDRESS=<Transfer verifier deployed address>
 VITE_VEIL_SHIELD_WITHDRAW_VERIFIER_ADDRESS=<Withdraw verifier deployed address>
 ```
 
-Closed Payment still remains blocked until a real proof-generation path is wired and audited.
+Closed Payment still remains blocked until a real proof-generation path and note-management flow are wired and audited.
 
 ## Verification
 
@@ -153,4 +167,4 @@ cd /home/gtee/projects/veil/circuits/veil_shield_withdraw && /home/gtee/.nargo/b
 
 Static checks should show no production use of `eth_sendTransaction`, `BatchPayout`, `PaymentVault`, or native-transfer fallback code.
 
-Closed Payment remains setup-required until VeilShield + Noir/ZK verifier/prover wiring is deployed and audited.
+Closed Payment remains setup-required until proof generation, note management, indexing, and audits are complete.

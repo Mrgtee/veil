@@ -15,6 +15,7 @@ dist-ssr
 .cache
 tmp
 apps/api/data/
+# Foundry build/deployment artifacts
 contracts/out/
 contracts/cache/
 contracts/broadcast/

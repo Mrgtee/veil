@@ -93,8 +93,8 @@ export function getVeilShieldSetup(): VeilShieldSetup {
     withdrawVerifierConfigured,
     settlementReady: false,
     missing,
-    statusLabel: "Developer preview configured, proof flow still blocked",
-    detail: "VeilShield and verifier addresses are present, but the app still needs real proof generation and audit review before Closed Payment submission can be enabled.",
+    statusLabel: "VeilShield deployed, proof generation pending",
+    detail: "VeilShield and verifier addresses are configured on Arc Testnet, but the app still needs real proof generation, note management, and audit review before Closed Payment submission can be enabled.",
     checklist,
   };
 }

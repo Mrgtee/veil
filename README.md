@@ -48,7 +48,7 @@ Open Payment sends visible USDC on Arc. Sender, recipient, token, and amount are
 
 ### Closed Payment
 
-Closed Payment is blocked/setup-required until VeilShield + generated verifier/prover wiring are deployed and audited. A normal ERC20 transfer cannot hide amount. VeilShield’s intended model is deposit -> private note -> hidden transfer with nullifier/proof -> withdraw.
+Closed Payment is blocked/setup-required until frontend proof generation, note management, and audits are complete. A normal ERC20 transfer cannot hide amount. VeilShield’s intended model is deposit -> private note -> hidden transfer with nullifier/proof -> withdraw.
 
 Milestone 2 now includes local Noir circuits for a first testnet-only hidden-amount prototype:
 
@@ -103,8 +103,13 @@ Dashboard and History read from the API ledger. They show settled, failed, pendi
 - Deployer: `0xfE84F8661D575B4fEd8BEAFcbF6b3Fa9c4f9207F`
 - Arc USDC: `0x3600000000000000000000000000000000000000`
 - VeilHub: `0x30c77c1C20A5cBB171DE9090789F3dB98aA9734b`
+- TransferVerifier: `0xc5B31339159d9371Cb0efb49F001d5506407CE6a`
+- WithdrawVerifier: `0xA1e76f8AC92220596AacC7009d62a2fe22a55253`
+- VeilShieldVerifierAdapter: `0x9EfeBa2F99D7f79541A2e8824bFcd8Be628D0253`
+- VeilShield: `0x1BC23d45aEc7229809841a6FCd578A9C61A5667D`
 
 Arc Direct single and batch payments have been live-tested through this VeilHub deployment and recorded in the API ledger as settled Arc Testnet transactions.
+VeilShield contracts are deployed for developer-preview verification, but Closed Payment submission remains blocked until proof generation and note management are wired.
 
 See `docs/DEPLOYMENT.md` for frontend env, contract env, and redeploy commands.
 
@@ -127,9 +132,9 @@ VITE_VEIL_HUB_ADDRESS=0x30c77c1C20A5cBB171DE9090789F3dB98aA9734b
 VITE_ARC_USDC_ADDRESS=0x3600000000000000000000000000000000000000
 VITE_ARC_CHAIN_ID=5042002
 VITE_ARC_RPC_URL=https://rpc.testnet.arc.network
-VITE_VEIL_SHIELD_ADDRESS=
-VITE_VEIL_SHIELD_TRANSFER_VERIFIER_ADDRESS=
-VITE_VEIL_SHIELD_WITHDRAW_VERIFIER_ADDRESS=
+VITE_VEIL_SHIELD_ADDRESS=0x1BC23d45aEc7229809841a6FCd578A9C61A5667D
+VITE_VEIL_SHIELD_TRANSFER_VERIFIER_ADDRESS=0xc5B31339159d9371Cb0efb49F001d5506407CE6a
+VITE_VEIL_SHIELD_WITHDRAW_VERIFIER_ADDRESS=0xA1e76f8AC92220596AacC7009d62a2fe22a55253
 VEIL_LEDGER_PATH=./data/veil-ledger.json
 ```
 
