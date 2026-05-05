@@ -24,7 +24,7 @@ contract VeilHub is Ownable, Pausable, ReentrancyGuard {
         address indexed recipient,
         uint256 amount,
         address token,
-        bytes32 reference
+        bytes32 appReference
     );
 
     event OpenBatchRouted(
@@ -33,7 +33,7 @@ contract VeilHub is Ownable, Pausable, ReentrancyGuard {
         uint256 recipientCount,
         uint256 totalAmount,
         address token,
-        bytes32 reference
+        bytes32 appReference
     );
 
     event UnifiedBalanceReferenceRecorded(
@@ -68,14 +68,14 @@ contract VeilHub is Ownable, Pausable, ReentrancyGuard {
         bytes32 paymentId,
         address recipient,
         uint256 amount,
-        bytes32 reference
+        bytes32 appReference
     ) external nonReentrant whenNotPaused {
         _validatePayment(paymentId, recipient, amount);
         paymentRecorded[paymentId] = true;
 
         usdc.safeTransferFrom(msg.sender, recipient, amount);
 
-        emit OpenPaymentRouted(paymentId, msg.sender, recipient, amount, address(usdc), reference);
+        emit OpenPaymentRouted(paymentId, msg.sender, recipient, amount, address(usdc), appReference);
     }
 
     function payOpenBatch(
@@ -83,7 +83,7 @@ contract VeilHub is Ownable, Pausable, ReentrancyGuard {
         address[] calldata recipients,
         uint256[] calldata amounts,
         bytes32[] calldata paymentIds,
-        bytes32 reference
+        bytes32 appReference
     ) external nonReentrant whenNotPaused {
         if (batchId == bytes32(0)) revert ZeroId();
         if (batchRecorded[batchId]) revert AlreadyRecorded(batchId);
@@ -101,10 +101,10 @@ contract VeilHub is Ownable, Pausable, ReentrancyGuard {
             totalAmount += amounts[i];
 
             usdc.safeTransferFrom(msg.sender, recipients[i], amounts[i]);
-            emit OpenPaymentRouted(paymentIds[i], msg.sender, recipients[i], amounts[i], address(usdc), reference);
+            emit OpenPaymentRouted(paymentIds[i], msg.sender, recipients[i], amounts[i], address(usdc), appReference);
         }
 
-        emit OpenBatchRouted(batchId, msg.sender, recipients.length, totalAmount, address(usdc), reference);
+        emit OpenBatchRouted(batchId, msg.sender, recipients.length, totalAmount, address(usdc), appReference);
     }
 
     function recordUnifiedBalanceOpenPayment(
@@ -126,4 +126,3 @@ contract VeilHub is Ownable, Pausable, ReentrancyGuard {
         if (amount == 0) revert ZeroAmount();
     }
 }
-

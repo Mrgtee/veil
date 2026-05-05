@@ -7,7 +7,7 @@ export const veilHubAbi = [
       { name: "paymentId", type: "bytes32" },
       { name: "recipient", type: "address" },
       { name: "amount", type: "uint256" },
-      { name: "reference", type: "bytes32" }
+      { name: "appReference", type: "bytes32" }
     ],
     outputs: []
   },
@@ -20,7 +20,7 @@ export const veilHubAbi = [
       { name: "recipients", type: "address[]" },
       { name: "amounts", type: "uint256[]" },
       { name: "paymentIds", type: "bytes32[]" },
-      { name: "reference", type: "bytes32" }
+      { name: "appReference", type: "bytes32" }
     ],
     outputs: []
   },
