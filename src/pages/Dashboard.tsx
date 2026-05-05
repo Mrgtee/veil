@@ -19,12 +19,15 @@ import {
   KeyRound,
   WalletCards,
   RefreshCw,
+  ExternalLink,
 } from "lucide-react";
 import { formatAmount, formatRelative } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useAccount } from "wagmi";
 import type { UnifiedBalanceData } from "@/lib/payments/unifiedBalance";
+import { ACTIVE_ARC_DEPLOYMENT, getArcExplorerAddressUrl, shortAddress } from "@/lib/deployment";
+import { getPaymentSourceLabel } from "@/lib/payments/types";
 
 type ExtendedPayment = Payment & {
   liquiditySource?: string;
@@ -37,7 +40,7 @@ function modeLabel(mode: string) {
 }
 
 function getLiquiditySource(payment: ExtendedPayment) {
-  return payment.liquiditySource || payment.sourceChain || "Arc Direct";
+  return getPaymentSourceLabel(payment.source || payment.liquiditySource || payment.sourceChain);
 }
 
 function isUnifiedPayment(payment: ExtendedPayment) {
@@ -492,6 +495,43 @@ export default function Dashboard() {
               <Row label="Settled today" value={String(stats?.settledToday ?? "—")} />
               <Row label="Volume (30d)" value={`${stats?.volume30d ?? "—"} USDC`} />
               <Row label="Network" value="Arc Testnet" badge />
+            </div>
+          </div>
+
+          <div className="surface-card p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <ShieldCheck className="h-4 w-4 text-walnut" />
+              <h3 className="font-display text-base">Live deployment</h3>
+            </div>
+
+            <div className="space-y-3 text-sm">
+              <Row label="Network" value={`${ACTIVE_ARC_DEPLOYMENT.network} (${ACTIVE_ARC_DEPLOYMENT.chainId})`} />
+
+              <div className="flex items-start justify-between gap-3">
+                <span className="text-muted-foreground">VeilHub</span>
+                <a
+                  href={getArcExplorerAddressUrl(ACTIVE_ARC_DEPLOYMENT.veilHub)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex min-w-0 items-center gap-1.5 break-all text-right font-mono text-xs underline"
+                >
+                  {shortAddress(ACTIVE_ARC_DEPLOYMENT.veilHub)}
+                  <ExternalLink className="h-3 w-3 shrink-0" />
+                </a>
+              </div>
+
+              <div className="flex items-start justify-between gap-3">
+                <span className="text-muted-foreground">USDC</span>
+                <a
+                  href={getArcExplorerAddressUrl(ACTIVE_ARC_DEPLOYMENT.usdc)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex min-w-0 items-center gap-1.5 break-all text-right font-mono text-xs underline"
+                >
+                  {shortAddress(ACTIVE_ARC_DEPLOYMENT.usdc)}
+                  <ExternalLink className="h-3 w-3 shrink-0" />
+                </a>
+              </div>
             </div>
           </div>
 

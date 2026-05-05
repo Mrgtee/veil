@@ -2,6 +2,8 @@ import type { Payment } from "@/types/veil";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Lock, WalletCards, X } from "lucide-react";
 import { formatAmount, formatDateTime } from "@/lib/format";
+import { getArcExplorerTxUrl } from "@/lib/deployment";
+import { getPaymentSourceLabel } from "@/lib/payments/types";
 import { cn } from "@/lib/utils";
 
 type ExtendedPayment = Payment & {
@@ -20,7 +22,7 @@ function modeLabel(mode: string) {
 }
 
 function getLiquiditySource(payment: ExtendedPayment) {
-  return payment.liquiditySource || payment.sourceChain || "Arc Direct";
+  return getPaymentSourceLabel(payment.source || payment.liquiditySource || payment.sourceChain);
 }
 
 function getDestination(payment: ExtendedPayment) {
@@ -31,8 +33,8 @@ function isUnifiedPayment(payment: ExtendedPayment) {
   return getLiquiditySource(payment).toLowerCase().includes("unified");
 }
 
-function getExplorerUrl(txHash: string) {
-  return `https://testnet.arcscan.app/tx/${txHash}`;
+function isArcDirectPayment(payment: ExtendedPayment) {
+  return !isUnifiedPayment(payment) && payment.source !== "veilshield_closed";
 }
 
 function isExplorerTx(value: string) {
@@ -116,9 +118,14 @@ export function PaymentDetailsDrawer({
   const p = payment as ExtendedPayment;
   const isClosed = p.mode === "confidential";
   const isUnified = isUnifiedPayment(p);
+  const isArcDirect = isArcDirectPayment(p);
   const transactionRefs = p.txHash
     ? p.txHash.split(",").map((item) => item.trim()).filter(Boolean)
     : [];
+  const veilHubRefs =
+    p.veilHubTxHash && p.veilHubTxHash !== p.txHash
+      ? p.veilHubTxHash.split(",").map((item) => item.trim()).filter(Boolean)
+      : [];
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/20 backdrop-blur-sm">
@@ -140,7 +147,7 @@ export function PaymentDetailsDrawer({
             <p className="mt-1 text-sm text-muted-foreground">
               {isUnified
                 ? "Unified Balance USDC payment settled on Arc."
-                : "Arc Direct payment settled on Arc."}
+                : "Arc Direct payment settled through VeilHub on Arc."}
             </p>
           </div>
 
@@ -169,7 +176,7 @@ export function PaymentDetailsDrawer({
           </div>
 
           <div className="grid gap-3">
-            <Row label="Payment ID" value={p.id} mono />
+            <Row label="Ledger record ID" value={p.id} mono />
 
             <Row label="Recipient">
               <div className="space-y-1">
@@ -191,9 +198,15 @@ export function PaymentDetailsDrawer({
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Row label="Liquidity source">
+              <Row label="Source">
                 <SourceBadge payment={p} />
               </Row>
+
+              <Row label="Status" value={p.status.replaceAll("_", " ")} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Row label="Token" value={p.token || "USDC"} />
 
               <Row label="Destination" value={getDestination(p)} />
             </div>
@@ -202,23 +215,52 @@ export function PaymentDetailsDrawer({
 
             {p.memo && <Row label="Memo / reference" value={p.memo} />}
 
-            {p.batchId && <Row label="Batch ID" value={p.batchId} mono />}
+            {p.paymentId && <Row label="VeilHub payment ID" value={p.paymentId} mono />}
+
+            {p.batchId && <Row label="VeilHub batch ID" value={p.batchId} mono />}
 
             {p.batchCount !== undefined && (
               <Row label="Batch recipients" value={String(p.batchCount)} />
+            )}
+
+            {p.pendingReference && (
+              <Row label="Pending reference" value={p.pendingReference} mono />
             )}
           </div>
 
           {transactionRefs.length > 0 && (
             <div className="rounded-xl border p-4">
-              <div className="mb-3 text-sm font-medium">Arc transaction or settlement reference</div>
+              <div className="mb-3 text-sm font-medium">
+                {isArcDirect ? "VeilHub tx hash" : "Arc transaction or settlement reference"}
+              </div>
               <div className="space-y-2">
                 {transactionRefs.map((tx) => (
                   <div key={tx} className="rounded-lg border bg-background p-3">
                     <div className="break-all font-mono text-xs text-muted-foreground">{tx}</div>
                     {isExplorerTx(tx) && (
                       <Button asChild variant="outline" size="sm" className="mt-3">
-                        <a href={getExplorerUrl(tx)} target="_blank" rel="noreferrer">
+                        <a href={getArcExplorerTxUrl(tx)} target="_blank" rel="noreferrer">
+                          <ExternalLink className="mr-2 h-3.5 w-3.5" />
+                          View on Arc explorer
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {veilHubRefs.length > 0 && (
+            <div className="rounded-xl border p-4">
+              <div className="mb-3 text-sm font-medium">VeilHub registration tx hash</div>
+              <div className="space-y-2">
+                {veilHubRefs.map((tx) => (
+                  <div key={tx} className="rounded-lg border bg-background p-3">
+                    <div className="break-all font-mono text-xs text-muted-foreground">{tx}</div>
+                    {isExplorerTx(tx) && (
+                      <Button asChild variant="outline" size="sm" className="mt-3">
+                        <a href={getArcExplorerTxUrl(tx)} target="_blank" rel="noreferrer">
                           <ExternalLink className="mr-2 h-3.5 w-3.5" />
                           View on Arc explorer
                         </a>
@@ -262,7 +304,7 @@ export function PaymentDetailsDrawer({
                 {p.bridgeTxHashes.map((tx, idx) => (
                   <a
                     key={`${tx}-${idx}`}
-                    href={getExplorerUrl(tx)}
+                    href={getArcExplorerTxUrl(tx)}
                     target="_blank"
                     rel="noreferrer"
                     className="block break-all rounded-lg border bg-background p-3 font-mono text-xs underline"
@@ -271,6 +313,13 @@ export function PaymentDetailsDrawer({
                   </a>
                 ))}
               </div>
+            </div>
+          )}
+
+          {p.settlementNote && (
+            <div className="rounded-xl border bg-secondary/20 p-4 text-sm">
+              <div className="font-medium">Settlement note</div>
+              <p className="mt-1 text-muted-foreground">{p.settlementNote}</p>
             </div>
           )}
         </div>

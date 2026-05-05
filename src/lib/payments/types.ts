@@ -63,10 +63,11 @@ export function getPaymentModeShortLabel(mode: PaymentMode) {
 }
 
 export function getPaymentSourceLabel(source: PaymentSource | string | undefined) {
-  if (source === "unified-balance" || String(source || "").toLowerCase().includes("unified")) {
+  const normalized = String(source || "").toLowerCase().replaceAll("_", "-");
+
+  if (normalized === "unified-balance" || normalized.includes("unified")) {
     return "Unified Balance USDC";
   }
 
-  return "Arc Direct";
+  return "Arc Direct via VeilHub";
 }
-

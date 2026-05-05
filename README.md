@@ -88,6 +88,8 @@ Dashboard and History read from the API ledger. They show settled, failed, pendi
 - Arc USDC: `0x3600000000000000000000000000000000000000`
 - VeilHub: `0x30c77c1C20A5cBB171DE9090789F3dB98aA9734b`
 
+Arc Direct single and batch payments have been live-tested through this VeilHub deployment and recorded in the API ledger as settled Arc Testnet transactions.
+
 See `docs/DEPLOYMENT.md` for frontend env, contract env, and redeploy commands.
 
 ## Setup

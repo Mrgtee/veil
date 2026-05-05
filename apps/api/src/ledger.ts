@@ -250,6 +250,11 @@ export async function createPayment(input: LedgerPaymentInput) {
   assertPaymentIsTruthful(input);
 
   return await mutateLedger((ledger) => {
+    if (input.externalId) {
+      const existing = ledger.payments.find((payment) => payment.externalId === input.externalId);
+      if (existing) return existing;
+    }
+
     const createdAt = nowIso();
     const id = makeId(input.type === "batch" ? "batch" : "pmt");
     const txHash = input.txHash || input.pendingReference || undefined;

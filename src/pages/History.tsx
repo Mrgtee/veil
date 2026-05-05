@@ -8,6 +8,8 @@ import { Search, ExternalLink, Eye, Lock, Download, WalletCards } from "lucide-r
 import { cn } from "@/lib/utils";
 import { formatAmount, formatDateTime } from "@/lib/format";
 import { PaymentDetailsDrawer } from "@/components/veil/PaymentDetailsDrawer";
+import { getArcExplorerTxUrl } from "@/lib/deployment";
+import { getPaymentSourceLabel } from "@/lib/payments/types";
 
 type Filter =
   | "all"
@@ -39,7 +41,7 @@ function getLiquiditySource(payment: Payment) {
     destinationChain?: string;
   };
 
-  return p.liquiditySource || p.sourceChain || "Arc Direct";
+  return getPaymentSourceLabel(p.source || p.liquiditySource || p.sourceChain);
 }
 
 function getDestination(payment: Payment) {
@@ -54,7 +56,7 @@ function isUnifiedPayment(payment: Payment) {
   return getLiquiditySource(payment).toLowerCase().includes("unified");
 }
 
-function isExplorerTx(value?: string) {
+function isExplorerTx(value?: string): value is string {
   return Boolean(value && /^0x[a-fA-F0-9]{64}$/.test(value));
 }
 
@@ -327,7 +329,7 @@ export default function History() {
                     {isExplorerTx(p.txHash) ? (
                       <a
                         className="underline break-all"
-                        href={`https://testnet.arcscan.app/tx/${p.txHash}`}
+                        href={getArcExplorerTxUrl(p.txHash)}
                         target="_blank"
                         rel="noreferrer"
                       >
@@ -358,7 +360,7 @@ export default function History() {
                       {isExplorerTx(p.txHash) && (
                         <Button variant="ghost" size="sm" aria-label="Open in explorer" asChild>
                           <a
-                            href={`https://testnet.arcscan.app/tx/${p.txHash}`}
+                            href={getArcExplorerTxUrl(p.txHash)}
                             target="_blank"
                             rel="noreferrer"
                           >

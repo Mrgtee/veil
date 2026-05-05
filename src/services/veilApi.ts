@@ -44,29 +44,58 @@ type PaymentWrite = {
   error?: string;
 };
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  let response: Response;
+type RequestOptions = {
+  retries?: number;
+};
 
-  try {
-    response = await fetch(`${APP_API_BASE}${path}`, {
-      ...init,
-      headers: {
-        "content-type": "application/json",
-        ...(init?.headers || {}),
-      },
-    });
-  } catch (err) {
-    const detail = err instanceof Error && err.message ? ` ${err.message}` : "";
-    throw new Error(`Veil API is unavailable at ${APP_API_BASE}.${detail}`);
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function request<T>(path: string, init?: RequestInit, options: RequestOptions = {}): Promise<T> {
+  const retries = options.retries ?? 0;
+  let lastError: Error | undefined;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    let response: Response;
+
+    try {
+      response = await fetch(`${APP_API_BASE}${path}`, {
+        ...init,
+        headers: {
+          "content-type": "application/json",
+          ...(init?.headers || {}),
+        },
+      });
+    } catch (err) {
+      const detail = err instanceof Error && err.message ? ` ${err.message}` : "";
+      lastError = new Error(`Veil API is unavailable at ${APP_API_BASE}.${detail}`);
+
+      if (attempt < retries) {
+        await wait(300 * (attempt + 1));
+        continue;
+      }
+
+      throw lastError;
+    }
+
+    const payload = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
+
+    if (response.ok && payload?.ok) {
+      return payload.data as T;
+    }
+
+    lastError = new Error(payload?.error || `Veil API request failed with HTTP ${response.status}.`);
+
+    if (response.status >= 500 && attempt < retries) {
+      await wait(300 * (attempt + 1));
+      continue;
+    }
+
+    throw lastError;
   }
 
-  const payload = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
-
-  if (!response.ok || !payload?.ok) {
-    throw new Error(payload?.error || `Veil API request failed with HTTP ${response.status}.`);
-  }
-
-  return payload.data as T;
+  throw lastError || new Error("Veil API request failed.");
 }
 
 export const veilApi = {
@@ -98,7 +127,7 @@ export const veilApi = {
     return request<Payment>("/api/payments", {
       method: "POST",
       body: JSON.stringify(input),
-    });
+    }, { retries: 2 });
   },
 
   async requestReveal(recordId: string): Promise<void> {

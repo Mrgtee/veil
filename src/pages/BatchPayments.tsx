@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAccount } from "wagmi";
 import { AlertCircle, ExternalLink, Plus, Send, Trash2 } from "lucide-react";
@@ -114,6 +114,7 @@ export default function BatchPayments() {
   const [loading, setLoading] = useState(false);
   const [batchId, setBatchId] = useState("");
   const [results, setResults] = useState<RowResult[]>([]);
+  const submittingRef = useRef(false);
   const veilHubSetup = getVeilHubSetup();
 
   const totalAmount = useMemo(() => getBatchTotal(rows), [rows]);
@@ -355,6 +356,9 @@ export default function BatchPayments() {
   }
 
   async function submitBatch() {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+
     try {
       setLoading(true);
       setStatus("Preparing batch...");
@@ -380,6 +384,7 @@ export default function BatchPayments() {
     } catch (err) {
       setStatus(formatPaymentError(err, "Batch failed."));
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   }

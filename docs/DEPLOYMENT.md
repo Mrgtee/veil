@@ -12,6 +12,8 @@ VeilHub is deployed on Arc Testnet and is the required on-chain route for Arc Di
 | Arc USDC | `0x3600000000000000000000000000000000000000` |
 | VeilHub | `0x30c77c1C20A5cBB171DE9090789F3dB98aA9734b` |
 
+Arc Direct single and batch payments have been live-tested through this deployment. The API ledger should show those records as `source=arc_direct`, `status=settled`, with the VeilHub transaction hash plus `paymentId` or `batchId`.
+
 ## Frontend Env
 
 Create `/home/gtee/projects/veil/.env.local` locally. Do not commit it.

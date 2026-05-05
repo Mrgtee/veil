@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { isAddress } from "viem";
 import { useAccount } from "wagmi";
@@ -115,6 +115,7 @@ export default function NewPayment() {
   const [loading, setLoading] = useState(false);
   const [balance, setBalance] = useState<UnifiedBalanceData | null>(null);
   const [balanceStatus, setBalanceStatus] = useState("");
+  const submittingRef = useRef(false);
   const veilHubSetup = getVeilHubSetup();
 
   const isClosedMode = mode === "confidential";
@@ -286,6 +287,9 @@ export default function NewPayment() {
   }
 
   async function submitPayment() {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+
     try {
       setLoading(true);
       setResult(null);
@@ -354,6 +358,7 @@ export default function NewPayment() {
     } catch (err) {
       setStatus(formatPaymentError(err, "Payment failed."));
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   }

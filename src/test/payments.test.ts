@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { cleanBatchRows, getBatchTotal, parseUsdcAmount } from "@/lib/payments/arcDirect";
 import { getLedgerSource } from "@/lib/payments/recording";
+import { getPaymentSourceLabel } from "@/lib/payments/types";
 
 describe("payment helpers", () => {
   it("validates and trims form-based batch rows", () => {
@@ -52,5 +53,12 @@ describe("payment helpers", () => {
   it("maps UI sources to ledger source enums", () => {
     expect(getLedgerSource("arc-direct")).toBe("arc_direct");
     expect(getLedgerSource("unified-balance")).toBe("unified_balance");
+  });
+
+  it("labels live Arc Direct payments as VeilHub-routed", () => {
+    expect(getPaymentSourceLabel("arc-direct")).toBe("Arc Direct via VeilHub");
+    expect(getPaymentSourceLabel("arc_direct")).toBe("Arc Direct via VeilHub");
+    expect(getPaymentSourceLabel("Arc Direct")).toBe("Arc Direct via VeilHub");
+    expect(getPaymentSourceLabel("unified_balance")).toBe("Unified Balance USDC");
   });
 });
