@@ -123,7 +123,7 @@ The new circuit workspace lives under `circuits/`:
 
 Transfer public inputs are sender, recipient, token, input commitment, output commitment, change commitment, and nullifier. Transfer amounts remain private. Withdraw amount is public because public USDC leaves the shielded pool.
 
-The Solidity verifier interface is shaped for these public inputs, but generated verifier contracts are not committed or deployed yet. Current bb-generated Solidity uses generic verifier names, so the next architecture step is a reviewed verifier adapter plus deployment tests.
+Generated Solidity verifiers are committed under `contracts/src/verifiers/`, with shared Barretenberg code split into `BaseZKHonkVerifier.sol` and stable `TransferVerifier` / `WithdrawVerifier` contracts. `VeilShieldVerifierAdapter` maps VeilShield arguments into the public input arrays expected by those generated verifiers.
 
 ### Closed Payment Runtime State
 
@@ -131,7 +131,8 @@ Closed Payment remains blocked in the app. The UI can show:
 
 - setup required if Arc USDC is missing
 - prototype ready, deployment required if circuit files exist but `VITE_VEIL_SHIELD_ADDRESS` is absent
-- deployment configured, verifier/prover setup required if a shield address exists without verifier/prover configuration
+- deployment configured, verifier setup required if a shield address exists without `VITE_VEIL_SHIELD_TRANSFER_VERIFIER_ADDRESS` or `VITE_VEIL_SHIELD_WITHDRAW_VERIFIER_ADDRESS`
+- developer preview configured if shield and verifier addresses exist, while proof generation and audit remain incomplete
 
 None of those states submit a payment. Visible Arc Direct or Unified Balance transfers are not accepted as Closed Payment settlement.
 

@@ -573,6 +573,16 @@ export default function BatchPayments() {
                     Missing: {veilShieldSetup.missing.join(", ")}
                   </div>
                 )}
+                <div className="mt-3 grid gap-1.5">
+                  {veilShieldSetup.checklist.map((item) => (
+                    <div key={item.label} className="flex items-center gap-2 text-xs">
+                      <CheckCircle2
+                        className={cn("h-3.5 w-3.5", item.complete ? "text-success" : "text-muted-foreground")}
+                      />
+                      <span className={item.complete ? "" : "text-muted-foreground"}>{item.label}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}

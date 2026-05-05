@@ -19,5 +19,8 @@ export const ARC_RPC_URL =
 export const VEIL_SHIELD_ADDRESS =
   import.meta.env.VITE_VEIL_SHIELD_ADDRESS as `0x${string}` | undefined;
 
-export const VEIL_SHIELD_VERIFIER_ADDRESS =
-  import.meta.env.VITE_VEIL_SHIELD_VERIFIER_ADDRESS as `0x${string}` | undefined;
+export const VEIL_SHIELD_TRANSFER_VERIFIER_ADDRESS =
+  import.meta.env.VITE_VEIL_SHIELD_TRANSFER_VERIFIER_ADDRESS as `0x${string}` | undefined;
+
+export const VEIL_SHIELD_WITHDRAW_VERIFIER_ADDRESS =
+  import.meta.env.VITE_VEIL_SHIELD_WITHDRAW_VERIFIER_ADDRESS as `0x${string}` | undefined;

@@ -43,10 +43,11 @@ Closed Payment remains blocked until verifier/prover wiring is real. The fronten
 
 ```bash
 VITE_VEIL_SHIELD_ADDRESS=<future deployed VeilShield address>
-VITE_VEIL_SHIELD_VERIFIER_ADDRESS=<future verifier or verifier-adapter address>
+VITE_VEIL_SHIELD_TRANSFER_VERIFIER_ADDRESS=<future TransferVerifier address>
+VITE_VEIL_SHIELD_WITHDRAW_VERIFIER_ADDRESS=<future WithdrawVerifier address>
 ```
 
-Do not set these values to placeholder or mock contracts in a production-facing environment. A configured address is not enough to enable Closed Payment; proof generation, verifier adapters, indexing, and audits are still required.
+Do not set these values to placeholder or mock contracts in a production-facing environment. A configured address is not enough to enable Closed Payment; proof generation, note discovery, indexing, and audits are still required.
 
 ## Contract Deployment Command
 
@@ -59,6 +60,7 @@ PRIVATE_KEY=<testnet deployer private key>
 ARC_TESTNET_RPC_URL=https://rpc.testnet.arc.network
 ARC_CHAIN_ID=5042002
 ARC_USDC_ADDRESS=0x3600000000000000000000000000000000000000
+VEIL_HUB_ADDRESS=0x30c77c1C20A5cBB171DE9090789F3dB98aA9734b
 ```
 
 Deploy or redeploy with:
@@ -71,9 +73,9 @@ forge script script/DeployVeilHub.s.sol:DeployVeilHub --rpc-url "$ARC_TESTNET_RP
 
 Copy the `VeilHub deployed 0x...` output into `.env.local` as `VITE_VEIL_HUB_ADDRESS`.
 
-## VeilShield Next Deployment Step
+## VeilShield Deployment Step
 
-VeilShield is not deployed in this milestone. To prepare an Arc Testnet prototype:
+VeilShield is deploy-ready for an Arc Testnet developer preview, but it is not deployed by default and Closed Payment remains blocked in the frontend.
 
 1. Run the Noir tests:
 
@@ -101,10 +103,37 @@ cd /home/gtee/projects/veil/circuits/veil_shield_withdraw
 /home/gtee/.bb/bb write_solidity_verifier -k target/vk/vk -o target/VeilShieldWithdrawVerifier.sol -t evm
 ```
 
-3. Review generated verifier names, ABI, and public input order.
-4. Add a verifier adapter if needed for `IVeilShieldVerifier`.
-5. Add a Foundry deployment script and tests for the real verifier adapter plus `VeilShield`.
-6. Only then deploy on Arc Testnet and configure `VITE_VEIL_SHIELD_ADDRESS`.
+3. Update committed verifier contracts:
+
+```bash
+cd /home/gtee/projects/veil
+node scripts/generate-veilshield-verifiers.mjs
+```
+
+4. Deploy on Arc Testnet:
+
+```bash
+cd /home/gtee/projects/veil/contracts
+set -a && source .env && set +a
+forge script script/DeployVeilShield.s.sol:DeployVeilShield --rpc-url "$ARC_TESTNET_RPC_URL" --broadcast --chain-id "$ARC_CHAIN_ID" -vvv
+```
+
+The script deploys:
+
+- `TransferVerifier`
+- `WithdrawVerifier`
+- `VeilShieldVerifierAdapter`
+- `VeilShield`
+
+Copy the logged addresses into `.env.local`:
+
+```bash
+VITE_VEIL_SHIELD_ADDRESS=<VeilShield deployed address>
+VITE_VEIL_SHIELD_TRANSFER_VERIFIER_ADDRESS=<Transfer verifier deployed address>
+VITE_VEIL_SHIELD_WITHDRAW_VERIFIER_ADDRESS=<Withdraw verifier deployed address>
+```
+
+Closed Payment still remains blocked until a real proof-generation path is wired and audited.
 
 ## Verification
 
@@ -115,9 +144,9 @@ npm run build
 npm test
 npm run lint
 cd apps/api && npm run build
-cd ../contracts && forge test -vvv
-cd ../circuits/veil_shield_transfer && /home/gtee/.nargo/bin/nargo test
-cd ../veil_shield_withdraw && /home/gtee/.nargo/bin/nargo test
+cd /home/gtee/projects/veil/contracts && forge test -vvv
+cd /home/gtee/projects/veil/circuits/veil_shield_transfer && /home/gtee/.nargo/bin/nargo test
+cd /home/gtee/projects/veil/circuits/veil_shield_withdraw && /home/gtee/.nargo/bin/nargo test
 ```
 
 Static checks should show no production use of `eth_sendTransaction`, `BatchPayout`, `PaymentVault`, or native-transfer fallback code.

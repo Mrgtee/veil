@@ -58,6 +58,22 @@ contract VeilShieldTest is Test {
         usdc.approve(address(shield), type(uint256).max);
     }
 
+    function testConstructorRejectsZeroUsdc() public {
+        vm.expectRevert(VeilShield.ZeroAddress.selector);
+        new VeilShield(MockUSDC(address(0)), verifier, owner);
+    }
+
+    function testConstructorRejectsZeroVerifier() public {
+        vm.expectRevert(VeilShield.ZeroAddress.selector);
+        new VeilShield(usdc, IVeilShieldVerifier(address(0)), owner);
+    }
+
+    function testSetVerifierRejectsZeroAddress() public {
+        vm.prank(owner);
+        vm.expectRevert(VeilShield.ZeroAddress.selector);
+        shield.setVerifier(IVeilShieldVerifier(address(0)));
+    }
+
     function testDepositTransfersIntoShieldAndRegistersCommitment() public {
         bytes32 noteCommitment = keccak256("note-1");
 
@@ -185,11 +201,32 @@ contract VeilShieldTest is Test {
     }
 
     function testPauseBlocksActions() public {
+        bytes32 noteCommitment = keccak256("paused-input-note");
+
+        vm.prank(sender);
+        shield.deposit(1e18, noteCommitment, bytes32(0));
+
         vm.prank(owner);
         shield.pause();
 
         vm.prank(sender);
         vm.expectRevert(Pausable.EnforcedPause.selector);
         shield.deposit(1e18, keccak256("paused-note"), bytes32(0));
+
+        vm.prank(sender);
+        vm.expectRevert(Pausable.EnforcedPause.selector);
+        shield.transferNote(
+            hex"01",
+            keccak256("paused-nullifier"),
+            noteCommitment,
+            keccak256("paused-output"),
+            keccak256("paused-change"),
+            bytes32(0),
+            recipient
+        );
+
+        vm.prank(sender);
+        vm.expectRevert(Pausable.EnforcedPause.selector);
+        shield.withdraw(hex"01", keccak256("paused-withdraw-nullifier"), noteCommitment, recipient, 1e18);
     }
 }

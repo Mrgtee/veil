@@ -36,4 +36,17 @@ cd /home/gtee/projects/veil/circuits/veil_shield_withdraw
 /home/gtee/.bb/bb write_solidity_verifier -k target/vk/vk -o target/VeilShieldWithdrawVerifier.sol -t evm
 ```
 
-Generated artifacts should be reviewed before being committed or wired into deployment because current bb output uses generic verifier contract names.
+After generating raw bb artifacts, update the committed Solidity verifier contracts:
+
+```bash
+cd /home/gtee/projects/veil
+node scripts/generate-veilshield-verifiers.mjs
+```
+
+This writes:
+
+- `contracts/src/verifiers/BaseZKHonkVerifier.sol`
+- `contracts/src/verifiers/TransferVerifier.sol`
+- `contracts/src/verifiers/WithdrawVerifier.sol`
+
+Do not edit those generated Solidity files by hand.

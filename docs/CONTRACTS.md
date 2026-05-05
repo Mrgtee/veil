@@ -49,7 +49,29 @@ The verifier exposes:
 - `verifyTransferProof(proof, nullifierHash, inputNoteCommitment, outputNoteCommitment, changeNoteCommitment, sender, recipient, token)`
 - `verifyWithdrawProof(proof, nullifierHash, noteCommitment, owner, token, amount)`
 
-This interface is ready for a verifier adapter, but no production verifier is committed or deployed yet. Tests use a mock verifier only inside `contracts/test`.
+This interface is implemented by `contracts/src/VeilShieldVerifierAdapter.sol`. The adapter maps VeilShield arguments into the public input arrays expected by generated Barretenberg verifiers:
+
+- transfer public inputs: sender, recipient, token, input commitment, output commitment, change commitment, nullifier
+- withdraw public inputs: owner, token, note commitment, nullifier, withdrawal amount
+
+Tests use mocks only inside `contracts/test`; there is no production mock verifier.
+
+## Generated Verifiers
+
+Generated verifier files:
+
+- `contracts/src/verifiers/BaseZKHonkVerifier.sol`
+- `contracts/src/verifiers/TransferVerifier.sol`
+- `contracts/src/verifiers/WithdrawVerifier.sol`
+
+These are generated from Barretenberg output by:
+
+```bash
+cd /home/gtee/projects/veil
+node scripts/generate-veilshield-verifiers.mjs
+```
+
+The raw bb output remains ignored in circuit `target/` folders. The generator extracts the shared verifier base once and gives the transfer and withdraw verifiers stable contract names.
 
 ## Noir Circuits
 
@@ -71,7 +93,7 @@ cd /home/gtee/projects/veil/circuits/veil_shield_withdraw
 /home/gtee/.nargo/bin/nargo test
 ```
 
-Generate verifier artifacts:
+Generate raw verifier artifacts:
 
 ```bash
 cd /home/gtee/projects/veil/circuits/veil_shield_transfer
@@ -80,7 +102,7 @@ cd /home/gtee/projects/veil/circuits/veil_shield_transfer
 /home/gtee/.bb/bb write_solidity_verifier -k target/vk/vk -o target/VeilShieldTransferVerifier.sol -t evm
 ```
 
-Repeat for `veil_shield_withdraw`. Generated artifacts need review before commit because current bb output uses generic contract names and may need adapter wiring.
+Repeat for `veil_shield_withdraw`, then run `node scripts/generate-veilshield-verifiers.mjs` to update committed verifier contracts.
 
 ## Tests
 
@@ -109,6 +131,8 @@ The tests cover:
 - pause blocking shield actions
 - withdraw transfers
 - withdraw over pool-accounting rejection
+- generated verifier invalid-proof rejection
+- adapter public input ordering
 
 ## Deployment
 
@@ -122,11 +146,12 @@ Closed payments:
 
 1. Compile and test Noir circuits.
 2. Generate transfer and withdraw verifier artifacts.
-3. Review/rename generated verifier contracts or add an adapter.
-4. Deploy verifier contracts on Arc Testnet.
-5. Deploy `VeilShield(usdc, verifier, owner)` on testnet only.
-6. Configure `VITE_VEIL_SHIELD_ADDRESS` and verifier/prover settings.
-7. Keep UI submit blocked until proof generation, indexing, and audits are complete.
+3. Run `node scripts/generate-veilshield-verifiers.mjs`.
+4. Deploy `TransferVerifier` and `WithdrawVerifier` on Arc Testnet.
+5. Deploy `VeilShieldVerifierAdapter(transferVerifier, withdrawVerifier)`.
+6. Deploy `VeilShield(usdc, verifierAdapter, owner)` on testnet only.
+7. Configure `VITE_VEIL_SHIELD_ADDRESS`, `VITE_VEIL_SHIELD_TRANSFER_VERIFIER_ADDRESS`, and `VITE_VEIL_SHIELD_WITHDRAW_VERIFIER_ADDRESS`.
+8. Keep UI submit blocked until proof generation, indexing, and audits are complete.
 
 Do not deploy VeilShield as production-ready until circuits, verifier wiring, prover integration, note discovery, indexing, and audits are complete.
 

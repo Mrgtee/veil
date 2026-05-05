@@ -105,13 +105,11 @@ Withdrawal amount is public by design because a public USDC transfer out of the 
 - pause controls
 - tests for zero deposit, duplicate commitments, unknown input commitments, nullifier reuse, invalid proofs, pause, and pool over-withdraw prevention
 
-Verifier logic is still behind `IVeilShieldVerifier`. Tests use a mock verifier only inside `contracts/test`; there is no production mock verifier.
+Verifier logic is behind `IVeilShieldVerifier` and the production adapter at `contracts/src/VeilShieldVerifierAdapter.sol`. Generated Barretenberg verifiers live in `contracts/src/verifiers/`. Tests use mocks only inside `contracts/test`; there is no production mock verifier.
 
 ## What Remains Before Closed Payment Can Go Live
 
-- Generate stable Solidity verifier contracts from the Noir circuits.
-- Review generated verifier names, ABI, gas cost, and public input ordering.
-- Add a verifier adapter if the generated bb verifier ABI does not match `IVeilShieldVerifier`.
+- Deploy the generated verifier contracts, adapter, and VeilShield to Arc Testnet.
 - Add frontend or service-side proof generation for real witnesses.
 - Add a note discovery model so recipients can find and spend their output notes.
 - Add a Merkle tree or accumulator for scalable note membership.
@@ -162,7 +160,14 @@ cd /home/gtee/projects/veil/circuits/veil_shield_withdraw
 /home/gtee/.bb/bb write_solidity_verifier -k target/vk/vk -o target/VeilShieldWithdrawVerifier.sol -t evm
 ```
 
-Generated artifacts are intentionally not committed in this milestone. Current bb output uses generic verifier contract names, so the next step is to review and adapt generated verifier contracts before wiring deployment.
+Regenerate committed verifier contracts after circuit changes:
+
+```bash
+cd /home/gtee/projects/veil
+node scripts/generate-veilshield-verifiers.mjs
+```
+
+The generator splits bb output into a shared `BaseZKHonkVerifier.sol` plus cleanly named `TransferVerifier.sol` and `WithdrawVerifier.sol`. Do not edit generated Solidity by hand.
 
 ## Security Requirements
 
