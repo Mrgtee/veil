@@ -67,6 +67,13 @@ function modeLabel(mode: string) {
   return mode === "confidential" ? "Closed" : "Open";
 }
 
+function operationLabel(payment: Payment) {
+  if (payment.operation === "shield_deposit") return "VeilShield deposit";
+  if (payment.operation === "shield_transfer") return "VeilShield hidden transfer";
+  if (payment.operation === "shield_withdraw") return "VeilShield withdraw";
+  return `${payment.type} payment`;
+}
+
 function ModeBadge({ mode }: { mode: string }) {
   const isPrivate = mode === "confidential";
 
@@ -295,7 +302,7 @@ export default function History() {
                   <td className="px-5 py-3.5">
                     <div className="font-mono text-xs text-muted-foreground">{p.id}</div>
                     <div className="text-xs text-muted-foreground capitalize mt-1">
-                      {p.type} payment
+                      {operationLabel(p)}
                     </div>
                   </td>
 

@@ -18,6 +18,7 @@ const paymentSourceSchema = z.enum([
 
 const paymentModeSchema = z.enum(["open", "confidential"]);
 const paymentTypeSchema = z.enum(["single", "batch"]);
+const paymentOperationSchema = z.enum(["payment", "shield_deposit", "shield_transfer", "shield_withdraw"]);
 const disclosureStatusSchema = z.enum(["private", "requested", "granted", "revoked"]);
 
 const paymentSchema = z.object({
@@ -25,6 +26,7 @@ const paymentSchema = z.object({
   type: paymentTypeSchema,
   mode: paymentModeSchema,
   source: paymentSourceSchema,
+  operation: paymentOperationSchema.optional(),
   status: paymentStatusSchema,
   recipient: z.string().min(1),
   recipientLabel: z.string().optional(),
@@ -90,6 +92,7 @@ export const createPaymentSchema = z.object({
   type: paymentTypeSchema,
   mode: paymentModeSchema,
   source: paymentSourceSchema,
+  operation: paymentOperationSchema.optional().default("payment"),
   status: paymentStatusSchema,
   recipient: z.string().min(1),
   recipientLabel: z.string().optional().default(""),
@@ -226,6 +229,27 @@ function createConfidentialRecordIfNeeded(ledger: Ledger, payment: LedgerPayment
   });
 }
 
+function paymentOperationLabel(operation?: string) {
+  if (operation === "shield_deposit") return "VeilShield deposit";
+  if (operation === "shield_transfer") return "VeilShield transfer";
+  if (operation === "shield_withdraw") return "VeilShield withdraw";
+  return "payment";
+}
+
+function paymentActivityTitle(payment: LedgerPayment) {
+  const status = payment.status.replaceAll("_", " ");
+
+  if (payment.operation === "shield_deposit") return `VeilShield deposit ${status}`;
+  if (payment.operation === "shield_transfer") return `VeilShield transfer ${status}`;
+  if (payment.operation === "shield_withdraw") return `VeilShield withdraw ${status}`;
+
+  if (payment.type === "batch") {
+    return `${payment.mode === "confidential" ? "Closed" : "Open"} batch ${status}`;
+  }
+
+  return `${payment.mode === "confidential" ? "Closed" : "Open"} payment ${status}`;
+}
+
 export async function getPayments() {
   const ledger = await readLedger();
   return ledger.payments.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
@@ -264,6 +288,7 @@ export async function createPayment(input: LedgerPaymentInput) {
       type: input.type,
       mode: input.mode,
       source: input.source,
+      operation: input.operation === "payment" ? undefined : input.operation,
       status: input.status,
       recipient: input.recipient,
       recipientLabel: input.recipientLabel || undefined,
@@ -293,7 +318,9 @@ export async function createPayment(input: LedgerPaymentInput) {
     createConfidentialRecordIfNeeded(ledger, payment);
     addAudit(
       ledger,
-      payment.mode === "confidential" ? "Closed payment reference recorded" : "Open payment recorded",
+      payment.mode === "confidential"
+        ? `${paymentOperationLabel(payment.operation)} recorded`
+        : "Open payment recorded",
       payment.source,
       payment.txHash || payment.pendingReference || payment.id
     );
@@ -365,10 +392,7 @@ export async function getActivity() {
     ...ledger.payments.map((payment) => ({
       id: `evt_${payment.id}`,
       kind: payment.type === "batch" ? "batch" as const : "payment" as const,
-      title:
-        payment.type === "batch"
-          ? `${payment.mode === "confidential" ? "Closed" : "Open"} batch ${payment.status.replaceAll("_", " ")}`
-          : `${payment.mode === "confidential" ? "Closed" : "Open"} payment ${payment.status.replaceAll("_", " ")}`,
+      title: paymentActivityTitle(payment),
       description: payment.txHash || payment.pendingReference || payment.id,
       timestamp: payment.createdAt,
     })),

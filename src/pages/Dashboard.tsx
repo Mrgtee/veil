@@ -50,6 +50,13 @@ function isUnifiedPayment(payment: ExtendedPayment) {
   return getLiquiditySource(payment).toLowerCase().includes("unified");
 }
 
+function operationLabel(payment: ExtendedPayment) {
+  if (payment.operation === "shield_deposit") return "VeilShield deposit";
+  if (payment.operation === "shield_transfer") return "VeilShield transfer";
+  if (payment.operation === "shield_withdraw") return "VeilShield withdraw";
+  return payment.recipientLabel ?? payment.recipient;
+}
+
 function ModeBadge({ mode }: { mode: string }) {
   const isPrivate = mode === "confidential";
 
@@ -403,7 +410,7 @@ export default function Dashboard() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
-                      <span className="truncate">{p.recipientLabel ?? p.recipient}</span>
+                      <span className="truncate">{operationLabel(p)}</span>
                       <ModeBadge mode={p.mode} />
                       <SourceBadge payment={p} />
                     </div>

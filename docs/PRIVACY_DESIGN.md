@@ -31,6 +31,8 @@ The repo now includes a first testnet-only Noir prototype:
 
 - `circuits/veil_shield_transfer`
 - `circuits/veil_shield_withdraw`
+- `circuits/veil_shield_note`
+- `circuits/veil_shield_transfer_inputs`
 - `circuits/shared`
 
 The prototype uses Noir's built-in `std::hash::pedersen_hash` for commitments and nullifiers so the circuits can be tested locally without extra dependencies. Production may switch to Poseidon/Poseidon2 after verifier compatibility, proof costs, and audit assumptions are locked.
@@ -67,6 +69,8 @@ The circuit proves:
 - `nullifier_hash` matches the input secret and salt
 
 The amount is never public in the hidden transfer circuit. Sender, recipient, token, commitments, and nullifier are public.
+
+Important developer-preview limitation: the current transfer output commitment is a prototype public commitment for recipient, token, hidden transfer amount, and output salt. Production note handoff still needs a recipient-owned secret/encryption model so recipients can discover, decrypt, prove ownership of, and spend received notes safely. Until that is wired and tested, the browser does not submit `transferNote`.
 
 ### Withdraw Circuit
 
@@ -107,13 +111,23 @@ Withdrawal amount is public by design because a public USDC transfer out of the 
 
 Verifier logic is behind `IVeilShieldVerifier` and the production adapter at `contracts/src/VeilShieldVerifierAdapter.sol`. Generated Barretenberg verifiers live in `contracts/src/verifiers/`. Tests use mocks only inside `contracts/test`; there is no production mock verifier.
 
+## Note Storage Preview
+
+The app now supports local testnet note storage for VeilShield deposits:
+
+- note commitment is public and can be stored in the API ledger after a real deposit transaction
+- amount, secret, salt, and optional nullifier are encrypted locally in the browser
+- note secrets are never sent to the API ledger
+- losing browser storage can make a testnet note unrecoverable
+- this local encryption is a developer preview, not a production key-management system
+
+Deposit flow is real: the connected wallet approves VeilShield if needed and calls `VeilShield.deposit(amount, noteCommitment, encryptedNoteRef)`. Hidden transfers and withdrawals remain blocked in the browser until real proof generation and note handoff are wired.
+
 ## What Remains Before Closed Payment Can Go Live
 
-- Deploy the generated verifier contracts, adapter, and VeilShield to Arc Testnet.
-- Add frontend or service-side proof generation for real witnesses.
-- Add a note discovery model so recipients can find and spend their output notes.
+- Wire browser proof generation or a safe local prover bridge for real witnesses.
+- Add a recipient note discovery and handoff model so recipients can find and spend their output notes.
 - Add a Merkle tree or accumulator for scalable note membership.
-- Deploy VeilShield and verifier contracts on Arc Testnet.
 - Index VeilShield events for closed-payment records.
 - Replace the JSON ledger with production database/indexer infrastructure before mainnet.
 - Complete a formal threat model and external security audit.
@@ -142,6 +156,12 @@ cd /home/gtee/projects/veil/circuits/veil_shield_transfer
 
 cd /home/gtee/projects/veil/circuits/veil_shield_withdraw
 /home/gtee/.nargo/bin/nargo test
+
+cd /home/gtee/projects/veil/circuits/veil_shield_note
+/home/gtee/.nargo/bin/nargo test
+
+cd /home/gtee/projects/veil/circuits/veil_shield_transfer_inputs
+/home/gtee/.nargo/bin/nargo test
 ```
 
 Compile and generate verifier artifacts:
@@ -168,6 +188,17 @@ node scripts/generate-veilshield-verifiers.mjs
 ```
 
 The generator splits bb output into a shared `BaseZKHonkVerifier.sol` plus cleanly named `TransferVerifier.sol` and `WithdrawVerifier.sol`. Do not edit generated Solidity by hand.
+
+Generate developer-preview note commitments and proof artifacts:
+
+```bash
+cd /home/gtee/projects/veil
+node scripts/veilshield-dev-proof.mjs note --owner <wallet> --token 0x3600000000000000000000000000000000000000 --amount-base <usdc-base-units>
+node scripts/veilshield-dev-proof.mjs transfer --sender <wallet> --recipient <recipient> --token 0x3600000000000000000000000000000000000000 --input-amount-base <input> --transfer-amount-base <transfer> --secret <secret> --input-salt <salt> --output-salt <salt> --change-salt <salt>
+node scripts/veilshield-dev-proof.mjs withdraw --owner <wallet> --token 0x3600000000000000000000000000000000000000 --amount-base <amount> --secret <secret> --salt <salt>
+```
+
+These commands use real Noir/BB execution. They are not browser proof generation and do not make Closed Payment user-facing yet.
 
 ## Security Requirements
 

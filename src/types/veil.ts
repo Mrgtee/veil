@@ -1,6 +1,7 @@
 export type PaymentMode = "open" | "confidential";
 export type PaymentType = "single" | "batch";
 export type PaymentSourceKind = "arc_direct" | "unified_balance" | "veilshield_closed";
+export type PaymentOperation = "payment" | "shield_deposit" | "shield_transfer" | "shield_withdraw";
 export type PaymentStatus =
   | "idle"
   | "validating"
@@ -29,6 +30,7 @@ export interface Payment {
   type: PaymentType;
   mode: PaymentMode;
   source?: PaymentSourceKind;
+  operation?: PaymentOperation;
   status: PaymentStatus;
   recipient: string;
   recipientLabel?: string;

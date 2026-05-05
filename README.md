@@ -26,6 +26,9 @@ Arc is the settlement target because it is designed around stablecoin payments a
 - VeilHub and VeilShield contract architecture.
 - Milestone 2 Noir prototype circuits for VeilShield transfer and withdraw proofs.
 - Generated Solidity verifier contracts and a VeilShield verifier adapter for Arc Testnet deployment.
+- Developer-preview VeilShield deposits from the connected Arc wallet when a real Noir-generated note commitment is provided.
+- Local encrypted testnet note storage in the browser for deposited VeilShield notes.
+- CLI helper tooling for Noir/BB note commitment and proof-input experiments.
 
 ## Temporary Testnet Ledger
 
@@ -56,7 +59,7 @@ Milestone 2 now includes local Noir circuits for a first testnet-only hidden-amo
 - withdraw circuit: proves a public withdrawal amount matches a hidden note commitment and nullifier
 - shared Pedersen helpers for prototype commitments and nullifiers
 
-These circuits now have generated Solidity verifiers committed under `contracts/src/verifiers/` and a verifier adapter, but frontend proof generation is not implemented yet. Closed Payment remains blocked in the app.
+These circuits now have generated Solidity verifiers committed under `contracts/src/verifiers/` and a verifier adapter. The app can create a real VeilShield deposit after a Noir-generated commitment is pasted into the developer-preview form, but browser proof generation and recipient note handoff are not implemented yet. Closed Payment transfer submission remains blocked in the app.
 
 ## Payment Sources
 
@@ -96,6 +99,8 @@ Dashboard and History read from the API ledger. They show settled, failed, pendi
 - `contracts/test`: Foundry tests for VeilHub and VeilShield.
 - `circuits/veil_shield_transfer`: Noir transfer proof prototype.
 - `circuits/veil_shield_withdraw`: Noir withdraw proof prototype.
+- `circuits/veil_shield_note`: developer helper circuit for note commitment/nullifier calculation.
+- `circuits/veil_shield_transfer_inputs`: developer helper circuit for transfer public-input calculation.
 
 ## Current Arc Testnet Deployment
 
@@ -109,7 +114,7 @@ Dashboard and History read from the API ledger. They show settled, failed, pendi
 - VeilShield: `0x1BC23d45aEc7229809841a6FCd578A9C61A5667D`
 
 Arc Direct single and batch payments have been live-tested through this VeilHub deployment and recorded in the API ledger as settled Arc Testnet transactions.
-VeilShield contracts are deployed for developer-preview verification, but Closed Payment submission remains blocked until proof generation and note management are wired.
+VeilShield contracts are deployed for developer-preview verification. Shield deposits can be tested with real commitments, but Closed Payment transfer submission remains blocked until browser proof generation, recipient note handoff, indexing, and audits are complete.
 
 See `docs/DEPLOYMENT.md` for frontend env, contract env, and redeploy commands.
 
@@ -162,6 +167,12 @@ cd /home/gtee/projects/veil/circuits/veil_shield_transfer
 cd /home/gtee/projects/veil/circuits/veil_shield_withdraw
 /home/gtee/.nargo/bin/nargo test
 
+cd /home/gtee/projects/veil/circuits/veil_shield_note
+/home/gtee/.nargo/bin/nargo test
+
+cd /home/gtee/projects/veil/circuits/veil_shield_transfer_inputs
+/home/gtee/.nargo/bin/nargo test
+
 node /home/gtee/projects/veil/scripts/generate-veilshield-verifiers.mjs
 ```
 
@@ -174,15 +185,38 @@ Run `forge test` only when Foundry is installed.
 3. Run the API with a durable `VEIL_LEDGER_PATH` for testnet.
 4. Move production records to database/indexer infrastructure before mainnet use.
 5. To deploy the testnet-only VeilShield stack, use `contracts/script/DeployVeilShield.s.sol`. It deploys `TransferVerifier`, `WithdrawVerifier`, `VeilShieldVerifierAdapter`, and `VeilShield`.
-6. Keep Closed Payment blocked in the frontend until proof generation, note discovery, indexing, and audits are complete.
+6. Keep Closed Payment transfer submission blocked in the frontend until proof generation, note discovery, indexing, and audits are complete.
+
+## VeilShield Developer Preview
+
+The Closed Payment panel includes a developer-preview deposit flow:
+
+1. Generate a local note secret and salt in the browser.
+2. Run the displayed Noir helper command locally to calculate the Pedersen note commitment and nullifier.
+3. Paste the returned commitment into the app.
+4. Deposit USDC into VeilShield through the connected Arc wallet.
+5. Veil records the real deposit transaction in the API ledger as `operation=shield_deposit` and stores the note payload encrypted in this browser only.
+
+CLI helper:
+
+```bash
+cd /home/gtee/projects/veil
+node scripts/veilshield-dev-proof.mjs note --owner <wallet> --token 0x3600000000000000000000000000000000000000 --amount-base <usdc-base-units>
+node scripts/veilshield-dev-proof.mjs transfer --sender <wallet> --recipient <recipient> --token 0x3600000000000000000000000000000000000000 --input-amount-base <input> --transfer-amount-base <transfer> --secret <secret> --input-salt <salt> --output-salt <salt> --change-salt <salt>
+node scripts/veilshield-dev-proof.mjs withdraw --owner <wallet> --token 0x3600000000000000000000000000000000000000 --amount-base <amount> --secret <secret> --salt <salt>
+```
+
+The helper uses real Noir/BB tooling, but generated proofs are still local developer artifacts. The browser does not submit `transferNote` or `withdraw` yet.
 
 ## Known Limitations
 
 - The JSON ledger is temporary testnet infrastructure, not production storage.
 - Arc Direct is disabled until VeilHub env values are configured in `.env.local`.
-- Closed Payment settlement is blocked until frontend proof generation and note discovery are complete and audited.
+- Closed Payment transfer settlement is blocked until browser proof generation, recipient note handoff, note discovery, indexing, and audit are complete.
+- VeilShield note secrets are stored locally in browser-encrypted testnet storage. This is not a production custody or recovery model.
 - Noir prototype commitments currently use Pedersen for local correctness; the production hash choice must be reviewed before deployment.
 - The generated verifiers are deploy-ready for Arc Testnet experiments, not production-ready confidential payment infrastructure.
+- The deployed transfer prototype currently requires additional note-handoff work before recipient output notes can be safely discovered and spent.
 - Unified Balance availability depends on Circle AppKit and supported testnet chains.
 - Foundry must be installed locally to run Solidity tests.
 
@@ -191,7 +225,7 @@ Run `forge test` only when Foundry is installed.
 - Add production monitoring and event indexing for the deployed Arc Testnet VeilHub.
 - Add database/indexer-backed ledger storage.
 - Index VeilHub events for open payments and Unified Balance references.
-- Deploy VeilShield verifiers, adapter, and shield contract on Arc Testnet.
-- Add frontend proof-generation flow.
+- Add browser proof-generation flow.
+- Add recipient note handoff and local/importable note recovery.
 - Index VeilShield events for closed-payment discovery.
 - Add settlement reconciliation jobs for delayed Unified Balance finalization.

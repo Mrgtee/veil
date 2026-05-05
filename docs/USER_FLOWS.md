@@ -73,9 +73,21 @@ Current SDK investigation:
 1. User can select `Closed Payment`.
 2. Veil explains that closed means sender-visible, recipient-visible, amount-hidden settlement.
 3. Veil blocks visible ERC20 settlement because normal transfers expose amount.
-4. Veil shows Milestone 2 setup state: circuits and generated verifiers exist, but deployment/proof-generation/audit steps may still be incomplete.
-5. Veil points users to VeilShield setup/audit requirements.
-6. Even if VeilShield and verifier addresses are configured, submission remains disabled until real proof generation is wired.
+4. Veil shows Milestone 2 setup state: VeilShield and generated verifiers are deployed, local note storage exists, and proof generation is still pending.
+5. Developer-preview users can prepare a local note secret/salt, run the Noir helper command, paste the returned commitment, and deposit USDC into VeilShield.
+6. Veil records successful real deposit transactions in the API ledger as `shield_deposit` only after a tx hash exists.
+7. Hidden transfer submission remains disabled until browser proof generation, recipient note handoff, indexing, and audit are complete.
+
+## VeilShield Developer Preview Deposit
+
+1. User selects `Closed Payment` in `New Payment`.
+2. User clicks `Prepare note`; the browser creates local testnet note secret/salt values and an encrypted note reference.
+3. User runs the displayed `node scripts/veilshield-dev-proof.mjs note ...` command locally with Noir/Nargo installed.
+4. User pastes the returned commitment and optional nullifier into the app.
+5. Veil switches to Arc if needed, checks USDC balance and allowance, requests `approve` only if needed, and calls `VeilShield.deposit`.
+6. Veil stores amount, secret, salt, and nullifier encrypted in this browser only.
+7. Veil writes the API ledger record as `source=veilshield_closed`, `operation=shield_deposit`, `status=settled`.
+8. The note appears in local shielded note balance, but it is still a developer-preview note until proof submit/withdraw flows are wired.
 
 ## Closed Records And Access
 

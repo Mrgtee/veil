@@ -113,3 +113,37 @@ export async function recordBatchPayment(input: {
     error: input.error,
   });
 }
+
+export async function recordShieldDeposit(input: {
+  owner: string;
+  amount: string;
+  amountBase: string;
+  decimals?: number;
+  txHash: string;
+  approvalTxHash?: string;
+  commitmentId: string;
+  encryptedNoteRef?: string;
+}) {
+  return await veilApi.recordPayment({
+    type: "single",
+    mode: "confidential",
+    source: "veilshield_closed",
+    operation: "shield_deposit",
+    status: "settled",
+    recipient: input.owner,
+    recipientLabel: "VeilShield note owner",
+    amount: input.amount || displayAmountFromBase(input.amountBase, input.decimals),
+    amountBase: input.amountBase,
+    token: "USDC",
+    txHash: input.txHash,
+    commitmentId: input.commitmentId,
+    externalId: input.txHash,
+    memo: input.encryptedNoteRef ? `encryptedNoteRef:${input.encryptedNoteRef}` : undefined,
+    liquiditySource: "VeilShield closed-payment pool",
+    sourceChain: "Arc Testnet wallet",
+    destinationChain: "VeilShield pool on Arc Testnet",
+    settlementNote: input.approvalTxHash
+      ? `USDC approval ${input.approvalTxHash} confirmed before VeilShield deposit. Hidden transfer proof generation is still pending.`
+      : "Existing USDC allowance was sufficient for VeilShield deposit. Hidden transfer proof generation is still pending.",
+  });
+}

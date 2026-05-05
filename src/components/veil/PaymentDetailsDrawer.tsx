@@ -40,6 +40,13 @@ function isArcDirectPayment(payment: ExtendedPayment) {
   return !isUnifiedPayment(payment) && payment.source !== "veilshield_closed";
 }
 
+function operationLabel(payment: ExtendedPayment) {
+  if (payment.operation === "shield_deposit") return "VeilShield deposit";
+  if (payment.operation === "shield_transfer") return "VeilShield hidden transfer";
+  if (payment.operation === "shield_withdraw") return "VeilShield withdraw";
+  return payment.type === "batch" ? "Payment batch" : "Payment";
+}
+
 function isExplorerTx(value: string) {
   return /^0x[a-fA-F0-9]{64}$/.test(value);
 }
@@ -148,7 +155,9 @@ export function PaymentDetailsDrawer({
               {p.recipientLabel || "Arc payment"}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              {isUnified
+              {p.source === "veilshield_closed"
+                ? `${operationLabel(p)} recorded from a real VeilShield transaction.`
+                : isUnified
                 ? "Unified Balance USDC payment settled on Arc."
                 : "Arc Direct payment settled through VeilHub on Arc."}
             </p>
@@ -197,7 +206,7 @@ export function PaymentDetailsDrawer({
                 <ModeBadge mode={p.mode} />
               </Row>
 
-              <Row label="Type" value={`${p.type} payment`} />
+              <Row label="Operation" value={operationLabel(p)} />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -283,7 +292,9 @@ export function PaymentDetailsDrawer({
               </div>
 
               <p className="mt-2 text-sm text-muted-foreground">
-                Closed payments are intended to hide the amount onchain through VeilShield. Records here are references only unless a deployed VeilShield settlement produced them.
+                Closed payments are intended to hide the amount onchain through VeilShield. Deposit records are real
+                pool deposits, but hidden transfer submission remains developer-preview until proof generation and note
+                handoff are wired.
               </p>
 
               {p.commitmentId && (

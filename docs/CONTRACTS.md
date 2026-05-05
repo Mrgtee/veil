@@ -79,9 +79,11 @@ Circuit files:
 
 - `circuits/veil_shield_transfer`
 - `circuits/veil_shield_withdraw`
+- `circuits/veil_shield_note`
+- `circuits/veil_shield_transfer_inputs`
 - `circuits/shared`
 
-The transfer circuit proves hidden amount conservation and commitment/nullifier correctness. The withdraw circuit proves a public withdrawal amount matches a hidden note. Withdrawal amount is public because ERC20 USDC exits the shielded pool.
+The transfer circuit proves hidden amount conservation and commitment/nullifier correctness. The withdraw circuit proves a public withdrawal amount matches a hidden note. Withdrawal amount is public because ERC20 USDC exits the shielded pool. The note and transfer-input circuits are developer helpers for generating Pedersen commitment/nullifier/public-input values with the same Noir functions used by the proof circuits.
 
 Run:
 
@@ -90,6 +92,12 @@ cd /home/gtee/projects/veil/circuits/veil_shield_transfer
 /home/gtee/.nargo/bin/nargo test
 
 cd /home/gtee/projects/veil/circuits/veil_shield_withdraw
+/home/gtee/.nargo/bin/nargo test
+
+cd /home/gtee/projects/veil/circuits/veil_shield_note
+/home/gtee/.nargo/bin/nargo test
+
+cd /home/gtee/projects/veil/circuits/veil_shield_transfer_inputs
 /home/gtee/.nargo/bin/nargo test
 ```
 
@@ -103,6 +111,17 @@ cd /home/gtee/projects/veil/circuits/veil_shield_transfer
 ```
 
 Repeat for `veil_shield_withdraw`, then run `node scripts/generate-veilshield-verifiers.mjs` to update committed verifier contracts.
+
+Generate local developer-preview note/proof artifacts:
+
+```bash
+cd /home/gtee/projects/veil
+node scripts/veilshield-dev-proof.mjs note --owner <wallet> --token 0x3600000000000000000000000000000000000000 --amount-base <usdc-base-units>
+node scripts/veilshield-dev-proof.mjs transfer --sender <wallet> --recipient <recipient> --token 0x3600000000000000000000000000000000000000 --input-amount-base <input> --transfer-amount-base <transfer> --secret <secret> --input-salt <salt> --output-salt <salt> --change-salt <salt>
+node scripts/veilshield-dev-proof.mjs withdraw --owner <wallet> --token 0x3600000000000000000000000000000000000000 --amount-base <amount> --secret <secret> --salt <salt>
+```
+
+The helper writes ignored `Prover.toml` and `target/` artifacts. It is for local proof experiments; production UI must not rely on pasted proof artifacts without a reviewed prover, note handoff, and indexing model.
 
 ## Tests
 
@@ -151,7 +170,7 @@ Closed payments:
 5. Deploy `VeilShieldVerifierAdapter(transferVerifier, withdrawVerifier)`.
 6. Deploy `VeilShield(usdc, verifierAdapter, owner)` on testnet only.
 7. Configure `VITE_VEIL_SHIELD_ADDRESS`, `VITE_VEIL_SHIELD_TRANSFER_VERIFIER_ADDRESS`, and `VITE_VEIL_SHIELD_WITHDRAW_VERIFIER_ADDRESS`.
-8. Keep UI submit blocked until proof generation, indexing, and audits are complete.
+8. Keep hidden-transfer submit blocked until browser proof generation, recipient note handoff, indexing, and audits are complete.
 
 Do not deploy VeilShield as production-ready until circuits, verifier wiring, prover integration, note discovery, indexing, and audits are complete.
 

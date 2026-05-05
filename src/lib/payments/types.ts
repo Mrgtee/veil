@@ -73,6 +73,10 @@ export function getPaymentSourceLabel(
 ) {
   const normalized = String(source || "").toLowerCase().replaceAll("_", "-");
 
+  if (normalized.includes("veilshield") || normalized.includes("closed")) {
+    return "VeilShield closed-payment pool";
+  }
+
   if (isUnifiedPaymentSource(source)) {
     if (options.sequential || normalized.includes("sequential")) {
       return "Sequential Unified Balance batch";

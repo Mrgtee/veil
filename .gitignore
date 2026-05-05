@@ -20,6 +20,8 @@ contracts/out/
 contracts/cache/
 contracts/broadcast/
 circuits/**/target/
+circuits/**/Prover.toml
+circuits/**/Verifier.toml
 
 # Local secrets
 .env

@@ -7,6 +7,7 @@ import type {
   DisclosureAccess,
   Payment,
   PaymentMode,
+  PaymentOperation,
   PaymentSourceKind,
 } from "@/types/veil";
 
@@ -20,6 +21,7 @@ type PaymentWrite = {
   type: "single" | "batch";
   mode: PaymentMode;
   source: PaymentSourceKind;
+  operation?: PaymentOperation;
   status: "settled" | "pending_settlement" | "pending_veilhub_registration" | "failed";
   recipient: string;
   recipientLabel?: string;

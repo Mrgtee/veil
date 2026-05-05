@@ -2,7 +2,7 @@
 
 ## Current Arc Testnet Deployment
 
-VeilHub and the VeilShield developer-preview contracts are deployed on Arc Testnet. VeilHub is the required on-chain route for Arc Direct open payments. VeilShield is deployed for proof/verifier integration work, but Closed Payment remains blocked until frontend proof generation and note management are wired.
+VeilHub and the VeilShield developer-preview contracts are deployed on Arc Testnet. VeilHub is the required on-chain route for Arc Direct open payments. VeilShield is deployed for proof/verifier integration work. Developer-preview deposits can be tested with Noir-generated commitments, but hidden Closed Payment transfers remain blocked until browser proof generation, recipient note handoff, indexing, and audits are wired.
 
 | Item | Value |
 | --- | --- |
@@ -61,7 +61,25 @@ VITE_VEIL_SHIELD_TRANSFER_VERIFIER_ADDRESS=0xc5B31339159d9371Cb0efb49F001d550640
 VITE_VEIL_SHIELD_WITHDRAW_VERIFIER_ADDRESS=0xA1e76f8AC92220596AacC7009d62a2fe22a55253
 ```
 
-Do not set these values to placeholder or mock contracts in a production-facing environment. Configured addresses are not enough to enable Closed Payment; proof generation, note discovery, indexing, and audits are still required.
+Do not set these values to placeholder or mock contracts in a production-facing environment. Configured addresses are not enough to enable Closed Payment transfer submission; proof generation, note discovery, indexing, and audits are still required.
+
+## VeilShield Developer Preview Commands
+
+Generate a note commitment/nullifier for a shield deposit:
+
+```bash
+cd /home/gtee/projects/veil
+node scripts/veilshield-dev-proof.mjs note --owner <wallet> --token 0x3600000000000000000000000000000000000000 --amount-base <usdc-base-units>
+```
+
+Generate local transfer or withdraw proof artifacts for developer experiments:
+
+```bash
+node scripts/veilshield-dev-proof.mjs transfer --sender <wallet> --recipient <recipient> --token 0x3600000000000000000000000000000000000000 --input-amount-base <input> --transfer-amount-base <transfer> --secret <secret> --input-salt <salt> --output-salt <salt> --change-salt <salt>
+node scripts/veilshield-dev-proof.mjs withdraw --owner <wallet> --token 0x3600000000000000000000000000000000000000 --amount-base <amount> --secret <secret> --salt <salt>
+```
+
+The app records only real VeilShield deposit transactions today. It does not submit `transferNote` or `withdraw` from the browser yet.
 
 ## Contract Deployment Command
 
@@ -163,8 +181,10 @@ cd apps/api && npm run build
 cd /home/gtee/projects/veil/contracts && forge test -vvv
 cd /home/gtee/projects/veil/circuits/veil_shield_transfer && /home/gtee/.nargo/bin/nargo test
 cd /home/gtee/projects/veil/circuits/veil_shield_withdraw && /home/gtee/.nargo/bin/nargo test
+cd /home/gtee/projects/veil/circuits/veil_shield_note && /home/gtee/.nargo/bin/nargo test
+cd /home/gtee/projects/veil/circuits/veil_shield_transfer_inputs && /home/gtee/.nargo/bin/nargo test
 ```
 
 Static checks should show no production use of `eth_sendTransaction`, `BatchPayout`, `PaymentVault`, or native-transfer fallback code.
 
-Closed Payment remains setup-required until proof generation, note management, indexing, and audits are complete.
+Closed Payment transfer submission remains setup-required until proof generation, note handoff, indexing, and audits are complete.
