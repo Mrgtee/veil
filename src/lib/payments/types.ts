@@ -62,10 +62,22 @@ export function getPaymentModeShortLabel(mode: PaymentMode) {
   return mode === "confidential" ? "Closed" : "Open";
 }
 
-export function getPaymentSourceLabel(source: PaymentSource | string | undefined) {
+export function isUnifiedPaymentSource(source: PaymentSource | string | undefined) {
+  const normalized = String(source || "").toLowerCase().replaceAll("_", "-");
+  return normalized === "unified-balance" || normalized.includes("unified");
+}
+
+export function getPaymentSourceLabel(
+  source: PaymentSource | string | undefined,
+  options: { sequential?: boolean } = {}
+) {
   const normalized = String(source || "").toLowerCase().replaceAll("_", "-");
 
-  if (normalized === "unified-balance" || normalized.includes("unified")) {
+  if (isUnifiedPaymentSource(source)) {
+    if (options.sequential || normalized.includes("sequential")) {
+      return "Sequential Unified Balance batch";
+    }
+
     return "Unified Balance USDC";
   }
 

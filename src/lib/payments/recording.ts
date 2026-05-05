@@ -106,7 +106,7 @@ export async function recordBatchPayment(input: {
     batchCount: input.rows.length,
     commitmentId: input.batchCommitment,
     externalId: input.batchId,
-    liquiditySource: getPaymentSourceLabel(input.source),
+    liquiditySource: getPaymentSourceLabel(input.source, { sequential: input.source === "unified-balance" }),
     sourceChain: input.source === "unified-balance" ? "User-owned Unified Balance" : "Arc Testnet",
     destinationChain: "Arc Testnet",
     settlementNote: input.settlementNote,

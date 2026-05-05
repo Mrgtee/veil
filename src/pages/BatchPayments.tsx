@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAccount } from "wagmi";
-import { AlertCircle, ExternalLink, Plus, Send, Trash2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Clock, ExternalLink, Plus, Send, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,7 +38,14 @@ type RowResult = {
   recipientLabel: string;
   recipient: string;
   amount: string;
-  status: "pending" | "processing" | "settled" | "pending_settlement" | "pending_veilhub_registration" | "failed";
+  status:
+    | "pending"
+    | "processing"
+    | "awaiting_wallet_approval"
+    | "settled"
+    | "pending_settlement"
+    | "pending_veilhub_registration"
+    | "failed";
   txHash?: string;
   veilHubTxHash?: string;
   error?: string;
@@ -103,6 +110,42 @@ function SelectionButton({
       </div>
     </button>
   );
+}
+
+function getBatchSourceTitle(source: PaymentSource) {
+  return source === "arc-direct" ? "Arc Direct (recommended)" : "Unified Balance (sequential)";
+}
+
+function getBatchSourceDescription(source: PaymentSource) {
+  return source === "arc-direct"
+    ? "One USDC approval if needed, then one VeilHub batch transaction for every recipient."
+    : "One Circle AppKit spend and wallet approval per recipient for now.";
+}
+
+function getRowStatusLabel(status: RowResult["status"]) {
+  switch (status) {
+    case "awaiting_wallet_approval":
+      return "awaiting wallet approval";
+    case "pending_settlement":
+      return "pending settlement";
+    case "pending_veilhub_registration":
+      return "pending VeilHub registration";
+    case "processing":
+      return "submitting";
+    case "pending":
+      return "queued";
+    default:
+      return status;
+  }
+}
+
+function getRowStatusClass(status: RowResult["status"]) {
+  if (status === "settled") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (status === "failed") return "border-destructive/30 bg-destructive/5 text-destructive";
+  if (status === "pending_settlement" || status === "pending_veilhub_registration") {
+    return "border-orange-200 bg-orange-50 text-orange-700";
+  }
+  return "border-blue-200 bg-blue-50 text-blue-700";
 }
 
 export default function BatchPayments() {
@@ -225,8 +268,8 @@ export default function BatchPayments() {
       const before = await readUnifiedBalance(address);
       const beforeBalance = getBalanceNumber(before, "totalConfirmedBalance");
 
-      setStatus(`Processing recipient ${index + 1} of ${cleanRows.length}. Confirm the wallet request and keep this page open.`);
-      setRowResult(row.id, { status: "processing" });
+      setStatus(`Sequential Unified Balance batch: recipient ${index + 1} of ${cleanRows.length} is awaiting wallet approval. Each recipient creates its own spend.`);
+      setRowResult(row.id, { status: "awaiting_wallet_approval" });
 
       try {
         const raw = await withSettlementTimeout(
@@ -290,7 +333,7 @@ export default function BatchPayments() {
               throw new Error(`Unified Balance was deducted (${pendingRef}), but API ledger write failed: ${getErrorMessage(ledgerErr)}`);
             }
 
-            setStatus("Unified Balance was deducted for a recipient, but final Arc settlement confirmation is delayed. The batch was saved as pending.");
+            setStatus(`Sequential Unified Balance batch: recipient ${index + 1} of ${cleanRows.length} was deducted, but final Arc settlement confirmation is delayed. The batch was saved as pending.`);
             return;
           }
         }
@@ -306,7 +349,7 @@ export default function BatchPayments() {
             veilHubTxHash: veilHubTxHashes.join(",") || undefined,
             batchId: nextBatchId,
             status: "failed",
-            settlementNote: `Batch stopped at recipient ${index + 1}: ${message}`,
+            settlementNote: `Sequential Unified Balance batch stopped at recipient ${index + 1}: ${message}`,
             error: message,
           });
         }
@@ -337,10 +380,10 @@ export default function BatchPayments() {
         status: ledgerStatus,
         settlementNote:
           ledgerStatus === "settled"
-            ? "Unified Balance batch settled on Arc and was registered with VeilHub."
+            ? "Sequential Unified Balance batch completed: each recipient was paid through its own Circle AppKit spend and registered with VeilHub."
             : ledgerStatus === "pending_settlement"
-              ? "Unified Balance batch returned without every final Arc settlement hash. Confirm settlement before treating it as complete."
-              : `Unified Balance batch settled on Arc, but VeilHub registration is pending: ${pendingRegistrations.join("; ")}.`,
+              ? "Sequential Unified Balance batch returned without every final Arc settlement hash. Confirm settlement before treating it as complete."
+              : `Sequential Unified Balance batch paid recipients one at a time, but VeilHub registration is pending: ${pendingRegistrations.join("; ")}.`,
       });
     } catch (ledgerErr) {
       throw new Error(`Batch settlement submitted (${settledTxHashes.join(",")}), but API ledger write failed: ${getErrorMessage(ledgerErr)}`);
@@ -348,10 +391,10 @@ export default function BatchPayments() {
 
     setStatus(
       ledgerStatus === "settled"
-        ? `Unified Balance batch settled for ${cleanRows.length} recipients.`
+        ? `Sequential Unified Balance batch settled for ${cleanRows.length} recipients.`
         : ledgerStatus === "pending_settlement"
-          ? "Unified Balance batch was saved as pending settlement."
-          : "Unified Balance batch settled on Arc and was saved as pending VeilHub registration."
+          ? "Sequential Unified Balance batch was saved as pending settlement."
+          : "Sequential Unified Balance batch settled on Arc and was saved as pending VeilHub registration."
     );
   }
 
@@ -399,14 +442,16 @@ export default function BatchPayments() {
           ? "Closed Batch needs VeilShield"
           : source === "arc-direct" && !veilHubSetup.ready
             ? "VeilHub setup required"
-            : "Submit Open Batch";
+            : source === "unified-balance"
+              ? "Start Sequential Payouts"
+              : "Submit One-Transaction Batch";
 
   return (
     <div className="space-y-6">
       <SectionHeader
         eyebrow="Payments"
         title="Batch payments"
-        description="Add recipients with a form, review total USDC, then choose payment mode and source."
+        description="Arc Direct is the true one-transaction batch path. Unified Balance payouts are sequential today."
       />
 
       <div className="surface-card p-5 space-y-5">
@@ -526,8 +571,8 @@ export default function BatchPayments() {
               <SelectionButton
                 key={option.value}
                 active={source === option.value}
-                title={option.label}
-                description={option.description}
+                title={getBatchSourceTitle(option.value)}
+                description={getBatchSourceDescription(option.value)}
                 onClick={() => setSource(option.value)}
                 disabled={loading}
               />
@@ -542,10 +587,10 @@ export default function BatchPayments() {
               )}
             >
               <div className="font-medium">
-                {veilHubSetup.ready ? "Arc Direct batch will route through VeilHub." : "Arc Direct setup required."}
+                {veilHubSetup.ready ? "Recommended: one-transaction VeilHub batch." : "Arc Direct setup required."}
               </div>
               <p className="mt-1 text-muted-foreground">
-                Batch payments use ERC20 USDC allowance and `VeilHub.payOpenBatch`; legacy batch contracts and native transfers are disabled.
+                Arc Direct requests one USDC approval if needed, then calls `VeilHub.payOpenBatch` once for the full recipient list. Legacy batch contracts and native transfers are disabled.
               </p>
               {!veilHubSetup.ready && (
                 <div className="mt-2 font-mono text-xs">
@@ -554,13 +599,26 @@ export default function BatchPayments() {
               )}
             </div>
           )}
+
+          {source === "unified-balance" && (
+            <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 text-sm">
+              <div className="font-medium">Sequential Unified Balance batch.</div>
+              <p className="mt-1 text-muted-foreground">
+                The current Circle AppKit spend call targets one recipient at a time. Veil will process recipient 1 of N, then 2 of N, and so on; this is not a single batch transaction.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
       <div className="surface-card p-5 space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-sm text-muted-foreground">
-            {source ? `${getPaymentSourceLabel(source)} uses the globally connected wallet in the top bar.` : "Select a source to continue."}
+            {source === "unified-balance"
+              ? "Sequential Unified Balance batch uses the globally connected wallet and requests one spend per recipient."
+              : source
+                ? `${getPaymentSourceLabel(source)} uses the globally connected wallet in the top bar.`
+                : "Select a source to continue."}
           </div>
 
           <Button type="button" onClick={submitBatch} disabled={loading || !canSubmit}>
@@ -583,8 +641,16 @@ export default function BatchPayments() {
         <div className="surface-card p-5 space-y-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 className="text-lg font-medium">Batch progress</h2>
-              <p className="text-sm text-muted-foreground">{batchId ? `Batch ID: ${batchId}` : "Recipient settlement status."}</p>
+              <h2 className="text-lg font-medium">
+                {source === "unified-balance" ? "Sequential payout progress" : "Batch progress"}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {source === "unified-balance"
+                  ? `One Unified Balance spend per recipient. ${batchId ? `Ledger batch ID: ${batchId}` : "Recipient settlement status."}`
+                  : batchId
+                    ? `VeilHub batch ID: ${batchId}`
+                    : "Recipient settlement status."}
+              </p>
             </div>
 
             <Button asChild variant="outline" size="sm">
@@ -597,12 +663,18 @@ export default function BatchPayments() {
               <div key={item.rowId} className="rounded-lg border p-3 text-sm">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
-                    <div className="font-medium">{index + 1}. {item.recipientLabel}</div>
+                    <div className="text-xs text-muted-foreground">Recipient {index + 1} of {results.length}</div>
+                    <div className="font-medium">{item.recipientLabel}</div>
                     <div className="break-all text-muted-foreground">{item.amount} USDC · {item.recipient}</div>
                   </div>
 
-                  <div className="w-fit rounded-md border px-2 py-1 text-xs capitalize">
-                    {item.status.replaceAll("_", " ")}
+                  <div className={cn("inline-flex w-fit items-center gap-1.5 rounded-md border px-2 py-1 text-xs capitalize", getRowStatusClass(item.status))}>
+                    {item.status === "settled" ? (
+                      <CheckCircle2 className="h-3 w-3" />
+                    ) : (
+                      <Clock className="h-3 w-3" />
+                    )}
+                    {getRowStatusLabel(item.status)}
                   </div>
                 </div>
 
@@ -616,6 +688,12 @@ export default function BatchPayments() {
                     {item.txHash}
                     <ExternalLink className="h-3 w-3 shrink-0" />
                   </a>
+                )}
+
+                {item.txHash?.startsWith("pending_") && (
+                  <div className="mt-2 break-all rounded-lg border bg-secondary/30 p-2 font-mono text-xs text-muted-foreground">
+                    {item.txHash}
+                  </div>
                 )}
 
                 {item.error && <div className="mt-2 rounded-lg border border-warning/30 bg-warning/5 p-2">{item.error}</div>}

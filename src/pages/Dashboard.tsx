@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils";
 import { useAccount } from "wagmi";
 import type { UnifiedBalanceData } from "@/lib/payments/unifiedBalance";
 import { ACTIVE_ARC_DEPLOYMENT, getArcExplorerAddressUrl, shortAddress } from "@/lib/deployment";
-import { getPaymentSourceLabel } from "@/lib/payments/types";
+import { getPaymentSourceLabel, isUnifiedPaymentSource } from "@/lib/payments/types";
 
 type ExtendedPayment = Payment & {
   liquiditySource?: string;
@@ -40,7 +40,10 @@ function modeLabel(mode: string) {
 }
 
 function getLiquiditySource(payment: ExtendedPayment) {
-  return getPaymentSourceLabel(payment.source || payment.liquiditySource || payment.sourceChain);
+  const raw = payment.liquiditySource || payment.source || payment.sourceChain;
+  return getPaymentSourceLabel(raw, {
+    sequential: payment.type === "batch" && isUnifiedPaymentSource(raw || payment.source),
+  });
 }
 
 function isUnifiedPayment(payment: ExtendedPayment) {

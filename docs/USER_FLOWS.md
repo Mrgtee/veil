@@ -42,9 +42,22 @@
 3. User reviews recipient count and total USDC.
 4. User selects `Open Payment`.
 5. User selects `Arc Direct` or `Unified Balance USDC`.
-6. Arc Direct batch requires VeilHub env setup and calls `VeilHub.payOpenBatch`.
-7. Unified Balance batch spends per recipient through Circle AppKit and records settled, pending settlement, pending VeilHub registration, or failed state.
-8. User reviews per-recipient progress and the API ledger record in History.
+6. Arc Direct is the recommended true batch path: it requires VeilHub env setup, requests one USDC approval if needed, and calls `VeilHub.payOpenBatch` once for the full recipient list.
+7. Unified Balance is labeled as `Sequential Unified Balance batch`: the current Circle AppKit integration spends to one recipient per call, so Veil requests one wallet approval/spend per recipient.
+8. During sequential Unified Balance payouts, Veil shows recipient X of N, awaiting wallet approval, pending settlement, settled, pending VeilHub registration, or failed state for each row.
+9. User reviews per-recipient progress and the API ledger record in History. Unified Balance batch records must not be treated as proof that one transaction paid every recipient.
+
+## Batch Source Guidance
+
+- `Arc Direct`: use this when the goal is one onchain batch transaction through VeilHub. It is the current recommended batch option.
+- `Unified Balance USDC`: use this when the user wants to spend confirmed Unified Balance funds and accepts a sequential payout flow. It is not currently a native multi-recipient spend.
+
+Current SDK investigation:
+
+- The installed `@circle-fin/app-kit@1.4.1` uses `@circle-fin/unified-balance-kit@1.0.1`.
+- The Unified Balance `spend` API exposes one destination object with optional `recipientAddress`.
+- The SDK supports multi-source allocations into one spend, but this is different from sending one spend to multiple recipients.
+- Veil therefore keeps Unified Balance batch honest as a sequential workflow until Circle AppKit exposes a native multi-recipient destination or Veil ships a tested escrow distribution contract.
 
 ## Unified Balance Deposit
 

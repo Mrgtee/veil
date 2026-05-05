@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { formatAmount, formatDateTime } from "@/lib/format";
 import { PaymentDetailsDrawer } from "@/components/veil/PaymentDetailsDrawer";
 import { getArcExplorerTxUrl } from "@/lib/deployment";
-import { getPaymentSourceLabel } from "@/lib/payments/types";
+import { getPaymentSourceLabel, isUnifiedPaymentSource } from "@/lib/payments/types";
 
 type Filter =
   | "all"
@@ -41,7 +41,10 @@ function getLiquiditySource(payment: Payment) {
     destinationChain?: string;
   };
 
-  return getPaymentSourceLabel(p.source || p.liquiditySource || p.sourceChain);
+  const raw = p.liquiditySource || p.source || p.sourceChain;
+  return getPaymentSourceLabel(raw, {
+    sequential: p.type === "batch" && isUnifiedPaymentSource(raw || p.source),
+  });
 }
 
 function getDestination(payment: Payment) {

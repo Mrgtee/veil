@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink, Lock, WalletCards, X } from "lucide-react";
 import { formatAmount, formatDateTime } from "@/lib/format";
 import { getArcExplorerTxUrl } from "@/lib/deployment";
-import { getPaymentSourceLabel } from "@/lib/payments/types";
+import { getPaymentSourceLabel, isUnifiedPaymentSource } from "@/lib/payments/types";
 import { cn } from "@/lib/utils";
 
 type ExtendedPayment = Payment & {
@@ -22,7 +22,10 @@ function modeLabel(mode: string) {
 }
 
 function getLiquiditySource(payment: ExtendedPayment) {
-  return getPaymentSourceLabel(payment.source || payment.liquiditySource || payment.sourceChain);
+  const raw = payment.liquiditySource || payment.source || payment.sourceChain;
+  return getPaymentSourceLabel(raw, {
+    sequential: payment.type === "batch" && isUnifiedPaymentSource(raw || payment.source),
+  });
 }
 
 function getDestination(payment: ExtendedPayment) {

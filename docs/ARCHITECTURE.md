@@ -56,6 +56,37 @@ If spend succeeds:
 - with delayed final settlement and balance deducted: record `pending_settlement`
 - with no deduction: record no success
 
+### Unified Balance Batch Reality
+
+Arc Direct batch and Unified Balance batch are intentionally different today.
+
+- Arc Direct batch is a true one-transaction batch: one USDC approval if needed, then one `VeilHub.payOpenBatch` transaction that pays all recipients.
+- Unified Balance batch is sequential: one Circle AppKit `spend` call per recipient, each with its own wallet approval/spend and settlement result.
+
+This is not a UX preference; it follows the current SDK surface in the installed packages. `@circle-fin/app-kit@1.4.1` depends on `@circle-fin/unified-balance-kit@1.0.1`; the Unified Balance `spend` params expose a single destination object with optional `recipientAddress`. The kit supports multi-source allocation, meaning one spend can draw USDC from multiple source chains/accounts, but it does not expose a native multi-recipient destination array in this integration.
+
+The frontend therefore labels this path as `Sequential Unified Balance batch`, shows recipient X of N, and records per-recipient settled, pending settlement, pending VeilHub registration, or failed state.
+
+### Future Unified Balance Escrow Batch
+
+A future true Unified Balance batch should not fake batching in the browser. The safer architecture is:
+
+1. User creates a batch intent with recipients, amounts, total USDC, token, deadline, and `batchId`.
+2. User spends the total Unified Balance amount to a VeilHub escrow address or a dedicated audited escrow contract.
+3. After final Arc settlement is confirmed, VeilHub verifies the batch intent and distributes exact USDC amounts to recipients in one contract transaction.
+4. The API/indexer records the spend, escrow receipt, distribution transaction, and any pending state.
+
+Safety requirements before implementing escrow:
+
+- Exact total received must match the batch total before distribution.
+- `batchId` must be single-use and idempotent.
+- Funds need a tested refund path if distribution cannot execute before deadline.
+- Distribution must use SafeERC20, ReentrancyGuard, Pausable controls, and strict recipient/amount array validation.
+- Partial distribution must be avoided or explicitly modeled with recoverable state.
+- Tests must cover mismatched totals, invalid recipients, zero amounts, expired batches, duplicate batch IDs, failed transfers, pause/refund behavior, and ledger/indexer reconciliation.
+
+Veil should not implement this escrow path until the contract design and tests are complete.
+
 ## API Ledger
 
 The API JSON ledger is temporary testnet infrastructure. It uses Zod validation, server-side IDs, `createdAt` timestamps, and atomic writes.
