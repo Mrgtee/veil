@@ -147,3 +147,68 @@ export async function recordShieldDeposit(input: {
       : "Existing USDC allowance was sufficient for VeilShield deposit. Hidden transfer proof generation is still pending.",
   });
 }
+
+export async function recordShieldTransfer(input: {
+  sender: string;
+  recipient: string;
+  txHash: string;
+  inputCommitment: string;
+  outputCommitment: string;
+  changeCommitment: string;
+  nullifier: string;
+}) {
+  return await veilApi.recordPayment({
+    type: "single",
+    mode: "confidential",
+    source: "veilshield_closed",
+    operation: "shield_transfer",
+    status: "settled",
+    recipient: input.recipient,
+    recipientLabel: "VeilShield recipient",
+    amount: "hidden",
+    amountBase: "0",
+    amountHidden: true,
+    token: "USDC",
+    txHash: input.txHash,
+    commitmentId: input.outputCommitment,
+    externalId: input.txHash,
+    memo: `input:${input.inputCommitment};change:${input.changeCommitment};nullifier:${input.nullifier}`,
+    liquiditySource: "VeilShield closed-payment pool",
+    sourceChain: "VeilShield pool on Arc Testnet",
+    destinationChain: "VeilShield pool on Arc Testnet",
+    settlementNote:
+      "Developer-preview hidden transfer submitted with a local Noir/BB proof artifact. Amount is intentionally not stored in the ledger.",
+  });
+}
+
+export async function recordShieldWithdraw(input: {
+  owner: string;
+  recipient: string;
+  amount: string;
+  amountBase: string;
+  txHash: string;
+  commitmentId: string;
+  nullifier: string;
+}) {
+  return await veilApi.recordPayment({
+    type: "single",
+    mode: "confidential",
+    source: "veilshield_closed",
+    operation: "shield_withdraw",
+    status: "settled",
+    recipient: input.recipient,
+    recipientLabel: "VeilShield withdrawal recipient",
+    amount: input.amount,
+    amountBase: input.amountBase,
+    token: "USDC",
+    txHash: input.txHash,
+    commitmentId: input.commitmentId,
+    externalId: input.txHash,
+    memo: `owner:${input.owner};nullifier:${input.nullifier}`,
+    liquiditySource: "VeilShield closed-payment pool",
+    sourceChain: "VeilShield pool on Arc Testnet",
+    destinationChain: "Arc Testnet wallet",
+    settlementNote:
+      "Developer-preview withdrawal submitted with a local Noir/BB proof artifact. Withdrawal amount is public onchain.",
+  });
+}

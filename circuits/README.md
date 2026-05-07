@@ -66,8 +66,17 @@ Use the committed helper script to calculate note commitments/nullifiers and pro
 ```bash
 cd /home/gtee/projects/veil
 node scripts/veilshield-dev-proof.mjs note --owner <wallet> --token 0x3600000000000000000000000000000000000000 --amount-base <usdc-base-units>
-node scripts/veilshield-dev-proof.mjs transfer --sender <wallet> --recipient <recipient> --token 0x3600000000000000000000000000000000000000 --input-amount-base <input> --transfer-amount-base <transfer> --secret <secret> --input-salt <salt> --output-salt <salt> --change-salt <salt>
-node scripts/veilshield-dev-proof.mjs withdraw --owner <wallet> --token 0x3600000000000000000000000000000000000000 --amount-base <amount> --secret <secret> --salt <salt>
+node scripts/veilshield-dev-proof.mjs transfer --sender <wallet> --recipient <recipient> --token 0x3600000000000000000000000000000000000000 --input-amount-base <input> --transfer-amount-base <transfer> --secret <secret> --input-salt <salt> --output-salt <salt> --change-salt <salt> --artifact-out /tmp/veil-transfer-artifact.json
+node scripts/veilshield-dev-proof.mjs withdraw --owner <wallet> --recipient <recipient> --token 0x3600000000000000000000000000000000000000 --amount-base <amount> --secret <secret> --salt <salt> --artifact-out /tmp/veil-withdraw-artifact.json
 ```
 
-The helper writes ignored `Prover.toml` and `target/` files. It is developer-preview tooling, not browser proof generation.
+The helper writes ignored `Prover.toml`, `target/`, and JSON artifact files. Submit artifacts with:
+
+```bash
+cd /home/gtee/projects/veil
+set -a && source contracts/.env && set +a
+node scripts/veilshield-submit-proof.mjs transfer --artifact /tmp/veil-transfer-artifact.json --record-ledger
+node scripts/veilshield-submit-proof.mjs withdraw --artifact /tmp/veil-withdraw-artifact.json --record-ledger
+```
+
+This is developer-preview tooling, not browser proof generation.

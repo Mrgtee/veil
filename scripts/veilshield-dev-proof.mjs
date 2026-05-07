@@ -5,6 +5,12 @@ import { randomBytes } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  makeTransferArtifact,
+  makeWithdrawArtifact,
+  readBbProof,
+  ZERO_BYTES32,
+} from "./lib/veilshield-artifacts.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const fieldModulus = BigInt("21888242871839275222246405745257275088548364400416034343698204186575808495617");
@@ -22,13 +28,13 @@ VeilShield developer proof helper
 
 Commands:
   note       Compute a deposit/withdraw note commitment and nullifier with Noir.
-  transfer   Compute transfer public inputs, solve witness, and ask bb to prove.
-  withdraw   Compute withdraw public inputs, solve witness, and ask bb to prove.
+  transfer   Compute transfer public inputs, solve witness, ask bb to prove, and write a clean JSON artifact.
+  withdraw   Compute withdraw public inputs, solve witness, ask bb to prove, and write a clean JSON artifact.
 
 Examples:
   node scripts/veilshield-dev-proof.mjs note --owner 0x... --token 0x3600000000000000000000000000000000000000 --amount-base 1000000
-  node scripts/veilshield-dev-proof.mjs transfer --sender 0x... --recipient 0x... --token 0x3600000000000000000000000000000000000000 --input-amount-base 1000000 --transfer-amount-base 250000 --secret 0x... --input-salt 0x... --output-salt 0x... --change-salt 0x...
-  node scripts/veilshield-dev-proof.mjs withdraw --owner 0x... --token 0x3600000000000000000000000000000000000000 --amount-base 1000000 --secret 0x... --salt 0x...
+  node scripts/veilshield-dev-proof.mjs transfer --sender 0x... --recipient 0x... --token 0x3600000000000000000000000000000000000000 --input-amount-base 1000000 --transfer-amount-base 250000 --secret 0x... --input-salt 0x... --output-salt 0x... --change-salt 0x... --artifact-out /tmp/veil-transfer-artifact.json
+  node scripts/veilshield-dev-proof.mjs withdraw --owner 0x... --recipient 0x... --token 0x3600000000000000000000000000000000000000 --amount-base 1000000 --secret 0x... --salt 0x... --artifact-out /tmp/veil-withdraw-artifact.json
 
 This is testnet developer tooling. The browser app does not use this script, and Closed Payment submit stays blocked until a browser prover/note sync path is wired.
 `.trim());
@@ -113,6 +119,13 @@ function optionalField(value) {
   return value ? field(value, "field") : randomField();
 }
 
+function optionalBytes32(value, label) {
+  if (!value) return ZERO_BYTES32;
+  const clean = String(value).replace(/^0x/i, "");
+  if (!/^[a-fA-F0-9]{64}$/.test(clean)) throw new Error(`${label} must be bytes32 hex.`);
+  return `0x${clean.toLowerCase()}`;
+}
+
 function randomField() {
   const bytes = randomBytes(32);
   bytes[0] &= 0x1f;
@@ -128,6 +141,10 @@ function writeToml(project, values) {
     .map(([key, value]) => `${key} = ${tomlValue(value)}`)
     .join("\n");
   writeFileSync(join(project, "Prover.toml"), `${body}\n`, "utf8");
+}
+
+function writeJson(path, value) {
+  writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
 function parseReturnValues(project) {
@@ -225,6 +242,8 @@ function transfer(args) {
   const inputSalt = field(requireArg(args, "input-salt"), "input-salt");
   const outputSalt = optionalField(args["output-salt"]);
   const changeSalt = optionalField(args["change-salt"]);
+  const encryptedNoteRef = optionalBytes32(args["encrypted-note-ref"], "encrypted-note-ref");
+  const artifactOut = args["artifact-out"] || join(projects.transfer, "target/veilshield-transfer-artifact.json");
 
   const transferBaseValues = {
     input_amount: inputAmount,
@@ -254,8 +273,30 @@ function transfer(args) {
   writeToml(projects.transfer, prover);
   run(nargoBin, ["execute"], projects.transfer);
   prove(projects.transfer, "veil_shield_transfer");
+  const proof = readBbProof(join(projects.transfer, "target/proof"));
+  const artifact = makeTransferArtifact({
+    proof,
+    sender,
+    recipient,
+    token,
+    inputCommitment,
+    outputCommitment,
+    changeCommitment,
+    nullifier,
+    inputAmount,
+    transferAmount,
+    changeAmount,
+    secret,
+    inputSalt,
+    outputSalt,
+    changeSalt,
+    encryptedNoteRef,
+    veilShield: args["veil-shield"] || process.env.VEIL_SHIELD_ADDRESS || "",
+  });
+  writeJson(artifactOut, artifact);
 
   console.log(JSON.stringify({
+    artifactPath: artifactOut,
     publicInputs: {
       sender,
       recipient,
@@ -282,10 +323,12 @@ function transfer(args) {
 
 function withdraw(args) {
   const owner = field(requireArg(args, "owner"), "owner");
+  const recipient = field(args.recipient || requireArg(args, "owner"), "recipient");
   const token = field(requireArg(args, "token"), "token");
   const amountBase = amount(requireArg(args, "amount-base"), "amount-base");
   const secret = field(requireArg(args, "secret"), "secret");
   const salt = field(requireArg(args, "salt"), "salt");
+  const artifactOut = args["artifact-out"] || join(projects.withdraw, "target/veilshield-withdraw-artifact.json");
 
   writeToml(projects.note, {
     owner,
@@ -308,10 +351,28 @@ function withdraw(args) {
   });
   run(nargoBin, ["execute"], projects.withdraw);
   prove(projects.withdraw, "veil_shield_withdraw");
+  const proof = readBbProof(join(projects.withdraw, "target/proof"));
+  const withdrawAmountField = `0x${BigInt(amountBase).toString(16).padStart(64, "0")}`;
+  const artifact = makeWithdrawArtifact({
+    proof,
+    owner,
+    recipientAddress: `0x${recipient.slice(-40)}`,
+    token,
+    amount: amountBase,
+    commitment,
+    nullifier,
+    withdrawAmountField,
+    secret,
+    salt,
+    veilShield: args["veil-shield"] || process.env.VEIL_SHIELD_ADDRESS || "",
+  });
+  writeJson(artifactOut, artifact);
 
   console.log(JSON.stringify({
+    artifactPath: artifactOut,
     publicInputs: {
       owner,
+      recipient,
       token,
       commitment,
       nullifier,

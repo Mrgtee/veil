@@ -422,7 +422,7 @@ export default function Dashboard() {
 
                   <div className="text-right shrink-0">
                     <div className="text-sm font-medium tabular-nums">
-                      {formatAmount(p.amount, p.token)}
+                      {p.amountHidden ? "Hidden amount" : formatAmount(p.amount, p.token)}
                     </div>
                     <div className="mt-1">
                       <StatusBadge status={p.status} />

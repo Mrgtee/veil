@@ -146,7 +146,7 @@ The browser can now create a real shield deposit, but only after the user provid
 5. After the real tx hash exists, the API ledger records `source=veilshield_closed`, `operation=shield_deposit`, and `status=settled`.
 6. The note amount, secret, salt, and nullifier are encrypted in browser storage for testnet preview only.
 
-The browser does not submit `transferNote` or `withdraw` yet. The deployed transfer prototype also needs recipient note handoff work before output notes can be safely discovered and spent.
+The local developer CLI can generate proof artifacts and submit `transferNote` or `withdraw` to VeilShield. Transfer artifacts separate public fields from `localPrivate` amount and secret fields; the API ledger records hidden transfers without storing the transfer amount. The browser does not submit `transferNote` or `withdraw` yet. The deployed transfer prototype also needs recipient note handoff work before output notes can be safely discovered and spent.
 
 ### Closed Payment Runtime State
 

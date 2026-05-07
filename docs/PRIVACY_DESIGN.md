@@ -121,11 +121,11 @@ The app now supports local testnet note storage for VeilShield deposits:
 - losing browser storage can make a testnet note unrecoverable
 - this local encryption is a developer preview, not a production key-management system
 
-Deposit flow is real: the connected wallet approves VeilShield if needed and calls `VeilShield.deposit(amount, noteCommitment, encryptedNoteRef)`. Hidden transfers and withdrawals remain blocked in the browser until real proof generation and note handoff are wired.
+Deposit flow is real: the connected wallet approves VeilShield if needed and calls `VeilShield.deposit(amount, noteCommitment, encryptedNoteRef)`. Hidden transfers and withdrawals can now be submitted only from the local developer CLI with real Noir/BB proof artifacts. They remain blocked in the browser until real browser proof generation and note handoff are wired.
 
 ## What Remains Before Closed Payment Can Go Live
 
-- Wire browser proof generation or a safe local prover bridge for real witnesses.
+- Wire browser proof generation or a reviewed local prover bridge for real witnesses.
 - Add a recipient note discovery and handoff model so recipients can find and spend their output notes.
 - Add a Merkle tree or accumulator for scalable note membership.
 - Index VeilShield events for closed-payment records.
@@ -194,11 +194,20 @@ Generate developer-preview note commitments and proof artifacts:
 ```bash
 cd /home/gtee/projects/veil
 node scripts/veilshield-dev-proof.mjs note --owner <wallet> --token 0x3600000000000000000000000000000000000000 --amount-base <usdc-base-units>
-node scripts/veilshield-dev-proof.mjs transfer --sender <wallet> --recipient <recipient> --token 0x3600000000000000000000000000000000000000 --input-amount-base <input> --transfer-amount-base <transfer> --secret <secret> --input-salt <salt> --output-salt <salt> --change-salt <salt>
-node scripts/veilshield-dev-proof.mjs withdraw --owner <wallet> --token 0x3600000000000000000000000000000000000000 --amount-base <amount> --secret <secret> --salt <salt>
+node scripts/veilshield-dev-proof.mjs transfer --sender <wallet> --recipient <recipient> --token 0x3600000000000000000000000000000000000000 --input-amount-base <input> --transfer-amount-base <transfer> --secret <secret> --input-salt <salt> --output-salt <salt> --change-salt <salt> --artifact-out /tmp/veil-transfer-artifact.json
+node scripts/veilshield-dev-proof.mjs withdraw --owner <wallet> --recipient <recipient> --token 0x3600000000000000000000000000000000000000 --amount-base <amount> --secret <secret> --salt <salt> --artifact-out /tmp/veil-withdraw-artifact.json
 ```
 
-These commands use real Noir/BB execution. They are not browser proof generation and do not make Closed Payment user-facing yet.
+Submit local artifacts to VeilShield:
+
+```bash
+cd /home/gtee/projects/veil
+set -a && source contracts/.env && set +a
+node scripts/veilshield-submit-proof.mjs transfer --artifact /tmp/veil-transfer-artifact.json --record-ledger
+node scripts/veilshield-submit-proof.mjs withdraw --artifact /tmp/veil-withdraw-artifact.json --record-ledger
+```
+
+These commands use real Noir/BB execution and real VeilShield calls. They are not browser proof generation and do not make Closed Payment user-facing yet. Transfer amounts stay in the artifact `localPrivate` section and are not written to the ledger.
 
 ## Security Requirements
 

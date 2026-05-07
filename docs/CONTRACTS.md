@@ -117,11 +117,22 @@ Generate local developer-preview note/proof artifacts:
 ```bash
 cd /home/gtee/projects/veil
 node scripts/veilshield-dev-proof.mjs note --owner <wallet> --token 0x3600000000000000000000000000000000000000 --amount-base <usdc-base-units>
-node scripts/veilshield-dev-proof.mjs transfer --sender <wallet> --recipient <recipient> --token 0x3600000000000000000000000000000000000000 --input-amount-base <input> --transfer-amount-base <transfer> --secret <secret> --input-salt <salt> --output-salt <salt> --change-salt <salt>
-node scripts/veilshield-dev-proof.mjs withdraw --owner <wallet> --token 0x3600000000000000000000000000000000000000 --amount-base <amount> --secret <secret> --salt <salt>
+node scripts/veilshield-dev-proof.mjs transfer --sender <wallet> --recipient <recipient> --token 0x3600000000000000000000000000000000000000 --input-amount-base <input> --transfer-amount-base <transfer> --secret <secret> --input-salt <salt> --output-salt <salt> --change-salt <salt> --artifact-out /tmp/veil-transfer-artifact.json
+node scripts/veilshield-dev-proof.mjs withdraw --owner <wallet> --recipient <recipient> --token 0x3600000000000000000000000000000000000000 --amount-base <amount> --secret <secret> --salt <salt> --artifact-out /tmp/veil-withdraw-artifact.json
 ```
 
-The helper writes ignored `Prover.toml` and `target/` artifacts. It is for local proof experiments; production UI must not rely on pasted proof artifacts without a reviewed prover, note handoff, and indexing model.
+The helper writes ignored `Prover.toml`, `target/`, and clean JSON proof artifacts. Proof bytes are encoded as concatenated bb proof field elements for the generated Barretenberg verifier.
+
+Submit a proof artifact:
+
+```bash
+cd /home/gtee/projects/veil
+set -a && source contracts/.env && set +a
+node scripts/veilshield-submit-proof.mjs transfer --artifact /tmp/veil-transfer-artifact.json --record-ledger
+node scripts/veilshield-submit-proof.mjs withdraw --artifact /tmp/veil-withdraw-artifact.json --record-ledger
+```
+
+The submit script calls `VeilShield.transferNote(proof, nullifierHash, inputNoteCommitment, outputNoteCommitment, changeNoteCommitment, encryptedNoteRef, recipient)` or `VeilShield.withdraw(proof, nullifierHash, noteCommitment, recipient, amount)`. It rejects malformed artifacts, wrong signer artifacts, missing commitments, and already-used nullifiers before broadcasting. Production UI must not rely on pasted proof artifacts without a reviewed prover, note handoff, and indexing model.
 
 ## Tests
 

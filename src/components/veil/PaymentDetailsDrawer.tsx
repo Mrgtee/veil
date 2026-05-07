@@ -179,7 +179,7 @@ export function PaymentDetailsDrawer({
             </div>
 
             <div className="mt-4 text-3xl font-semibold">
-              {formatAmount(p.amount, p.token)}
+              {p.amountHidden ? "Hidden amount" : formatAmount(p.amount, p.token)}
             </div>
 
             <p className="mt-1 text-sm text-muted-foreground">

@@ -32,6 +32,7 @@ const paymentSchema = z.object({
   recipientLabel: z.string().optional(),
   amount: z.string().min(1),
   amountBase: z.string().min(1),
+  amountHidden: z.boolean().optional(),
   token: z.string().default("USDC"),
   txHash: z.string().optional(),
   pendingReference: z.string().optional(),
@@ -98,6 +99,7 @@ export const createPaymentSchema = z.object({
   recipientLabel: z.string().optional().default(""),
   amount: z.string().min(1),
   amountBase: z.string().min(1),
+  amountHidden: z.boolean().optional().default(false),
   token: z.string().optional().default("USDC"),
   txHash: z.string().optional().default(""),
   pendingReference: z.string().optional().default(""),
@@ -294,6 +296,7 @@ export async function createPayment(input: LedgerPaymentInput) {
       recipientLabel: input.recipientLabel || undefined,
       amount: input.amount,
       amountBase: input.amountBase,
+      amountHidden: input.amountHidden || undefined,
       token: input.token || "USDC",
       txHash,
       pendingReference: input.pendingReference || undefined,
@@ -429,7 +432,10 @@ export async function getDashboardStats() {
 
   const volume30d = ledger.payments
     .filter((payment) => within30d(payment.createdAt))
-    .reduce((sum, payment) => sum + Number(payment.amount || "0"), 0);
+    .reduce((sum, payment) => {
+      const amount = Number(payment.amount || "0");
+      return Number.isFinite(amount) ? sum + amount : sum;
+    }, 0);
 
   return {
     totalPayments: ledger.payments.length,

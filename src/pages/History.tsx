@@ -316,7 +316,7 @@ export default function History() {
                   </td>
 
                   <td className="px-5 py-3.5 text-right tabular-nums font-medium">
-                    {formatAmount(p.amount, p.token)}
+                    {p.amountHidden ? "Hidden amount" : formatAmount(p.amount, p.token)}
                   </td>
 
                   <td className="px-5 py-3.5">

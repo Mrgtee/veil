@@ -75,11 +75,20 @@ node scripts/veilshield-dev-proof.mjs note --owner <wallet> --token 0x3600000000
 Generate local transfer or withdraw proof artifacts for developer experiments:
 
 ```bash
-node scripts/veilshield-dev-proof.mjs transfer --sender <wallet> --recipient <recipient> --token 0x3600000000000000000000000000000000000000 --input-amount-base <input> --transfer-amount-base <transfer> --secret <secret> --input-salt <salt> --output-salt <salt> --change-salt <salt>
-node scripts/veilshield-dev-proof.mjs withdraw --owner <wallet> --token 0x3600000000000000000000000000000000000000 --amount-base <amount> --secret <secret> --salt <salt>
+node scripts/veilshield-dev-proof.mjs transfer --sender <wallet> --recipient <recipient> --token 0x3600000000000000000000000000000000000000 --input-amount-base <input> --transfer-amount-base <transfer> --secret <secret> --input-salt <salt> --output-salt <salt> --change-salt <salt> --artifact-out /tmp/veil-transfer-artifact.json
+node scripts/veilshield-dev-proof.mjs withdraw --owner <wallet> --recipient <recipient> --token 0x3600000000000000000000000000000000000000 --amount-base <amount> --secret <secret> --salt <salt> --artifact-out /tmp/veil-withdraw-artifact.json
 ```
 
-The app records only real VeilShield deposit transactions today. It does not submit `transferNote` or `withdraw` from the browser yet.
+Submit proof artifacts with a local testnet key:
+
+```bash
+cd /home/gtee/projects/veil
+set -a && source contracts/.env && set +a
+node scripts/veilshield-submit-proof.mjs transfer --artifact /tmp/veil-transfer-artifact.json --record-ledger
+node scripts/veilshield-submit-proof.mjs withdraw --artifact /tmp/veil-withdraw-artifact.json --record-ledger
+```
+
+The browser records real VeilShield deposit transactions today. The developer submit script can submit `transferNote` and `withdraw` with real proof artifacts, but browser Closed Payment transfer remains blocked.
 
 ## Contract Deployment Command
 
@@ -93,6 +102,8 @@ ARC_TESTNET_RPC_URL=https://rpc.testnet.arc.network
 ARC_CHAIN_ID=5042002
 ARC_USDC_ADDRESS=0x3600000000000000000000000000000000000000
 VEIL_HUB_ADDRESS=0x30c77c1C20A5cBB171DE9090789F3dB98aA9734b
+VEIL_SHIELD_ADDRESS=0x1BC23d45aEc7229809841a6FCd578A9C61A5667D
+VEIL_API_BASE_URL=http://localhost:8787
 ```
 
 Deploy or redeploy with:

@@ -790,8 +790,9 @@ export default function NewPayment() {
                     <div className="mt-3 rounded-md border border-warning/30 bg-warning/5 p-3 text-xs">
                       <div className="font-medium">Transfer remains blocked</div>
                       <p className="mt-1 text-muted-foreground">
-                        Browser proof generation and recipient note handoff are not wired. Use the local helper for
-                        proof experiments; this app will not submit a hidden transfer until that path is real.
+                        Browser proof generation and recipient note handoff are not wired. Generate a local artifact
+                        with the Noir helper and submit it with `scripts/veilshield-submit-proof.mjs`; this browser
+                        still will not submit a hidden transfer until that path is reviewed.
                       </p>
                       {transferPreviewCommand && (
                         <Textarea readOnly value={transferPreviewCommand} className="mt-2 min-h-20 font-mono text-xs" />

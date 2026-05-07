@@ -27,6 +27,7 @@ type PaymentWrite = {
   recipientLabel?: string;
   amount: string;
   amountBase: string;
+  amountHidden?: boolean;
   token?: string;
   txHash?: string;
   pendingReference?: string;

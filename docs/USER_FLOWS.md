@@ -76,7 +76,7 @@ Current SDK investigation:
 4. Veil shows Milestone 2 setup state: VeilShield and generated verifiers are deployed, local note storage exists, and proof generation is still pending.
 5. Developer-preview users can prepare a local note secret/salt, run the Noir helper command, paste the returned commitment, and deposit USDC into VeilShield.
 6. Veil records successful real deposit transactions in the API ledger as `shield_deposit` only after a tx hash exists.
-7. Hidden transfer submission remains disabled until browser proof generation, recipient note handoff, indexing, and audit are complete.
+7. Hidden transfer submission remains disabled in the browser until browser proof generation, recipient note handoff, indexing, and audit are complete.
 
 ## VeilShield Developer Preview Deposit
 
@@ -88,6 +88,17 @@ Current SDK investigation:
 6. Veil stores amount, secret, salt, and nullifier encrypted in this browser only.
 7. Veil writes the API ledger record as `source=veilshield_closed`, `operation=shield_deposit`, `status=settled`.
 8. The note appears in local shielded note balance, but it is still a developer-preview note until proof submit/withdraw flows are wired.
+
+## VeilShield Developer Preview Proof Submission
+
+1. Developer exports or reads the local note secret/salt from their own testnet preview context.
+2. Developer runs `node scripts/veilshield-dev-proof.mjs transfer ... --artifact-out /tmp/veil-transfer-artifact.json`.
+3. The helper writes a JSON artifact with proof bytes, ordered public inputs, contract-call fields, and local-private amount/secret fields separated.
+4. Developer sources `contracts/.env` with `PRIVATE_KEY`, `ARC_TESTNET_RPC_URL`, `VEIL_SHIELD_ADDRESS`, and `ARC_USDC_ADDRESS`.
+5. Developer runs `node scripts/veilshield-submit-proof.mjs transfer --artifact /tmp/veil-transfer-artifact.json --record-ledger`.
+6. The submit script validates the artifact, verifies the private key matches the proof sender, checks VeilShield note/nullifier state, simulates `transferNote`, sends the transaction, waits for the receipt, and records `shield_transfer` only after a real tx hash exists.
+7. Withdraw artifacts use the same pattern with `node scripts/veilshield-dev-proof.mjs withdraw ...` and `node scripts/veilshield-submit-proof.mjs withdraw ...`.
+8. Normal browser users still cannot submit Closed Payment transfers.
 
 ## Closed Records And Access
 

@@ -28,7 +28,7 @@ Arc is the settlement target because it is designed around stablecoin payments a
 - Generated Solidity verifier contracts and a VeilShield verifier adapter for Arc Testnet deployment.
 - Developer-preview VeilShield deposits from the connected Arc wallet when a real Noir-generated note commitment is provided.
 - Local encrypted testnet note storage in the browser for deposited VeilShield notes.
-- CLI helper tooling for Noir/BB note commitment and proof-input experiments.
+- CLI helper tooling for Noir/BB note commitment, proof artifact generation, and developer-only proof submission.
 
 ## Temporary Testnet Ledger
 
@@ -59,7 +59,7 @@ Milestone 2 now includes local Noir circuits for a first testnet-only hidden-amo
 - withdraw circuit: proves a public withdrawal amount matches a hidden note commitment and nullifier
 - shared Pedersen helpers for prototype commitments and nullifiers
 
-These circuits now have generated Solidity verifiers committed under `contracts/src/verifiers/` and a verifier adapter. The app can create a real VeilShield deposit after a Noir-generated commitment is pasted into the developer-preview form, but browser proof generation and recipient note handoff are not implemented yet. Closed Payment transfer submission remains blocked in the app.
+These circuits now have generated Solidity verifiers committed under `contracts/src/verifiers/` and a verifier adapter. The app can create a real VeilShield deposit after a Noir-generated commitment is pasted into the developer-preview form. A local CLI can generate proof artifacts and submit them to VeilShield for developer preview, but browser proof generation and recipient note handoff are not implemented yet. Normal Closed Payment transfer submission remains blocked in the app.
 
 ## Payment Sources
 
@@ -202,17 +202,26 @@ CLI helper:
 ```bash
 cd /home/gtee/projects/veil
 node scripts/veilshield-dev-proof.mjs note --owner <wallet> --token 0x3600000000000000000000000000000000000000 --amount-base <usdc-base-units>
-node scripts/veilshield-dev-proof.mjs transfer --sender <wallet> --recipient <recipient> --token 0x3600000000000000000000000000000000000000 --input-amount-base <input> --transfer-amount-base <transfer> --secret <secret> --input-salt <salt> --output-salt <salt> --change-salt <salt>
-node scripts/veilshield-dev-proof.mjs withdraw --owner <wallet> --token 0x3600000000000000000000000000000000000000 --amount-base <amount> --secret <secret> --salt <salt>
+node scripts/veilshield-dev-proof.mjs transfer --sender <wallet> --recipient <recipient> --token 0x3600000000000000000000000000000000000000 --input-amount-base <input> --transfer-amount-base <transfer> --secret <secret> --input-salt <salt> --output-salt <salt> --change-salt <salt> --artifact-out /tmp/veil-transfer-artifact.json
+node scripts/veilshield-dev-proof.mjs withdraw --owner <wallet> --recipient <recipient> --token 0x3600000000000000000000000000000000000000 --amount-base <amount> --secret <secret> --salt <salt> --artifact-out /tmp/veil-withdraw-artifact.json
 ```
 
-The helper uses real Noir/BB tooling, but generated proofs are still local developer artifacts. The browser does not submit `transferNote` or `withdraw` yet.
+Submit a generated proof artifact from a local developer shell:
+
+```bash
+cd /home/gtee/projects/veil
+set -a && source contracts/.env && set +a
+node scripts/veilshield-submit-proof.mjs transfer --artifact /tmp/veil-transfer-artifact.json --record-ledger
+node scripts/veilshield-submit-proof.mjs withdraw --artifact /tmp/veil-withdraw-artifact.json --record-ledger
+```
+
+The submitter simulates the contract call, checks note/nullifier state, submits only real proof bytes, waits for a real tx hash, and records the API ledger only after success when `--record-ledger` and `VEIL_API_BASE_URL` are set. Browser Closed Payment submit remains blocked.
 
 ## Known Limitations
 
 - The JSON ledger is temporary testnet infrastructure, not production storage.
 - Arc Direct is disabled until VeilHub env values are configured in `.env.local`.
-- Closed Payment transfer settlement is blocked until browser proof generation, recipient note handoff, note discovery, indexing, and audit are complete.
+- Browser Closed Payment transfer settlement is blocked until browser proof generation, recipient note handoff, note discovery, indexing, and audit are complete. Developer CLI proof submission exists for testnet only.
 - VeilShield note secrets are stored locally in browser-encrypted testnet storage. This is not a production custody or recovery model.
 - Noir prototype commitments currently use Pedersen for local correctness; the production hash choice must be reviewed before deployment.
 - The generated verifiers are deploy-ready for Arc Testnet experiments, not production-ready confidential payment infrastructure.
