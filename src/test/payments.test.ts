@@ -59,8 +59,8 @@ describe("payment helpers", () => {
     expect(getPaymentSourceLabel("arc-direct")).toBe("Arc Direct via VeilHub");
     expect(getPaymentSourceLabel("arc_direct")).toBe("Arc Direct via VeilHub");
     expect(getPaymentSourceLabel("Arc Direct")).toBe("Arc Direct via VeilHub");
-    expect(getPaymentSourceLabel("unified_balance")).toBe("Unified Balance USDC");
-    expect(getPaymentSourceLabel("unified-balance", { sequential: true })).toBe("Sequential Unified Balance batch");
-    expect(getPaymentSourceLabel("Sequential Unified Balance batch")).toBe("Sequential Unified Balance batch");
+    expect(getPaymentSourceLabel("unified_balance")).toBe("Unified USDC Balance");
+    expect(getPaymentSourceLabel("unified-balance", { sequential: true })).toBe("Sequential Unified USDC");
+    expect(getPaymentSourceLabel("Sequential Unified USDC")).toBe("Sequential Unified USDC");
   });
 });

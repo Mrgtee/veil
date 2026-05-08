@@ -18,7 +18,7 @@ type ExtendedPayment = Payment & {
 };
 
 function modeLabel(mode: string) {
-  return mode === "confidential" ? "Closed" : "Open";
+  return mode === "confidential" ? "Private" : "Open";
 }
 
 function getLiquiditySource(payment: ExtendedPayment) {
@@ -87,8 +87,8 @@ function ModeBadge({ mode }: { mode: string }) {
       className={cn(
         "inline-flex w-fit items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium",
         isClosed
-          ? "border-purple-200 bg-purple-50 text-purple-700"
-          : "border-amber-200 bg-amber-50 text-amber-800"
+          ? "border-confidential/20 bg-confidential-soft text-confidential"
+          : "border-caramel/40 bg-caramel/10 text-walnut"
       )}
     >
       {isClosed && <Lock className="h-3 w-3" />}
@@ -106,8 +106,8 @@ function SourceBadge({ payment }: { payment: ExtendedPayment }) {
       className={cn(
         "inline-flex w-fit items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium",
         unified
-          ? "border-blue-200 bg-blue-50 text-blue-700"
-          : "border-stone-200 bg-stone-50 text-stone-700"
+          ? "border-caramel/40 bg-caramel/10 text-walnut"
+          : "border-sand bg-beige/60 text-espresso"
       )}
     >
       {unified && <WalletCards className="h-3 w-3" />}
@@ -158,7 +158,7 @@ export function PaymentDetailsDrawer({
               {p.source === "veilshield_closed"
                 ? `${operationLabel(p)} recorded from an experimental research transaction.`
                 : isUnified
-                ? "Unified Balance USDC payment settled on Arc."
+                ? "Unified USDC payment settled on Arc."
                 : "Arc Direct payment settled through VeilHub on Arc."}
             </p>
           </div>
@@ -169,7 +169,7 @@ export function PaymentDetailsDrawer({
         </div>
 
         <div className="space-y-5 p-5">
-          <div className="rounded-xl border bg-secondary/30 p-4">
+          <div className="rounded-lg border bg-secondary/30 p-4">
             <div className="flex flex-wrap items-center gap-2">
               <ModeBadge mode={p.mode} />
               <SourceBadge payment={p} />
@@ -241,7 +241,7 @@ export function PaymentDetailsDrawer({
           </div>
 
           {transactionRefs.length > 0 && (
-            <div className="rounded-xl border p-4">
+            <div className="rounded-lg border p-4">
               <div className="mb-3 text-sm font-medium">
                 {isArcDirect ? "VeilHub tx hash" : "Arc transaction or settlement reference"}
               </div>
@@ -264,7 +264,7 @@ export function PaymentDetailsDrawer({
           )}
 
           {veilHubRefs.length > 0 && (
-            <div className="rounded-xl border p-4">
+            <div className="rounded-lg border p-4">
               <div className="mb-3 text-sm font-medium">VeilHub registration tx hash</div>
               <div className="space-y-2">
                 {veilHubRefs.map((tx) => (
@@ -285,8 +285,8 @@ export function PaymentDetailsDrawer({
           )}
 
           {isClosed && (
-            <div className="rounded-xl border border-purple-200 bg-purple-50/50 p-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-purple-800">
+            <div className="rounded-lg border border-confidential/20 bg-confidential-soft/50 p-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-confidential">
                 <Lock className="h-4 w-4" />
                 Private payment reference
               </div>
@@ -310,7 +310,7 @@ export function PaymentDetailsDrawer({
           )}
 
           {Array.isArray(p.bridgeTxHashes) && p.bridgeTxHashes.length > 0 && (
-            <div className="rounded-xl border p-4">
+            <div className="rounded-lg border p-4">
               <div className="mb-3 text-sm font-medium">Related transaction hashes</div>
 
               <div className="space-y-2">
@@ -330,7 +330,7 @@ export function PaymentDetailsDrawer({
           )}
 
           {p.settlementNote && (
-            <div className="rounded-xl border bg-secondary/20 p-4 text-sm">
+            <div className="rounded-lg border bg-secondary/20 p-4 text-sm">
               <div className="font-medium">Settlement note</div>
               <p className="mt-1 text-muted-foreground">{p.settlementNote}</p>
             </div>

@@ -7,7 +7,7 @@ const nav = [
   { to: "/app", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/app/payments/new", label: "New Payment", icon: Send },
   { to: "/app/batch", label: "Batch Payments", icon: Layers },
-  { to: "/app/unified-balance", label: "Unified Balance", icon: WalletCards },
+  { to: "/app/unified-balance", label: "Unified USDC", icon: WalletCards },
   { to: "/app/history", label: "History", icon: History },
   { to: "/app/confidential", label: "Private Records", icon: Lock },
   { to: "/app/access", label: "Access Control", icon: ShieldCheck },

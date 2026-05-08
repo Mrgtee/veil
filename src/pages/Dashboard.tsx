@@ -36,7 +36,7 @@ type ExtendedPayment = Payment & {
 };
 
 function modeLabel(mode: string) {
-  return mode === "confidential" ? "Closed" : "Open";
+  return mode === "confidential" ? "Private" : "Open";
 }
 
 function getLiquiditySource(payment: ExtendedPayment) {
@@ -65,8 +65,8 @@ function ModeBadge({ mode }: { mode: string }) {
       className={cn(
         "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium",
         isPrivate
-          ? "border-purple-200 bg-purple-50 text-purple-700"
-          : "border-amber-200 bg-amber-50 text-amber-800"
+          ? "border-confidential/20 bg-confidential-soft text-confidential"
+          : "border-caramel/40 bg-caramel/10 text-walnut"
       )}
     >
       {isPrivate && <Lock className="h-3 w-3" />}
@@ -84,8 +84,8 @@ function SourceBadge({ payment }: { payment: ExtendedPayment }) {
       className={cn(
         "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium",
         unified
-          ? "border-blue-200 bg-blue-50 text-blue-700"
-          : "border-stone-200 bg-stone-50 text-stone-700"
+          ? "border-caramel/40 bg-caramel/10 text-walnut"
+          : "border-sand bg-beige/60 text-espresso"
       )}
     >
       {unified && <WalletCards className="h-3 w-3" />}
@@ -223,7 +223,7 @@ export default function Dashboard() {
     }
 
     setUnifiedBalance(null);
-    setBalanceStatus("Open Unified Balance to load");
+      setBalanceStatus("Open Unified USDC to load");
   }
 
   useEffect(() => {
@@ -272,23 +272,22 @@ export default function Dashboard() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-md border bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground">
               <WalletCards className="h-3.5 w-3.5" />
-              Unified Balance USDC enabled
+              Unified USDC Balance enabled
             </div>
 
             <h2 className="font-display text-xl sm:text-2xl font-semibold mt-4">
-              Complete open Arc payments from direct wallet or unified USDC liquidity.
+              Send open Arc payments from wallet or Unified USDC.
             </h2>
 
             <p className="text-sm text-muted-foreground mt-2 max-w-2xl">
-              Veil lets users deposit USDC into a unified balance and spend into Arc settlement today.
-              Native Arc privacy integration is being prepared for future hidden/private payment support.
+              Open payments are live. Private payments are coming soon with Arc Private Kit.
             </p>
           </div>
 
-          <div className="rounded-xl border bg-background p-4 space-y-3">
+          <div className="rounded-lg border bg-background p-4 space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="font-medium">Unified Balance</div>
+                <div className="font-medium">Unified USDC Balance</div>
                 <p className="text-xs text-muted-foreground">
                   Latest user-owned balance loaded from this wallet.
                 </p>
@@ -362,7 +361,7 @@ export default function Dashboard() {
             />
           </>
         ) : (
-          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)
+          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-lg" />)
         )}
       </div>
 
@@ -444,7 +443,7 @@ export default function Dashboard() {
             <QuickAction
               to="/app/unified-balance"
               icon={<WalletCards className="h-4 w-4" />}
-              title="Unified Balance"
+              title="Unified USDC"
               desc="Deposit and spend USDC"
             />
 

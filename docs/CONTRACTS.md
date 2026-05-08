@@ -10,9 +10,9 @@ Features:
 
 - ERC20 USDC single payment routing through `payOpen`
 - ERC20 USDC batch payment routing through `payOpenBatch`
-- Unified Balance open payment reference recording
+- Unified USDC Balance open payment reference recording
 - `bytes32` `paymentId` and `batchId` uniqueness checks
-- events for single, batch, and Unified Balance activity
+- events for single, batch, and Unified USDC Balance activity
 - SafeERC20 transfer wrappers
 - ReentrancyGuard
 - Pausable
@@ -152,7 +152,7 @@ The tests cover:
 - empty batch
 - mismatched arrays
 - duplicate payment IDs
-- Unified Balance reference recording
+- Unified USDC Balance reference recording
 - Shield deposits
 - duplicate note commitments
 - unknown input commitment rejection
@@ -172,7 +172,7 @@ Open payments:
 2. Deploy or use current `VeilHub(usdc, owner)`.
 3. Configure frontend addresses.
 
-Closed payments:
+Private payments:
 
 1. Compile and test Noir circuits.
 2. Generate transfer and withdraw verifier artifacts.
@@ -181,7 +181,7 @@ Closed payments:
 5. Deploy `VeilShieldVerifierAdapter(transferVerifier, withdrawVerifier)`.
 6. Deploy `VeilShield(usdc, verifierAdapter, owner)` on testnet only.
 7. Keep the addresses documented under Experimental Research / Developer Preview.
-8. Keep user-facing Private/Closed Payment blocked until Arc Private Kit integration is available, wired, tested, and audited.
+8. Keep user-facing Private Payment blocked until Arc Private Kit integration is available, wired, tested, and audited.
 
 Do not deploy VeilShield as production-ready until circuits, verifier wiring, prover integration, note discovery, indexing, and audits are complete.
 
@@ -193,4 +193,4 @@ VITE_VEIL_HUB_ADDRESS=0x30c77c1C20A5cBB171DE9090789F3dB98aA9734b
 VITE_ARC_USDC_ADDRESS=0x3600000000000000000000000000000000000000
 ```
 
-Unified Balance can spend without VeilHub, but those records stay `pending_veilhub_registration` until a VeilHub reference transaction is submitted.
+Unified USDC Balance can spend without VeilHub, but those records stay `pending_veilhub_registration` until a VeilHub reference transaction is submitted.

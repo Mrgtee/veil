@@ -54,7 +54,7 @@ const SETTLEMENT_TIMEOUT_MS = 90_000;
 function withSettlementTimeout<T>(promise: Promise<T>) {
   return new Promise<T>((resolve, reject) => {
     const timer = window.setTimeout(() => {
-      reject(new Error("Unified Balance spend is still waiting for Arc settlement confirmation."));
+      reject(new Error("Unified USDC is still finalizing."));
     }, SETTLEMENT_TIMEOUT_MS);
 
     promise
@@ -156,19 +156,19 @@ export default function NewPayment() {
         const cached = readUnifiedBalanceCache(address);
         if (cached) {
           setBalance(cached);
-          setBalanceStatus("Showing cached balance while refreshing latest data...");
+          setBalanceStatus("Refreshing balance...");
         } else {
-          setBalanceStatus("Loading latest Unified Balance...");
+          setBalanceStatus("Loading Unified USDC Balance...");
         }
       } else {
-        setBalanceStatus("Refreshing latest Unified Balance...");
+        setBalanceStatus("Refreshing Unified USDC Balance...");
       }
 
       const latest = await readUnifiedBalance(address);
       setBalance(latest);
-      setBalanceStatus("Latest Unified Balance loaded.");
+      setBalanceStatus("Balance refreshed.");
     } catch (err) {
-      setBalanceStatus(formatPaymentError(err, "Unable to load Unified Balance."));
+      setBalanceStatus(formatPaymentError(err, "Unable to load Unified USDC Balance."));
     }
   }
 
@@ -196,11 +196,11 @@ export default function NewPayment() {
       const pendingReference = makeId("pending_veilhub");
       let veilHubTxHash: string | undefined;
       let recordStatus: "settled" | "pending_settlement" | "pending_veilhub_registration" = "settled";
-      let settlementNote = "Unified Balance spend settled on Arc and was registered with VeilHub.";
+      let settlementNote = "Unified USDC spend settled and registered with VeilHub.";
 
       if (!txHash) {
         recordStatus = "pending_settlement";
-        settlementNote = "Unified Balance spend returned without a final Arc transaction hash. Confirm settlement before treating it as complete.";
+        settlementNote = "Unified USDC is still finalizing.";
       } else {
         const registration = await registerUnifiedBalanceReference({
           paymentId,
@@ -216,7 +216,7 @@ export default function NewPayment() {
           veilHubTxHash = registration.txHash;
         } else {
           recordStatus = "pending_veilhub_registration";
-          settlementNote = `Unified Balance spend settled on Arc, but VeilHub registration is pending: ${registration.missing.join(", ")}.`;
+          settlementNote = `Unified USDC settled, but VeilHub registration is pending: ${registration.missing.join(", ")}.`;
         }
       }
 
@@ -255,7 +255,7 @@ export default function NewPayment() {
       setBalance(latestAfter);
 
       if (!balanceReducedEnough(beforeBalance, afterBalance, spendAmount)) {
-        throw new Error("Arc settlement was not confirmed and your Unified Balance was not deducted. No payment was recorded.");
+        throw new Error("Settlement was not confirmed and Unified USDC was not deducted. No payment was recorded.");
       }
 
       const pendingRef = makeId("pending_settlement");
@@ -272,16 +272,16 @@ export default function NewPayment() {
           paymentId,
           commitmentId,
           status: "pending_settlement",
-          settlementNote: "Unified Balance was deducted but final Arc settlement confirmation was delayed.",
+          settlementNote: "Unified USDC was deducted but final settlement is delayed.",
         });
       } catch (ledgerErr) {
-        throw new Error(`Unified Balance appears deducted (${pendingRef}), but API ledger write failed: ${getErrorMessage(ledgerErr)}`);
+        throw new Error(`Unified USDC appears deducted (${pendingRef}), but API ledger write failed: ${getErrorMessage(ledgerErr)}`);
       }
 
       return {
         status: "pending" as const,
         reference: pendingRef,
-        message: "Unified Balance appears deducted, but Arc settlement confirmation was delayed. The payment was saved as pending.",
+        message: "Unified USDC is still finalizing. Payment saved as pending.",
       };
     }
   }
@@ -295,14 +295,14 @@ export default function NewPayment() {
       setResult(null);
       setStatus("Preparing payment...");
 
-      if (!mode) throw new Error("Choose Open Payment or Closed Payment.");
-      if (!source) throw new Error("Choose Arc Direct or Unified Balance USDC.");
+      if (!mode) throw new Error("Choose Open Payment or Private Payment.");
+      if (!source) throw new Error("Choose Arc Direct or Unified USDC.");
       if (!isAddress(recipient)) throw new Error("Enter a valid Arc recipient address.");
       parseUsdcAmount(amount);
 
       if (isClosedMode) {
         throw new Error(
-          "Coming soon with Arc Private Kit. Veil is preparing native Arc privacy integration for hidden/private payment support; visible Arc transfers remain blocked as private payments."
+          "Private payments are coming soon with Arc Private Kit."
         );
       }
 
@@ -310,7 +310,7 @@ export default function NewPayment() {
       let nextResult: PaymentResult;
 
       if (source === "unified-balance") {
-        setStatus("Spending confirmed Unified Balance USDC into Arc...");
+        setStatus("Waiting for wallet approval.");
         nextResult = await submitUnifiedBalancePayment(paymentId);
         await loadUnifiedBalance(false);
       } else {
@@ -318,7 +318,7 @@ export default function NewPayment() {
           throw new Error(`Arc Direct requires VeilHub setup: ${veilHubSetup.missing.join(", ")}.`);
         }
 
-        setStatus("Checking USDC allowance and submitting through VeilHub...");
+        setStatus("Checking allowance.");
         const hubResult = await sendVeilHubOpenPayment({
           paymentId,
           recipient: recipient as `0x${string}`,
@@ -374,8 +374,8 @@ export default function NewPayment() {
           : arcDirectSetupMissing
             ? "VeilHub setup required"
             : unifiedBalanceTooLow
-            ? "Insufficient Unified Balance"
-            : "Submit Open Payment";
+          ? "Insufficient Unified USDC"
+            : "Send Payment";
 
   const resultTxHash = result?.txHash;
   const resultSteps = normalizeSteps(result?.raw);
@@ -480,11 +480,10 @@ export default function NewPayment() {
               <div>
                 <div className="font-medium">Coming soon with Arc Private Kit.</div>
                 <p className="mt-1 text-muted-foreground">
-                  Veil is preparing native Arc privacy integration for hidden/private payment support. Until that
-                  stack is available and wired, this app will not submit visible USDC transfers as private payments.
+                  Veil is preparing native Arc privacy support. Open payments are live today.
                 </p>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Open Payment remains live through Arc Direct via VeilHub and Unified Balance USDC.
+                  Visible transfers are blocked as private payments.
                 </p>
               </div>
             </div>
@@ -499,10 +498,10 @@ export default function NewPayment() {
             )}
           >
             <div className="font-medium">
-              {veilHubSetup.ready ? "Arc Direct will route through VeilHub." : "Arc Direct setup required."}
+              {veilHubSetup.ready ? "Arc Direct routes through VeilHub." : "Arc Direct setup required."}
             </div>
             <p className="mt-1 text-muted-foreground">
-              Arc Direct uses ERC20 USDC allowance and `VeilHub.payOpen`; native wallet-transfer fallback is disabled.
+              Uses USDC approval and `VeilHub.payOpen`.
             </p>
             {!veilHubSetup.ready && (
               <div className="mt-2 font-mono text-xs">
@@ -516,7 +515,7 @@ export default function NewPayment() {
           <div className="rounded-lg border bg-secondary/30 p-4 space-y-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <div className="font-medium">Unified Balance USDC</div>
+                <div className="font-medium">Unified USDC Balance</div>
                 <p className="text-sm text-muted-foreground">
                   Confirmed balance is spendable. Pending balance is visible but cannot be spent yet.
                 </p>
@@ -556,7 +555,7 @@ export default function NewPayment() {
 
             {unifiedBalanceTooLow && (
               <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-                Insufficient confirmed Unified Balance. Deposit more USDC or reduce the amount.
+                Insufficient confirmed Unified USDC. Deposit more or reduce the amount.
               </div>
             )}
 
@@ -650,7 +649,7 @@ export default function NewPayment() {
 
           {resultSteps.length > 0 && (
             <div className="space-y-2">
-              <div className="font-medium text-sm">Unified Balance steps</div>
+              <div className="font-medium text-sm">Unified USDC steps</div>
               {resultSteps.map((step: UnifiedBalanceStep, index: number) => {
                 const txHash = step?.txHash;
                 return (

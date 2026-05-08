@@ -20,15 +20,15 @@
 9. On transaction success, Veil writes a settled API ledger record.
 10. If the transaction submits but the API write fails, Veil shows the transaction hash and the ledger-write failure.
 
-## New Open Payment With Unified Balance
+## New Open Payment With Unified USDC Balance
 
-1. User opens `Unified Balance`.
+1. User opens `Unified USDC Balance`.
 2. User deposits USDC from a supported source chain if needed.
 3. User waits until balance is confirmed.
 4. User opens `New Payment`.
 5. User enters recipient, amount, optional label, and optional reference.
 6. User selects `Open Payment`.
-7. User selects `Unified Balance USDC`.
+7. User selects `Unified USDC Balance`.
 8. Veil spends through Circle AppKit with the connected wallet.
 9. If spend succeeds and VeilHub is configured, Veil registers a VeilHub reference and records `settled`.
 10. If spend succeeds and VeilHub is not configured or registration fails, Veil records `pending_veilhub_registration`.
@@ -41,36 +41,36 @@
 2. User adds recipient rows with address, amount, optional label, and optional reference.
 3. User reviews recipient count and total USDC.
 4. User selects `Open Payment`.
-5. User selects `Arc Direct` or `Unified Balance USDC`.
+5. User selects `Arc Direct` or `Unified USDC Balance`.
 6. Arc Direct is the recommended true batch path: it requires VeilHub env setup, requests one USDC approval if needed, and calls `VeilHub.payOpenBatch` once for the full recipient list.
-7. Unified Balance is labeled as `Sequential Unified Balance batch`: the current Circle AppKit integration spends to one recipient per call, so Veil requests one wallet approval/spend per recipient.
-8. During sequential Unified Balance payouts, Veil shows recipient X of N, awaiting wallet approval, pending settlement, settled, pending VeilHub registration, or failed state for each row.
-9. User reviews per-recipient progress and the API ledger record in History. Unified Balance batch records must not be treated as proof that one transaction paid every recipient.
+7. Unified USDC Balance is labeled as `Sequential Unified USDC`: the current Circle AppKit integration spends to one recipient per call, so Veil requests one wallet approval/spend per recipient.
+8. During sequential Unified USDC Balance payouts, Veil shows recipient X of N, awaiting wallet approval, pending settlement, settled, pending VeilHub registration, or failed state for each row.
+9. User reviews per-recipient progress and the API ledger record in History. Unified USDC Balance batch records must not be treated as proof that one transaction paid every recipient.
 
 ## Batch Source Guidance
 
 - `Arc Direct`: use this when the goal is one onchain batch transaction through VeilHub. It is the current recommended batch option.
-- `Unified Balance USDC`: use this when the user wants to spend confirmed Unified Balance funds and accepts a sequential payout flow. It is not currently a native multi-recipient spend.
+- `Unified USDC Balance`: use this when the user wants to spend confirmed Unified USDC Balance funds and accepts a sequential payout flow. It is not currently a native multi-recipient spend.
 
 Current SDK investigation:
 
 - The installed `@circle-fin/app-kit@1.4.1` uses `@circle-fin/unified-balance-kit@1.0.1`.
-- The Unified Balance `spend` API exposes one destination object with optional `recipientAddress`.
+- The Unified USDC Balance `spend` API exposes one destination object with optional `recipientAddress`.
 - The SDK supports multi-source allocations into one spend, but this is different from sending one spend to multiple recipients.
-- Veil therefore keeps Unified Balance batch honest as a sequential workflow until Circle AppKit exposes a native multi-recipient destination or Veil ships a tested escrow distribution contract.
+- Veil therefore keeps Unified USDC Balance batch honest as a sequential workflow until Circle AppKit exposes a native multi-recipient destination or Veil ships a tested escrow distribution contract.
 
-## Unified Balance Deposit
+## Unified USDC Balance Deposit
 
-1. User opens `Unified Balance`.
+1. User opens `Unified USDC Balance`.
 2. User chooses Base Sepolia, Ethereum Sepolia, or Arc Testnet as source.
 3. Veil requests a wallet network switch.
 4. User enters deposit amount.
 5. User approves the deposit through Circle AppKit.
 6. Veil refreshes confirmed and pending balances from the connected wallet.
 
-## Closed Payment Selection
+## Private Payment Selection
 
-1. User can select `Closed Payment`.
+1. User can select `Private Payment`.
 2. Veil shows `Coming soon with Arc Private Kit.`
 3. Veil explains that it is preparing native Arc privacy integration for hidden/private payment support.
 4. Veil explains that true private settlement cannot be a visible ERC20 transfer because normal transfers expose amount.
@@ -98,7 +98,7 @@ Mobile users can access:
 - Dashboard
 - New Payment
 - Batch Payments
-- Unified Balance
+- Unified USDC Balance
 - History
 - Private Records
 - Access Control

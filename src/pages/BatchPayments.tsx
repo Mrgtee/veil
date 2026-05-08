@@ -66,7 +66,7 @@ function emptyRow(): BatchRecipientRow {
 function withSettlementTimeout<T>(promise: Promise<T>) {
   return new Promise<T>((resolve, reject) => {
     const timer = window.setTimeout(() => {
-      reject(new Error("Unified Balance spend is still finalizing Arc settlement."));
+      reject(new Error("Unified USDC is still finalizing."));
     }, SETTLEMENT_TIMEOUT_MS);
 
     promise
@@ -113,13 +113,13 @@ function SelectionButton({
 }
 
 function getBatchSourceTitle(source: PaymentSource) {
-  return source === "arc-direct" ? "Arc Direct (recommended)" : "Unified Balance (sequential)";
+  return source === "arc-direct" ? "Arc Direct" : "Unified USDC";
 }
 
 function getBatchSourceDescription(source: PaymentSource) {
   return source === "arc-direct"
-    ? "One USDC approval if needed, then one VeilHub batch transaction for every recipient."
-    : "One Circle AppKit spend and wallet approval per recipient for now.";
+    ? "Recommended: one VeilHub batch transaction."
+    : "Sequential payout, one spend per recipient.";
 }
 
 function getRowStatusLabel(status: RowResult["status"]) {
@@ -145,7 +145,7 @@ function getRowStatusClass(status: RowResult["status"]) {
   if (status === "pending_settlement" || status === "pending_veilhub_registration") {
     return "border-orange-200 bg-orange-50 text-orange-700";
   }
-  return "border-blue-200 bg-blue-50 text-blue-700";
+  return "border-caramel/40 bg-caramel/10 text-walnut";
 }
 
 export default function BatchPayments() {
@@ -213,7 +213,7 @@ export default function BatchPayments() {
       }))
     );
 
-    setStatus("Checking USDC allowance and submitting the batch through VeilHub...");
+    setStatus("Checking allowance.");
     const hubResult = await sendVeilHubOpenBatch({
       batchId: nextBatchId,
       recipients,
@@ -241,7 +241,7 @@ export default function BatchPayments() {
       throw new Error(`Batch transaction submitted (${hubResult.txHash}), but API ledger write failed: ${getErrorMessage(ledgerErr)}`);
     }
 
-    setStatus("Arc Direct batch settled through VeilHub on Arc.");
+    setStatus("Batch settled through VeilHub.");
   }
 
   async function submitUnifiedBalanceBatch(cleanRows: BatchRecipientRow[], nextBatchId: `0x${string}`) {
@@ -268,7 +268,7 @@ export default function BatchPayments() {
       const before = await readUnifiedBalance(address);
       const beforeBalance = getBalanceNumber(before, "totalConfirmedBalance");
 
-      setStatus(`Sequential Unified Balance batch: recipient ${index + 1} of ${cleanRows.length} is awaiting wallet approval. Each recipient creates its own spend.`);
+      setStatus(`Recipient ${index + 1} of ${cleanRows.length}: awaiting wallet approval.`);
       setRowResult(row.id, { status: "awaiting_wallet_approval" });
 
       try {
@@ -327,13 +327,13 @@ export default function BatchPayments() {
                 veilHubTxHash: veilHubTxHashes.join(",") || undefined,
                 batchId: nextBatchId,
                 status: "pending_settlement",
-                settlementNote: `Unified Balance was deducted for recipient ${index + 1}, but final Arc settlement confirmation was delayed.`,
+                settlementNote: `Unified USDC was deducted for recipient ${index + 1}, but final settlement is delayed.`,
               });
             } catch (ledgerErr) {
-              throw new Error(`Unified Balance was deducted (${pendingRef}), but API ledger write failed: ${getErrorMessage(ledgerErr)}`);
+              throw new Error(`Unified USDC was deducted (${pendingRef}), but API ledger write failed: ${getErrorMessage(ledgerErr)}`);
             }
 
-            setStatus(`Sequential Unified Balance batch: recipient ${index + 1} of ${cleanRows.length} was deducted, but final Arc settlement confirmation is delayed. The batch was saved as pending.`);
+            setStatus(`Recipient ${index + 1} of ${cleanRows.length}: pending settlement.`);
             return;
           }
         }
@@ -349,7 +349,7 @@ export default function BatchPayments() {
             veilHubTxHash: veilHubTxHashes.join(",") || undefined,
             batchId: nextBatchId,
             status: "failed",
-            settlementNote: `Sequential Unified Balance batch stopped at recipient ${index + 1}: ${message}`,
+            settlementNote: `Sequential Unified USDC stopped at recipient ${index + 1}: ${message}`,
             error: message,
           });
         }
@@ -380,10 +380,10 @@ export default function BatchPayments() {
         status: ledgerStatus,
         settlementNote:
           ledgerStatus === "settled"
-            ? "Sequential Unified Balance batch completed: each recipient was paid through its own Circle AppKit spend and registered with VeilHub."
+            ? "Sequential Unified USDC completed. Each recipient used its own spend."
             : ledgerStatus === "pending_settlement"
-              ? "Sequential Unified Balance batch returned without every final Arc settlement hash. Confirm settlement before treating it as complete."
-              : `Sequential Unified Balance batch paid recipients one at a time, but VeilHub registration is pending: ${pendingRegistrations.join("; ")}.`,
+              ? "Sequential Unified USDC is still finalizing."
+              : `Sequential Unified USDC settled, but VeilHub registration is pending: ${pendingRegistrations.join("; ")}.`,
       });
     } catch (ledgerErr) {
       throw new Error(`Batch settlement submitted (${settledTxHashes.join(",")}), but API ledger write failed: ${getErrorMessage(ledgerErr)}`);
@@ -391,10 +391,10 @@ export default function BatchPayments() {
 
     setStatus(
       ledgerStatus === "settled"
-        ? `Sequential Unified Balance batch settled for ${cleanRows.length} recipients.`
+        ? `Sequential Unified USDC settled for ${cleanRows.length} recipients.`
         : ledgerStatus === "pending_settlement"
-          ? "Sequential Unified Balance batch was saved as pending settlement."
-          : "Sequential Unified Balance batch settled on Arc and was saved as pending VeilHub registration."
+          ? "Sequential Unified USDC saved as pending."
+          : "Sequential Unified USDC saved with pending VeilHub registration."
     );
   }
 
@@ -409,11 +409,11 @@ export default function BatchPayments() {
       setBatchId("");
 
       if (!isConnected || !address) throw new Error("Wallet is not connected in the app.");
-      if (!mode) throw new Error("Choose Open Payment or Closed Payment.");
-      if (!source) throw new Error("Choose Arc Direct or Unified Balance USDC.");
+      if (!mode) throw new Error("Choose Open Payment or Private Payment.");
+      if (!source) throw new Error("Choose Arc Direct or Unified USDC.");
       if (isClosedMode) {
         throw new Error(
-          "Coming soon with Arc Private Kit. Veil is preparing native Arc privacy integration for hidden/private batch payment support; visible batch transfers remain blocked as private payments."
+          "Private payments are coming soon with Arc Private Kit."
         );
       }
 
@@ -445,15 +445,15 @@ export default function BatchPayments() {
           : source === "arc-direct" && !veilHubSetup.ready
             ? "VeilHub setup required"
             : source === "unified-balance"
-              ? "Start Sequential Payouts"
-              : "Submit One-Transaction Batch";
+              ? "Start Payouts"
+              : "Submit Batch";
 
   return (
     <div className="space-y-6">
       <SectionHeader
         eyebrow="Payments"
         title="Batch payments"
-        description="Arc Direct is the true one-transaction batch path. Unified Balance payouts are sequential today."
+        description="Arc Direct batches in one transaction. Unified USDC pays sequentially today."
       />
 
       <div className="surface-card p-5 space-y-5">
@@ -560,12 +560,10 @@ export default function BatchPayments() {
             <div className="rounded-lg border border-confidential/30 bg-confidential-soft/60 p-3 text-sm">
               <div className="font-medium">Coming soon with Arc Private Kit.</div>
               <p className="mt-1 text-muted-foreground">
-                Veil is preparing native Arc privacy integration for hidden/private batch payment support. Until that
-                stack is available and wired, visible batch transfers are intentionally blocked as private payments.
+                Veil is preparing native Arc privacy support. Open payments are live today.
               </p>
               <p className="mt-2 text-xs text-muted-foreground">
-                Arc Direct remains the recommended live batch path: one allowance if needed, then one VeilHub batch
-                transaction for every recipient.
+                Visible transfers are blocked as private payments.
               </p>
             </div>
           )}
@@ -597,10 +595,10 @@ export default function BatchPayments() {
               )}
             >
               <div className="font-medium">
-                {veilHubSetup.ready ? "Recommended: one-transaction VeilHub batch." : "Arc Direct setup required."}
+                {veilHubSetup.ready ? "Recommended: one VeilHub batch transaction." : "Arc Direct setup required."}
               </div>
               <p className="mt-1 text-muted-foreground">
-                Arc Direct requests one USDC approval if needed, then calls `VeilHub.payOpenBatch` once for the full recipient list. Legacy batch contracts and native transfers are disabled.
+                Requests one USDC approval if needed, then calls `VeilHub.payOpenBatch`.
               </p>
               {!veilHubSetup.ready && (
                 <div className="mt-2 font-mono text-xs">
@@ -612,9 +610,9 @@ export default function BatchPayments() {
 
           {source === "unified-balance" && (
             <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 text-sm">
-              <div className="font-medium">Sequential Unified Balance batch.</div>
+              <div className="font-medium">Sequential Unified USDC batch.</div>
               <p className="mt-1 text-muted-foreground">
-                The current Circle AppKit spend call targets one recipient at a time. Veil will process recipient 1 of N, then 2 of N, and so on; this is not a single batch transaction.
+                One wallet approval and spend per recipient. This is not one transaction.
               </p>
             </div>
           )}
@@ -625,7 +623,7 @@ export default function BatchPayments() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-sm text-muted-foreground">
             {source === "unified-balance"
-              ? "Sequential Unified Balance batch uses the globally connected wallet and requests one spend per recipient."
+              ? "Sequential Unified USDC uses one spend per recipient."
               : source
                 ? `${getPaymentSourceLabel(source)} uses the globally connected wallet in the top bar.`
                 : "Select a source to continue."}
@@ -656,7 +654,7 @@ export default function BatchPayments() {
               </h2>
               <p className="text-sm text-muted-foreground">
                 {source === "unified-balance"
-                  ? `One Unified Balance spend per recipient. ${batchId ? `Ledger batch ID: ${batchId}` : "Recipient settlement status."}`
+                  ? `One Unified USDC spend per recipient. ${batchId ? `Ledger batch ID: ${batchId}` : "Recipient status."}`
                   : batchId
                     ? `VeilHub batch ID: ${batchId}`
                     : "Recipient settlement status."}

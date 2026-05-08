@@ -4,17 +4,17 @@
 
 An ERC20 transfer emits public `Transfer(from, to, amount)` data. Anyone can read the sender, recipient, token, and amount from logs and state changes. A native-value transfer similarly exposes value in the transaction. Hiding a memo, label, invoice reference, or UI text does not hide the payment amount onchain.
 
-For that reason, Veil does not call a visible transfer a Closed Payment.
+For that reason, Veil does not call a visible transfer a Private Payment.
 
 ## Current Product Positioning
 
-User-facing Private/Closed Payment is coming soon with Arc Private Kit. Veil is preparing native Arc privacy integration for hidden/private payment support and will not ship fake privacy while that stack is pending.
+User-facing Private Payment is coming soon with Arc Private Kit. Veil is preparing native Arc privacy integration for hidden/private payment support and will not ship fake privacy while that stack is pending.
 
 VeilShield remains an experimental developer-preview and research layer. Its deployed Arc Testnet contracts and Noir circuits are useful for studying amount-hiding mechanics, but they are not the current user-facing Private Payment path.
 
-## Closed Payment Definition
+## Private Payment Definition
 
-Closed Payment means:
+Private Payment means:
 
 - sender remains visible
 - recipient remains visible
@@ -129,7 +129,7 @@ The prior developer preview included local testnet note storage for VeilShield d
 
 Hidden transfers and withdrawals can be submitted only from the local developer CLI with real Noir/BB proof artifacts. The browser app no longer exposes VeilShield as the normal Private Payment flow. User-facing private payments will prioritize Arc Private Kit.
 
-## What Remains Before Closed Payment Can Go Live
+## What Remains Before Private Payment Can Go Live
 
 - Integrate Arc Private Kit once the native Arc privacy stack is available.
 - Build user-facing status, indexing, and history around Arc-native private payment events.
@@ -212,7 +212,7 @@ node scripts/veilshield-submit-proof.mjs transfer --artifact /tmp/veil-transfer-
 node scripts/veilshield-submit-proof.mjs withdraw --artifact /tmp/veil-withdraw-artifact.json --record-ledger
 ```
 
-These commands use real Noir/BB execution and real VeilShield calls. They are research tooling only; they are not browser proof generation and do not make Closed Payment user-facing. Transfer amounts stay in the artifact `localPrivate` section and are not written to the ledger.
+These commands use real Noir/BB execution and real VeilShield calls. They are research tooling only; they are not browser proof generation and do not make Private Payment user-facing. Transfer amounts stay in the artifact `localPrivate` section and are not written to the ledger.
 
 ## Security Requirements
 

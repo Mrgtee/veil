@@ -21,7 +21,7 @@ Main app areas:
 Shared payment logic lives in `src/lib/payments`:
 
 - `wallet.ts`: account handling and network switching.
-- `arcDirect.ts`: VeilHub setup checks, USDC decimals/balance/allowance reads, conditional approval, `payOpen`, `payOpenBatch`, and Unified Balance reference registration.
+- `arcDirect.ts`: VeilHub setup checks, USDC decimals/balance/allowance reads, conditional approval, `payOpen`, `payOpenBatch`, and Unified USDC Balance reference registration.
 - `unifiedBalance.ts`: Circle AppKit browser-wallet adapter, deposit, balance read, spend, pending balance handling, and settlement step parsing.
 - `recording.ts`: API ledger writes after real transaction or explicit pending reference exists.
 - `errors.ts`: wallet rejection, contract revert, insufficient balance, API failure, and delayed settlement formatting.
@@ -47,9 +47,9 @@ Flow:
 
 No native-transfer fallback exists.
 
-## Unified Balance Model
+## Unified USDC Balance Model
 
-Unified Balance user flows stay connected-wallet owned through Circle AppKit. The API does not spend from backend-managed wallets.
+Unified USDC Balance user flows stay connected-wallet owned through Circle AppKit. The API does not spend from backend-managed wallets.
 
 If spend succeeds:
 
@@ -58,23 +58,23 @@ If spend succeeds:
 - with delayed final settlement and balance deducted: record `pending_settlement`
 - with no deduction: record no success
 
-### Unified Balance Batch Reality
+### Unified USDC Balance Batch Reality
 
-Arc Direct batch and Unified Balance batch are intentionally different today.
+Arc Direct batch and Unified USDC Balance batch are intentionally different today.
 
 - Arc Direct batch is a true one-transaction batch: one USDC approval if needed, then one `VeilHub.payOpenBatch` transaction that pays all recipients.
-- Unified Balance batch is sequential: one Circle AppKit `spend` call per recipient, each with its own wallet approval/spend and settlement result.
+- Unified USDC Balance batch is sequential: one Circle AppKit `spend` call per recipient, each with its own wallet approval/spend and settlement result.
 
-This is not a UX preference; it follows the current SDK surface in the installed packages. `@circle-fin/app-kit@1.4.1` depends on `@circle-fin/unified-balance-kit@1.0.1`; the Unified Balance `spend` params expose a single destination object with optional `recipientAddress`. The kit supports multi-source allocation, meaning one spend can draw USDC from multiple source chains/accounts, but it does not expose a native multi-recipient destination array in this integration.
+This is not a UX preference; it follows the current SDK surface in the installed packages. `@circle-fin/app-kit@1.4.1` depends on `@circle-fin/unified-balance-kit@1.0.1`; the Unified USDC Balance `spend` params expose a single destination object with optional `recipientAddress`. The kit supports multi-source allocation, meaning one spend can draw USDC from multiple source chains/accounts, but it does not expose a native multi-recipient destination array in this integration.
 
-The frontend therefore labels this path as `Sequential Unified Balance batch`, shows recipient X of N, and records per-recipient settled, pending settlement, pending VeilHub registration, or failed state.
+The frontend therefore labels this path as `Sequential Unified USDC`, shows recipient X of N, and records per-recipient settled, pending settlement, pending VeilHub registration, or failed state.
 
-### Future Unified Balance Escrow Batch
+### Future Unified USDC Balance Escrow Batch
 
-A future true Unified Balance batch should not fake batching in the browser. The safer architecture is:
+A future true Unified USDC Balance batch should not fake batching in the browser. The safer architecture is:
 
 1. User creates a batch intent with recipients, amounts, total USDC, token, deadline, and `batchId`.
-2. User spends the total Unified Balance amount to a VeilHub escrow address or a dedicated audited escrow contract.
+2. User spends the total Unified USDC Balance amount to a VeilHub escrow address or a dedicated audited escrow contract.
 3. After final Arc settlement is confirmed, VeilHub verifies the batch intent and distributes exact USDC amounts to recipients in one contract transaction.
 4. The API/indexer records the spend, escrow receipt, distribution transaction, and any pending state.
 
@@ -117,9 +117,9 @@ Production direction is a database/indexer stack with VeilHub event indexing and
 
 ## Private Payment Positioning
 
-Closed/Private Payment means sender visible, recipient visible, and amount hidden onchain. The frontend now shows `Coming soon with Arc Private Kit` and blocks private settlement until native Arc privacy integration is available, wired, tested, and audited.
+Private Payment means sender visible, recipient visible, and amount hidden onchain. The frontend now shows `Coming soon with Arc Private Kit` and blocks private settlement until native Arc privacy integration is available, wired, tested, and audited.
 
-Visible Arc Direct or Unified Balance transfers are not accepted as Private/Closed Payment settlement. No UI should imply that hiding labels, memos, or records hides the onchain amount.
+Visible Arc Direct or Unified USDC Balance transfers are not accepted as Private Payment settlement. No UI should imply that hiding labels, memos, or records hides the onchain amount.
 
 ## Experimental VeilShield Research
 
@@ -154,4 +154,4 @@ The local developer CLI can generate proof artifacts and submit `transferNote` o
 - `POST /api/disclosure-access/:id/revoke`
 - `GET /api/audit-trail`
 
-Managed bridge and backend-managed Unified Balance endpoints return `410 Gone`.
+Managed bridge and backend-managed Unified USDC Balance endpoints return `410 Gone`.

@@ -2,7 +2,7 @@
 
 ## Current Arc Testnet Open Payment Deployment
 
-VeilHub is deployed on Arc Testnet and is the required on-chain route for Arc Direct Open Payments. User-facing Private/Closed Payment is coming soon with Arc Private Kit; VeilShield is not the normal private-payment path.
+VeilHub is deployed on Arc Testnet and is the required on-chain route for Arc Direct Open Payments. User-facing Private Payment is coming soon with Arc Private Kit; VeilShield is not the normal private-payment path.
 
 | Item | Value |
 | --- | --- |
@@ -57,7 +57,7 @@ VEIL_LEDGER_PATH=./data/veil-ledger.json
 
 ## VeilShield Prototype Env
 
-These public Arc Testnet addresses are optional research references only. The normal app now positions Private/Closed Payment as `Coming soon with Arc Private Kit`.
+These public Arc Testnet addresses are optional research references only. The normal app now positions Private Payment as `Coming soon with Arc Private Kit`.
 
 ```bash
 VITE_VEIL_SHIELD_ADDRESS=0x1BC23d45aEc7229809841a6FCd578A9C61A5667D
@@ -65,7 +65,7 @@ VITE_VEIL_SHIELD_TRANSFER_VERIFIER_ADDRESS=0xc5B31339159d9371Cb0efb49F001d550640
 VITE_VEIL_SHIELD_WITHDRAW_VERIFIER_ADDRESS=0xA1e76f8AC92220596AacC7009d62a2fe22a55253
 ```
 
-Do not set these values to placeholder or mock contracts in a production-facing environment. Configured addresses are not enough to enable Private/Closed Payment submission.
+Do not set these values to placeholder or mock contracts in a production-facing environment. Configured addresses are not enough to enable Private Payment submission.
 
 ## VeilShield Developer Preview Commands
 
@@ -92,7 +92,7 @@ node scripts/veilshield-submit-proof.mjs transfer --artifact /tmp/veil-transfer-
 node scripts/veilshield-submit-proof.mjs withdraw --artifact /tmp/veil-withdraw-artifact.json --record-ledger
 ```
 
-The developer submit script can submit `transferNote` and `withdraw` with real proof artifacts, but this remains research tooling. Browser Private/Closed Payment is expected to prioritize Arc Private Kit.
+The developer submit script can submit `transferNote` and `withdraw` with real proof artifacts, but this remains research tooling. Browser Private Payment is expected to prioritize Arc Private Kit.
 
 ## Contract Deployment Command
 
@@ -122,7 +122,7 @@ Copy the `VeilHub deployed 0x...` output into `.env.local` as `VITE_VEIL_HUB_ADD
 
 ## VeilShield Deployment Step
 
-VeilShield has been deployed for Arc Testnet research, but user-facing Private/Closed Payment now prioritizes Arc Private Kit and remains blocked in the frontend.
+VeilShield has been deployed for Arc Testnet research, but user-facing Private Payment now prioritizes Arc Private Kit and remains blocked in the frontend.
 
 Important: if Foundry prompts that `TransferVerifier` or `WithdrawVerifier` is above the contract size limit, answer `n`. The committed `contracts/foundry.toml` enables size-focused optimization with `optimizer_runs = 1`; rerun the deploy from the repo after pulling this config. Do not force-broadcast oversized verifier bytecode.
 
@@ -182,7 +182,7 @@ VITE_VEIL_SHIELD_TRANSFER_VERIFIER_ADDRESS=<Transfer verifier deployed address>
 VITE_VEIL_SHIELD_WITHDRAW_VERIFIER_ADDRESS=<Withdraw verifier deployed address>
 ```
 
-Private/Closed Payment still remains blocked until Arc Private Kit integration is available, wired, tested, and audited. VeilShield remains research-only.
+Private Payment still remains blocked until Arc Private Kit integration is available, wired, tested, and audited. VeilShield remains research-only.
 
 ## Verification
 
@@ -202,4 +202,4 @@ cd /home/gtee/projects/veil/circuits/veil_shield_transfer_inputs && /home/gtee/.
 
 Static checks should show no production use of `eth_sendTransaction`, `BatchPayout`, `PaymentVault`, or native-transfer fallback code.
 
-Private/Closed Payment transfer submission remains blocked until Arc Private Kit integration is available, wired, tested, and audited.
+Private Payment transfer submission remains blocked until Arc Private Kit integration is available, wired, tested, and audited.

@@ -74,14 +74,13 @@ export default function AccessControl() {
       <SectionHeader
         eyebrow="Compliance"
         title="Access control"
-        description="Manage disclosure permissions for future private payment records and review the audit trail."
+        description="Disclosure controls for future private records."
       />
 
       <div className="rounded-lg border border-confidential/30 bg-confidential-soft/60 p-4 text-sm">
         <div className="font-medium">Coming soon with Arc Private Kit.</div>
         <p className="mt-1 text-muted-foreground">
-          Veil is preparing native Arc privacy integration for hidden/private payment support. Disclosure controls
-          remain ready for future private records, but no visible transfer is treated as private settlement.
+          Private records are not live yet. Open payments remain available today.
         </p>
       </div>
 
@@ -162,7 +161,7 @@ export default function AccessControl() {
               })}
               {records.length === 0 && !status && (
                 <div className="px-5 py-8 text-sm text-muted-foreground">
-                  No private records are available yet. User-facing private payments will activate after Arc Private Kit integration is wired.
+                  No private records yet.
                 </div>
               )}
             </div>

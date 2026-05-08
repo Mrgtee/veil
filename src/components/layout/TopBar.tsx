@@ -1,6 +1,4 @@
 import {
-  Bell,
-  Search,
   LogOut,
   Menu,
   LayoutDashboard,
@@ -13,7 +11,6 @@ import {
   Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { truncateAddress } from "@/lib/format";
 import {
@@ -31,7 +28,7 @@ const mobileNav = [
   { to: "/app", label: "Dashboard", icon: LayoutDashboard },
   { to: "/app/payments/new", label: "New Payment", icon: Send },
   { to: "/app/batch", label: "Batch Payments", icon: Layers },
-  { to: "/app/unified-balance", label: "Unified Balance", icon: WalletCards },
+  { to: "/app/unified-balance", label: "Unified USDC", icon: WalletCards },
   { to: "/app/history", label: "History", icon: History },
   { to: "/app/confidential", label: "Private Records", icon: Lock },
   { to: "/app/access", label: "Access Control", icon: ShieldCheck },
@@ -81,20 +78,7 @@ export function TopBar() {
           <VeilWordmark size="sm" />
         </div>
 
-        <div className="flex-1 min-w-0 max-w-md">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search payments..."
-              className="pl-9 bg-secondary/60 border-transparent focus-visible:bg-card focus-visible:border-border text-sm"
-            />
-          </div>
-        </div>
-
-        <Button variant="ghost" size="icon" aria-label="Notifications" className="relative shrink-0">
-          <Bell className="h-4 w-4" />
-          <span className="absolute top-2 right-2 h-1.5 w-1.5 rounded-full bg-caramel" />
-        </Button>
+        <div className="flex-1" />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

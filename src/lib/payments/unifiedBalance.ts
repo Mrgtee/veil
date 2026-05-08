@@ -166,7 +166,7 @@ async function getCircleTools(): Promise<CircleTools> {
   }
 
   if (!cachedKit.unifiedBalance) {
-    throw new Error("Unified Balance is not available in this Circle AppKit version.");
+    throw new Error("Unified USDC Balance is not available in this Circle AppKit version.");
   }
 
   return { kit: cachedKit, createViemAdapterFromProvider };

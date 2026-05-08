@@ -45,7 +45,7 @@ export default function ConfidentialRecords() {
       <SectionHeader
         eyebrow="Privacy"
         title="Private payment records"
-        description="Future Arc Private Kit records and disclosure status for hidden/private settlement."
+        description="Coming soon with Arc Private Kit."
       />
 
       <div className="surface-card p-5 bg-confidential-soft/40 ring-confidential">
@@ -54,8 +54,7 @@ export default function ConfidentialRecords() {
           <div className="text-sm">
             <div className="font-medium">Coming soon with Arc Private Kit.</div>
             <p className="text-muted-foreground text-xs mt-0.5">
-              Veil is preparing native Arc privacy integration for hidden/private payment support. No fake privacy is
-              being shipped, and visible ERC20 transfers are not recorded as private payments.
+              Veil is preparing native Arc privacy support. Open payments are live today.
             </p>
           </div>
         </div>
@@ -116,8 +115,7 @@ export default function ConfidentialRecords() {
 
         {records.length === 0 && !status && (
           <div className="surface-card p-5 text-sm text-muted-foreground md:col-span-2">
-            No private payment records are present. User-facing private payments will prioritize Arc Private Kit once
-            the native privacy stack is available and wired.
+            No private payment records yet.
           </div>
         )}
       </div>

@@ -9,7 +9,7 @@ export default function Bridge() {
       <SectionHeader
         eyebrow="Liquidity"
         title="Bridge flow retired"
-        description="Veil no longer presents a backend-managed bridge as a user payment flow. Use wallet-owned Unified Balance deposits, then pay from New Payment or Batch Payments."
+        description="Use wallet-owned Unified USDC deposits, then pay from New Payment or Batch Payments."
       />
 
       <div className="surface-card p-5 space-y-4">
@@ -19,7 +19,7 @@ export default function Bridge() {
           </div>
 
           <div className="space-y-2">
-            <h2 className="text-lg font-medium">Use Unified Balance USDC</h2>
+            <h2 className="text-lg font-medium">Use Unified USDC Balance</h2>
             <p className="text-sm text-muted-foreground">
               Deposits are signed by the connected wallet on the selected source chain. Spending also uses the connected wallet, so user-facing flows do not rely on backend-managed wallets.
             </p>

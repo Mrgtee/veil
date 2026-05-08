@@ -41,11 +41,11 @@ export function formatPaymentError(err: unknown, fallback = "Payment failed") {
   const lower = message.toLowerCase();
 
   if (lower.includes("transfer spec has already been used")) {
-    return "This Unified Balance approval was already submitted or expired. Refresh the balance and submit again to create a fresh wallet approval.";
+    return "This Unified USDC approval was already submitted or expired. Refresh the balance and submit again.";
   }
 
   if (isSettlementDelay(message)) {
-    return "Arc settlement confirmation did not return in time. Check History for any pending record, refresh Unified Balance, and avoid resubmitting until the balance state is clear.";
+    return "Settlement confirmation is delayed. Check History, refresh Unified USDC Balance, and avoid resubmitting until the balance is clear.";
   }
 
   if (lower.includes("user rejected") || lower.includes("rejected the request")) {

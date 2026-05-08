@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { Wallet, ShieldCheck, WalletCards, Lock } from "lucide-react";
+import { Wallet, Send, WalletCards, Lock } from "lucide-react";
 import { VeilWordmark } from "@/components/brand/VeilLogo";
 import { requestWalletAccount } from "@/lib/payments/wallet";
 
@@ -27,98 +27,66 @@ export default function SignIn() {
 
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <div className="grid min-h-screen lg:grid-cols-2">
-        <section className="hidden lg:flex bg-gradient-to-br from-slate-950 via-teal-950 to-indigo-950 text-white">
-          <div className="flex min-h-screen flex-col justify-between p-10 xl:p-12">
-            <div className="[&_span]:text-white">
+      <section className="mx-auto flex min-h-screen w-full max-w-6xl flex-col justify-center px-5 py-10 sm:px-8">
+        <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+          <div className="space-y-7">
+            <div className="[&_span]:text-3xl">
               <VeilWordmark size="lg" />
             </div>
 
-            <div className="max-w-xl">
-              <div className="mb-5 text-xs uppercase tracking-[0.35em] text-white/60">
-                Unified settlement
-              </div>
-
-              <h1 className="font-display text-5xl leading-tight font-semibold">
-                Open payments on Arc, with private payments coming soon through Arc Private Kit.
+            <div className="max-w-2xl space-y-4">
+              <h1 className="font-display text-4xl font-semibold leading-tight sm:text-5xl">
+                Open and private-ready USDC payments on Arc.
               </h1>
-
-              <p className="mt-6 max-w-lg text-base leading-7 text-white/75">
-                Veil lets users spend unified USDC into Arc payments while protecting sensitive payment context when privacy is needed.
+              <p className="max-w-xl text-base leading-7 text-muted-foreground">
+                Send single or batch payments with Arc Direct, Unified USDC, and VeilHub tracking.
               </p>
-
-              <div className="mt-8 grid gap-4 text-sm text-white/80">
-                <div className="flex items-center gap-3">
-                  <WalletCards className="h-4 w-4" />
-                  Unified Balance USDC for payment-ready liquidity.
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <ShieldCheck className="h-4 w-4" />
-                  Open payments for transparent settlement.
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Lock className="h-4 w-4" />
-                  Native Arc privacy integration is being prepared for hidden/private support.
-                </div>
-              </div>
             </div>
 
-            <div className="text-sm text-white/55">
-              Built on Arc · Veil © 2026
+            <div className="grid gap-3 sm:grid-cols-3">
+              <FeatureCard icon={<Send className="h-4 w-4" />} title="Arc Direct" text="Live through VeilHub." />
+              <FeatureCard icon={<WalletCards className="h-4 w-4" />} title="Unified USDC" text="Wallet-owned balance." />
+              <FeatureCard icon={<Lock className="h-4 w-4" />} title="Private payments" text="Coming soon." />
             </div>
           </div>
-        </section>
 
-        <section className="flex min-h-screen items-start justify-center px-5 py-10 sm:items-center sm:px-6 sm:py-12">
-          <div className="w-full max-w-md space-y-6 sm:space-y-8">
-            <div className="text-center space-y-3 sm:space-y-4">
-              <div className="mx-auto flex items-center justify-center [&_span]:text-3xl">
-                <VeilWordmark size="lg" />
-              </div>
-
-              <div className="space-y-2">
-                <h2 className="font-display text-3xl sm:text-4xl font-semibold">
-                  Sign in to Veil
-                </h2>
-
-                <p className="text-muted-foreground">
-                  Connect your wallet to access Arc Direct and Unified Balance USDC payments.
-                </p>
-              </div>
+          <div className="surface-card mx-auto w-full max-w-md p-5 sm:p-6">
+            <div className="space-y-2">
+              <h2 className="font-display text-2xl font-semibold">Enter Veil</h2>
+              <p className="text-sm text-muted-foreground">
+                Connect your wallet to open the payment workspace.
+              </p>
             </div>
 
-            <div className="rounded-2xl border bg-card p-5 shadow-sm space-y-5">
-              <button
-                onClick={connectWallet}
-                disabled={loading}
-                className="flex h-14 w-full items-center justify-center gap-3 rounded-xl bg-gradient-brand px-4 font-medium text-primary-foreground transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <Wallet className="h-5 w-5" />
-                {loading ? "Connecting..." : "Connect wallet"}
-              </button>
+            <button
+              onClick={connectWallet}
+              disabled={loading}
+              className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-gradient-brand px-4 font-medium text-primary-foreground transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Wallet className="h-4 w-4" />
+              {loading ? "Connecting..." : "Connect Wallet"}
+            </button>
 
-              <div className="rounded-xl border bg-secondary/40 p-4 text-sm text-muted-foreground">
-                <div className="font-medium text-foreground">What Veil does</div>
-                <p className="mt-1">
-                  Veil helps you complete open Arc payments today and is preparing private payments with Arc Private Kit.
-                </p>
+            {status && (
+              <div className="mt-4 rounded-lg border bg-secondary/40 p-3 text-sm">
+                {status}
               </div>
-
-              {status && (
-                <div className="rounded-xl border bg-background p-3 text-sm">
-                  {status}
-                </div>
-              )}
-            </div>
-
-            <p className="text-center text-xs leading-5 text-muted-foreground">
-              By connecting, you acknowledge that Veil uses your wallet address to create your payment workspace.
-            </p>
+            )}
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
     </main>
+  );
+}
+
+function FeatureCard({ icon, title, text }: { icon: ReactNode; title: string; text: string }) {
+  return (
+    <div className="rounded-lg border bg-card p-4 shadow-sm">
+      <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-walnut">
+        {icon}
+      </div>
+      <div className="font-medium">{title}</div>
+      <div className="mt-1 text-sm text-muted-foreground">{text}</div>
+    </div>
   );
 }

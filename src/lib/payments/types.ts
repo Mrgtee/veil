@@ -31,8 +31,8 @@ export const PAYMENT_MODE_OPTIONS: Array<{
   },
   {
     value: "confidential",
-    label: "Closed Payment",
-    shortLabel: "Closed",
+    label: "Private Payment",
+    shortLabel: "Private",
     description: "Coming soon with Arc Private Kit.",
   },
 ];
@@ -49,17 +49,17 @@ export const PAYMENT_SOURCE_OPTIONS: Array<{
   },
   {
     value: "unified-balance",
-    label: "Unified Balance USDC",
-    description: "Spend confirmed user-owned Unified Balance USDC into Arc settlement.",
+    label: "Unified USDC",
+    description: "Use confirmed Unified USDC Balance funds.",
   },
 ];
 
 export function getPaymentModeLabel(mode: PaymentMode) {
-  return mode === "confidential" ? "Closed Payment" : "Open Payment";
+  return mode === "confidential" ? "Private Payment" : "Open Payment";
 }
 
 export function getPaymentModeShortLabel(mode: PaymentMode) {
-  return mode === "confidential" ? "Closed" : "Open";
+  return mode === "confidential" ? "Private" : "Open";
 }
 
 export function isUnifiedPaymentSource(source: PaymentSource | string | undefined) {
@@ -79,10 +79,10 @@ export function getPaymentSourceLabel(
 
   if (isUnifiedPaymentSource(source)) {
     if (options.sequential || normalized.includes("sequential")) {
-      return "Sequential Unified Balance batch";
+      return "Sequential Unified USDC";
     }
 
-    return "Unified Balance USDC";
+    return "Unified USDC Balance";
   }
 
   return "Arc Direct via VeilHub";

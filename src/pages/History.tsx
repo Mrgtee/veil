@@ -25,8 +25,8 @@ type Filter =
 const FILTERS: { id: Filter; label: string }[] = [
   { id: "all", label: "All" },
   { id: "open", label: "Open" },
-  { id: "confidential", label: "Closed" },
-  { id: "unified", label: "Unified Balance" },
+  { id: "confidential", label: "Private" },
+  { id: "unified", label: "Unified USDC" },
   { id: "single", label: "Single" },
   { id: "batch", label: "Batch" },
   { id: "pending", label: "Pending" },
@@ -64,7 +64,7 @@ function isExplorerTx(value?: string): value is string {
 }
 
 function modeLabel(mode: string) {
-  return mode === "confidential" ? "Closed" : "Open";
+  return mode === "confidential" ? "Private" : "Open";
 }
 
 function operationLabel(payment: Payment) {
@@ -82,8 +82,8 @@ function ModeBadge({ mode }: { mode: string }) {
       className={cn(
         "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium",
         isPrivate
-          ? "border-purple-200 bg-purple-50 text-purple-700"
-          : "border-amber-200 bg-amber-50 text-amber-800"
+          ? "border-confidential/20 bg-confidential-soft text-confidential"
+          : "border-caramel/40 bg-caramel/10 text-walnut"
       )}
     >
       {isPrivate && <Lock className="h-3 w-3" />}
@@ -119,8 +119,8 @@ function SourceBadge({ payment }: { payment: Payment }) {
       className={cn(
         "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium",
         unified
-          ? "border-blue-200 bg-blue-50 text-blue-700"
-          : "border-stone-200 bg-stone-50 text-stone-700"
+          ? "border-caramel/40 bg-caramel/10 text-walnut"
+          : "border-sand bg-beige/60 text-espresso"
       )}
     >
       {unified && <WalletCards className="h-3 w-3" />}
@@ -233,7 +233,7 @@ export default function History() {
       <SectionHeader
         eyebrow="Ledger"
         title="Payment history"
-        description="Search and inspect live Open Payments, pending settlements, and future private-payment references."
+        description="Search live payments and pending settlements."
         actions={
           <Button variant="outline" onClick={exportCsv}>
             <Download className="h-4 w-4 mr-2" /> Export CSV

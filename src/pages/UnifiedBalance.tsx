@@ -52,19 +52,19 @@ export default function UnifiedBalance() {
         const cached = readUnifiedBalanceCache(address);
         if (cached) {
           setBalance(cached);
-          setStatus("Showing cached balance while refreshing latest data...");
+          setStatus("Refreshing balance...");
         } else {
-          setStatus("Loading Unified Balance from your connected wallet...");
+          setStatus("Loading Unified USDC Balance...");
         }
       } else {
-        setStatus("Refreshing Unified Balance from your connected wallet...");
+        setStatus("Refreshing Unified USDC Balance...");
       }
 
       const latest = await readUnifiedBalance(address);
       setBalance(latest);
-      setStatus("Unified Balance is up to date.");
+      setStatus("Balance refreshed.");
     } catch (err) {
-      setStatus(formatPaymentError(err, "Unable to load Unified Balance."));
+      setStatus(formatPaymentError(err, "Unable to load Unified USDC Balance."));
     } finally {
       setLoadingBalance(false);
     }
@@ -120,8 +120,8 @@ export default function UnifiedBalance() {
     <div className="space-y-6">
       <SectionHeader
         eyebrow="Liquidity"
-        title="Unified Balance USDC"
-        description="Read your user-owned Unified Balance, deposit from a supported source chain, and spend through New Payment or Batch Payments."
+        title="Unified USDC Balance"
+        description="Deposit, refresh, and spend user-owned USDC."
         actions={
           <Button asChild>
             <Link to="/app/payments/new">
@@ -144,7 +144,7 @@ export default function UnifiedBalance() {
 
             <Button variant="outline" size="sm" onClick={() => loadBalance(false)} disabled={loadingBalance}>
               <RefreshCw className="mr-2 h-4 w-4" />
-              {loadingBalance ? "Refreshing..." : "Refresh"}
+              {loadingBalance ? "Refreshing..." : "Refresh Balance"}
             </Button>
           </div>
 
@@ -168,7 +168,7 @@ export default function UnifiedBalance() {
           </div>
 
           <div className="rounded-lg border border-info/30 bg-info/5 p-3 text-sm">
-            Confirmed USDC can be spent. Pending USDC has been seen by Unified Balance but is not yet available for payments.
+            Confirmed USDC is spendable. Pending USDC is still finalizing.
           </div>
 
           {activeChains.length > 0 ? (
@@ -193,7 +193,7 @@ export default function UnifiedBalance() {
           <div>
             <h2 className="text-lg font-medium">Deposit USDC</h2>
             <p className="text-sm text-muted-foreground">
-              Choose a source chain, switch the wallet, and deposit into your own Unified Balance.
+              Choose a source chain and deposit into your Unified USDC Balance.
             </p>
           </div>
 
@@ -237,7 +237,7 @@ export default function UnifiedBalance() {
 
           {selectedChain && (
             <div className="rounded-lg border bg-secondary/30 p-3 text-sm text-muted-foreground">
-              Deposits will request a wallet switch to {selectedChain.label}. Veil does not use backend-managed wallets for user-facing deposits or spends.
+              Deposits request a wallet switch to {selectedChain.label}. User-facing flows stay wallet-owned.
             </div>
           )}
 
