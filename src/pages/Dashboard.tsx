@@ -1,33 +1,32 @@
-import { useEffect, useMemo, useState } from "react";
-import type { ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { SectionHeader } from "@/components/veil/SectionHeader";
-import { StatCard } from "@/components/veil/StatCard";
-import { Button } from "@/components/ui/button";
-import { veilApi } from "@/services/veilApi";
-import type { ActivityEvent, DashboardStats, Payment } from "@/types/veil";
+import { useAccount } from "wagmi";
 import {
   ArrowRight,
-  Send,
-  Layers,
-  History as HistoryIcon,
-  Lock,
-  Activity,
-  TrendingUp,
-  Wallet,
-  ShieldCheck,
-  KeyRound,
-  WalletCards,
-  RefreshCw,
+  CheckCircle2,
+  Clock3,
+  DollarSign,
   ExternalLink,
+  Eye,
+  History as HistoryIcon,
+  Layers,
+  Lock,
+  RefreshCw,
+  Send,
+  Server,
+  ShieldCheck,
+  WalletCards,
 } from "lucide-react";
-import { formatAmount, formatRelative } from "@/lib/format";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
-import { useAccount } from "wagmi";
+import { PaymentDetailsDrawer } from "@/components/veil/PaymentDetailsDrawer";
+import { veilApi } from "@/services/veilApi";
+import type { DashboardStats, Payment, PaymentStatus } from "@/types/veil";
 import type { UnifiedBalanceData } from "@/lib/payments/unifiedBalance";
 import { ACTIVE_ARC_DEPLOYMENT, getArcExplorerAddressUrl, shortAddress } from "@/lib/deployment";
+import { formatAmount, formatRelative, truncateAddress } from "@/lib/format";
 import { getPaymentSourceLabel, isUnifiedPaymentSource } from "@/lib/payments/types";
+import { cn } from "@/lib/utils";
 
 type ExtendedPayment = Payment & {
   liquiditySource?: string;
@@ -35,99 +34,7 @@ type ExtendedPayment = Payment & {
   destinationChain?: string;
 };
 
-function modeLabel(mode: string) {
-  return mode === "confidential" ? "Private" : "Open";
-}
-
-function getLiquiditySource(payment: ExtendedPayment) {
-  const raw = payment.liquiditySource || payment.source || payment.sourceChain;
-  return getPaymentSourceLabel(raw, {
-    sequential: payment.type === "batch" && isUnifiedPaymentSource(raw || payment.source),
-  });
-}
-
-function isUnifiedPayment(payment: ExtendedPayment) {
-  return getLiquiditySource(payment).toLowerCase().includes("unified");
-}
-
-function operationLabel(payment: ExtendedPayment) {
-  if (payment.operation === "shield_deposit") return "Experimental private deposit";
-  if (payment.operation === "shield_transfer") return "Experimental private transfer";
-  if (payment.operation === "shield_withdraw") return "Experimental private withdraw";
-  return payment.recipientLabel ?? payment.recipient;
-}
-
-function ModeBadge({ mode }: { mode: string }) {
-  const isPrivate = mode === "confidential";
-
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium",
-        isPrivate
-          ? "border-confidential/20 bg-confidential-soft text-confidential"
-          : "border-caramel/40 bg-caramel/10 text-walnut"
-      )}
-    >
-      {isPrivate && <Lock className="h-3 w-3" />}
-      {modeLabel(mode)}
-    </span>
-  );
-}
-
-function SourceBadge({ payment }: { payment: ExtendedPayment }) {
-  const unified = isUnifiedPayment(payment);
-  const source = getLiquiditySource(payment);
-
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium",
-        unified
-          ? "border-caramel/40 bg-caramel/10 text-walnut"
-          : "border-sand bg-beige/60 text-espresso"
-      )}
-    >
-      {unified && <WalletCards className="h-3 w-3" />}
-      {source}
-    </span>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const ok = status === "settled";
-  const label = status.replaceAll("_", " ");
-
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium capitalize",
-        ok
-          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-          : "border-orange-200 bg-orange-50 text-orange-700"
-      )}
-    >
-      {label}
-    </span>
-  );
-}
-
-function Row({ label, value, badge }: { label: string; value: string; badge?: boolean }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="text-muted-foreground">{label}</span>
-
-      {badge ? (
-        <span className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-md bg-success/10 text-success border border-success/20">
-          <span className="h-1.5 w-1.5 rounded-full bg-success" />
-          {value}
-        </span>
-      ) : (
-        <span className="font-medium tabular-nums text-right">{value}</span>
-      )}
-    </div>
-  );
-}
+type StatusTone = "success" | "warning" | "danger" | "neutral";
 
 function getUnifiedBalanceCacheKey(account?: string) {
   return `veil.unified.balance.${(account || "").toLowerCase()}`;
@@ -144,181 +51,282 @@ function readUnifiedBalanceCache(account?: string) {
   }
 }
 
-function QuickAction({
-  to,
+function getLiquiditySource(payment: ExtendedPayment) {
+  const raw = payment.liquiditySource || payment.source || payment.sourceChain;
+  return getPaymentSourceLabel(raw, {
+    sequential: payment.type === "batch" && isUnifiedPaymentSource(raw || payment.source),
+  });
+}
+
+function paymentTitle(payment: ExtendedPayment) {
+  if (payment.operation === "shield_deposit") return "Experimental private deposit";
+  if (payment.operation === "shield_transfer") return "Experimental private transfer";
+  if (payment.operation === "shield_withdraw") return "Experimental private withdraw";
+  if (payment.type === "batch") {
+    return payment.recipientLabel || `Batch payment${payment.batchCount ? ` (${payment.batchCount})` : ""}`;
+  }
+
+  return payment.recipientLabel || truncateAddress(payment.recipient);
+}
+
+function paymentSubtitle(payment: ExtendedPayment) {
+  if (payment.type === "batch") {
+    return payment.batchCount ? `${payment.batchCount} recipients` : "Batch payment";
+  }
+
+  return payment.recipient;
+}
+
+function statusLabel(status: PaymentStatus) {
+  switch (status) {
+    case "settled":
+      return "Settled";
+    case "pending_settlement":
+      return "Pending settlement";
+    case "pending_veilhub_registration":
+      return "Pending registration";
+    case "failed":
+      return "Failed";
+    case "pending":
+      return "Pending";
+    default:
+      return status.replaceAll("_", " ");
+  }
+}
+
+function statusTone(status: PaymentStatus): StatusTone {
+  if (status === "settled") return "success";
+  if (status === "failed") return "danger";
+  if (status === "pending" || status === "pending_settlement" || status === "pending_veilhub_registration") {
+    return "warning";
+  }
+  return "neutral";
+}
+
+function formatUnifiedBalance(balance: UnifiedBalanceData | null) {
+  if (!balance?.totalConfirmedBalance) return "—";
+  return formatAmount(balance.totalConfirmedBalance, "USDC");
+}
+
+function StatusPill({ children, tone = "neutral" }: { children: ReactNode; tone?: StatusTone }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex w-fit items-center rounded-md border px-2 py-1 text-xs font-medium capitalize",
+        tone === "success" && "border-success/20 bg-success/10 text-success",
+        tone === "warning" && "border-warning/30 bg-warning/10 text-warning",
+        tone === "danger" && "border-destructive/25 bg-destructive/10 text-destructive",
+        tone === "neutral" && "border-sand bg-beige/60 text-walnut"
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+  hint,
   icon,
-  title,
-  desc,
-  confidential,
+  primary,
+  action,
 }: {
-  to: string;
+  label: string;
+  value: string;
+  hint: string;
   icon: ReactNode;
-  title: string;
-  desc: string;
-  confidential?: boolean;
+  primary?: boolean;
+  action?: ReactNode;
 }) {
   return (
-    <Link
-      to={to}
-      className={`group surface-card p-5 hover:shadow-md transition-all ${confidential ? "ring-confidential" : ""}`}
+    <div
+      className={cn(
+        "surface-card p-5",
+        primary
+          ? "bg-gradient-card md:col-span-2 xl:col-span-1"
+          : "bg-card"
+      )}
     >
-      <div className="flex items-center gap-3">
-        <div
-          className={`h-9 w-9 rounded-lg flex items-center justify-center ${
-            confidential
-              ? "bg-confidential text-confidential-foreground"
-              : "bg-gradient-brand text-primary-foreground"
-          }`}
-        >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
+          <div className={cn("mt-2 font-display font-semibold tabular-nums", primary ? "text-4xl" : "text-3xl")}>
+            {value}
+          </div>
+        </div>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-beige text-walnut">
           {icon}
         </div>
-
-        <div className="flex-1">
-          <div className="font-medium text-sm">{title}</div>
-          <div className="text-xs text-muted-foreground">{desc}</div>
-        </div>
-
-        <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
       </div>
-    </Link>
+      <div className="mt-4 flex items-center justify-between gap-3 text-sm text-muted-foreground">
+        <span>{hint}</span>
+        {action}
+      </div>
+    </div>
+  );
+}
+
+function SystemRow({
+  icon,
+  label,
+  value,
+  description,
+  tone = "neutral",
+  href,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  description: string;
+  tone?: StatusTone;
+  href?: string;
+}) {
+  return (
+    <div className="flex gap-3 rounded-lg border bg-background/70 p-3">
+      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-beige text-walnut">
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-3">
+          <div className="font-medium">{label}</div>
+          <StatusPill tone={tone}>{value}</StatusPill>
+        </div>
+        <div className="mt-1 text-sm text-muted-foreground">{description}</div>
+        {href && (
+          <a
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 inline-flex items-center gap-1.5 font-mono text-xs text-walnut underline-offset-4 hover:underline"
+          >
+            {shortAddress(href.split("/").pop() || "")}
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        )}
+      </div>
+    </div>
   );
 }
 
 export default function Dashboard() {
   const { address } = useAccount();
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [activity, setActivity] = useState<ActivityEvent[]>([]);
   const [payments, setPayments] = useState<ExtendedPayment[]>([]);
+  const [activePayment, setActivePayment] = useState<Payment | null>(null);
   const [unifiedBalance, setUnifiedBalance] = useState<UnifiedBalanceData | null>(null);
   const [balanceStatus, setBalanceStatus] = useState("");
   const [ledgerStatus, setLedgerStatus] = useState("");
 
-  async function loadDashboard() {
-    try {
-      setLedgerStatus("");
-      const [nextStats, nextActivity, nextPayments] = await Promise.all([
-        veilApi.getDashboardStats(),
-        veilApi.listActivity(),
-        veilApi.listPayments(),
-      ]);
-      setStats(nextStats);
-      setActivity(nextActivity);
-      setPayments(nextPayments.slice(0, 5) as ExtendedPayment[]);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Veil API ledger is unavailable.";
-      setLedgerStatus(message);
-      setStats(null);
-      setActivity([]);
-      setPayments([]);
-    }
-  }
-
-  async function loadUnifiedBalance() {
+  const loadUnifiedBalance = useCallback(() => {
     const cached = readUnifiedBalanceCache(address);
 
     if (cached) {
       setUnifiedBalance(cached);
-      setBalanceStatus("User-owned balance cache");
+      setBalanceStatus("Wallet cache");
       return;
     }
 
     setUnifiedBalance(null);
-      setBalanceStatus("Open Unified USDC to load");
-  }
+    setBalanceStatus("Open Unified USDC to load");
+  }, [address]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function loadDashboard() {
+      try {
+        setLedgerStatus("");
+        const [nextStats, nextPayments] = await Promise.all([
+          veilApi.getDashboardStats(),
+          veilApi.listPayments(),
+        ]);
+
+        if (cancelled) return;
+        setStats(nextStats);
+        setPayments(nextPayments as ExtendedPayment[]);
+      } catch (err) {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : "Veil API ledger is unavailable.";
+        setLedgerStatus(message);
+        setStats(null);
+        setPayments([]);
+      }
+    }
+
     loadDashboard();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
     loadUnifiedBalance();
-  }, [address]);
+  }, [loadUnifiedBalance]);
 
-  const unifiedPayments = useMemo(
-    () => payments.filter((p) => isUnifiedPayment(p)).length,
+  const recentPayments = useMemo(() => payments.slice(0, 6), [payments]);
+  const successfulPayments = useMemo(
+    () => payments.filter((payment) => payment.status === "settled").length,
     [payments]
   );
-
-  const confirmedUnified = unifiedBalance?.totalConfirmedBalance ?? "—";
-  const pendingUnified = unifiedBalance?.totalPendingBalance ?? "—";
+  const pendingPayments = stats?.pendingCount ?? payments.filter((payment) => statusTone(payment.status) === "warning").length;
+  const ledgerHealth = ledgerStatus ? "Unavailable" : stats ? "Online" : "Checking";
+  const ledgerTone: StatusTone = ledgerStatus ? "danger" : stats ? "success" : "neutral";
+  const unifiedValue = formatUnifiedBalance(unifiedBalance);
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      <SectionHeader
-        eyebrow="Operations"
-        title="Payment workspace"
-        description="Open Arc payments are live today. Private payments are coming soon with Arc Private Kit."
-        actions={
-          <>
-            <Button asChild variant="outline" className="h-10">
-              <Link to="/app/history">
-                <HistoryIcon className="h-4 w-4 mr-2" />
-                History
-              </Link>
-            </Button>
+    <div className="space-y-5 xl:-mx-2 2xl:-mx-6">
+      <section className="overflow-hidden rounded-lg border border-cocoa/20 bg-gradient-brand text-primary-foreground shadow-md">
+        <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[1fr_360px] lg:p-7">
+          <div className="flex min-w-0 flex-col justify-between gap-8">
+            <div className="space-y-4">
+              <div className="inline-flex w-fit items-center gap-2 rounded-md border border-white/15 bg-white/10 px-3 py-1 text-sm text-white/85">
+                <span className="h-2 w-2 rounded-full bg-success" />
+                Open payments live on Arc Testnet
+              </div>
 
-            <Button asChild className="h-10 bg-gradient-brand text-primary-foreground hover:opacity-95">
-              <Link to="/app/payments/new">
-                <Send className="h-4 w-4 mr-2" />
-                New Payment
-              </Link>
-            </Button>
-          </>
-        }
-      />
-
-      <div className="surface-card p-5 bg-secondary/30">
-        <div className="grid gap-5 xl:grid-cols-[1.5fr_1fr] items-start">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-md border bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground">
-              <WalletCards className="h-3.5 w-3.5" />
-              Unified USDC Balance enabled
-            </div>
-
-            <h2 className="font-display text-xl sm:text-2xl font-semibold mt-4">
-              Send open Arc payments from wallet or Unified USDC.
-            </h2>
-
-            <p className="text-sm text-muted-foreground mt-2 max-w-2xl">
-              Open payments are live. Private payments are coming soon with Arc Private Kit.
-            </p>
-          </div>
-
-          <div className="rounded-lg border bg-background p-4 space-y-3">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="font-medium">Unified USDC Balance</div>
-                <p className="text-xs text-muted-foreground">
-                  Latest user-owned balance loaded from this wallet.
+              <div className="max-w-3xl space-y-3">
+                <h1 className="font-display text-3xl font-semibold leading-tight sm:text-5xl">
+                  Real USDC payments, tracked through VeilHub.
+                </h1>
+                <p className="max-w-2xl text-base leading-7 text-white/75">
+                  Arc Direct routes through VeilHub. Unified USDC Balance is available. Private Payment is coming soon with Arc Private Kit.
                 </p>
               </div>
+            </div>
 
-              <Button variant="ghost" size="sm" onClick={loadUnifiedBalance}>
-                <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-                Refresh
+            <div className="flex flex-wrap gap-2">
+              <Button asChild className="bg-white text-espresso hover:bg-white/90">
+                <Link to="/app/payments/new">
+                  <Send className="mr-2 h-4 w-4" />
+                  New Payment
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="border-white/25 bg-white/10 text-white hover:bg-white/15 hover:text-white">
+                <Link to="/app/batch">
+                  <Layers className="mr-2 h-4 w-4" />
+                  Submit Batch
+                </Link>
+              </Button>
+              <Button asChild variant="ghost" className="text-white hover:bg-white/10 hover:text-white">
+                <Link to="/app/history">
+                  View History
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
               </Button>
             </div>
+          </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-lg border p-3">
-                <div className="text-xs text-muted-foreground">Confirmed</div>
-                <div className="text-xl font-semibold">{confirmedUnified}</div>
-                <div className="text-xs text-muted-foreground">USDC</div>
-              </div>
-
-              <div className="rounded-lg border p-3">
-                <div className="text-xs text-muted-foreground">Pending</div>
-                <div className="text-xl font-semibold">{pendingUnified}</div>
-                <div className="text-xs text-muted-foreground">USDC</div>
-              </div>
-            </div>
-
-            <div className="text-xs text-muted-foreground">
-              Source: {balanceStatus || "—"}
+          <div className="rounded-lg border border-white/15 bg-white/10 p-4 backdrop-blur">
+            <div className="mb-4 text-sm font-medium text-white/80">Payment rails</div>
+            <div className="space-y-3">
+              <HeroRail icon={<ShieldCheck className="h-4 w-4" />} label="Arc Direct" value="VeilHub" />
+              <HeroRail icon={<WalletCards className="h-4 w-4" />} label="Unified USDC" value="Available" />
+              <HeroRail icon={<Lock className="h-4 w-4" />} label="Private Payment" value="Arc Private Kit soon" />
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
       {ledgerStatus && (
         <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 text-sm">
@@ -327,253 +335,196 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1.35fr_1fr_1fr_1fr]">
         {stats ? (
           <>
-            <StatCard
-              label="Total payments"
-              value={stats.totalPayments.toLocaleString()}
-              hint="live ledger"
-              icon={<TrendingUp className="h-5 w-5" />}
+            <MetricCard
+              primary
+              label="Total volume"
+              value={formatAmount(stats.volume30d, "USDC")}
+              hint="30d API ledger"
+              icon={<DollarSign className="h-5 w-5" />}
             />
-
-            <StatCard
-              label="Open payments"
-              value={stats.openPayments.toLocaleString()}
-              accent="open"
-              icon={<ShieldCheck className="h-5 w-5" />}
-              hint="visible settlement"
+            <MetricCard
+              label="Successful payments"
+              value={String(successfulPayments)}
+              hint="Settled ledger records"
+              icon={<CheckCircle2 className="h-5 w-5" />}
             />
-
-            <StatCard
-              label="Private payments"
-              value={stats.confidentialPayments.toLocaleString()}
-              accent="confidential"
-              icon={<Lock className="h-5 w-5" />}
-              hint="Arc Private Kit soon"
+            <MetricCard
+              label="Pending payments"
+              value={String(pendingPayments)}
+              hint="Needs finalization"
+              icon={<Clock3 className="h-5 w-5" />}
             />
-
-            <StatCard
-              label="Unified payments"
-              value={String(unifiedPayments)}
+            <MetricCard
+              label="Unified USDC Balance"
+              value={unifiedValue}
+              hint={balanceStatus || "Connected wallet"}
               icon={<WalletCards className="h-5 w-5" />}
-              hint="recent source"
+              action={
+                <button
+                  type="button"
+                  onClick={loadUnifiedBalance}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-walnut hover:text-espresso"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  Refresh
+                </button>
+              }
             />
           </>
         ) : (
-          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-lg" />)
+          Array.from({ length: 4 }).map((_, index) => (
+            <Skeleton key={index} className="h-36 rounded-lg" />
+          ))
         )}
-      </div>
+      </section>
 
-      <div className="grid gap-6 xl:grid-cols-3">
-        <div className="xl:col-span-2 space-y-6 min-w-0">
-          <div className="surface-card overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-              <div>
-                <h3 className="font-display text-lg">Recent payments</h3>
-                <p className="text-xs text-muted-foreground">
-                  Latest live Open Payment records and any experimental private research records
-                </p>
-              </div>
-
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/app/history">
-                  View all <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                </Link>
-              </Button>
+      <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="surface-card overflow-hidden">
+          <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="font-display text-xl font-semibold">Recent payments</h2>
+              <p className="text-sm text-muted-foreground">Clean settlement view. Details hold tx hashes and IDs.</p>
             </div>
-
-            <div className="divide-y divide-border">
-              {payments.length === 0 &&
-                Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="p-5">
-                    <Skeleton className="h-10 w-full" />
-                  </div>
-                ))}
-
-              {payments.map((p) => (
-                <Link
-                  key={p.id}
-                  to="/app/history"
-                  className="flex items-center gap-4 px-5 py-4 hover:bg-secondary/40 transition-colors"
-                >
-                  <div className="h-9 w-9 rounded-full bg-beige flex items-center justify-center text-walnut shrink-0">
-                    {p.mode === "confidential" ? (
-                      <Lock className="h-4 w-4" />
-                    ) : isUnifiedPayment(p) ? (
-                      <WalletCards className="h-4 w-4" />
-                    ) : (
-                      <Send className="h-4 w-4" />
-                    )}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
-                      <span className="truncate">{operationLabel(p)}</span>
-                      <ModeBadge mode={p.mode} />
-                      <SourceBadge payment={p} />
-                    </div>
-
-                    <div className="text-xs text-muted-foreground font-mono mt-0.5">
-                      {p.id} · {formatRelative(p.createdAt)}
-                    </div>
-                  </div>
-
-                  <div className="text-right shrink-0">
-                    <div className="text-sm font-medium tabular-nums">
-                      {p.amountHidden ? "Hidden amount" : formatAmount(p.amount, p.token)}
-                    </div>
-                    <div className="mt-1">
-                      <StatusBadge status={p.status} />
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <QuickAction
-              to="/app/payments/new"
-              icon={<Send className="h-4 w-4" />}
-              title="New payment"
-              desc="Choose mode and source"
-            />
-
-            <QuickAction
-              to="/app/unified-balance"
-              icon={<WalletCards className="h-4 w-4" />}
-              title="Unified USDC"
-              desc="Deposit and spend USDC"
-            />
-
-            <QuickAction
-              to="/app/history"
-              icon={<HistoryIcon className="h-4 w-4" />}
-              title="View history"
-              desc="Inspect settlement records"
-            />
-
-            <QuickAction
-              to="/app/confidential"
-              icon={<Lock className="h-4 w-4" />}
-              title="Private records"
-              desc="Arc Private Kit coming soon"
-              confidential
-            />
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <div className="surface-card p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Activity className="h-4 w-4 text-walnut" />
-              <h3 className="font-display text-base">Pending</h3>
-              <span className="ml-auto text-xs text-muted-foreground">
-                {stats?.pendingCount ?? "—"} awaiting
-              </span>
-            </div>
-
-            <ul className="space-y-3">
-              {payments.filter((p) => p.status === "pending" || p.status === "pending_settlement" || p.status === "pending_veilhub_registration").slice(0, 3).map((p) => (
-                <li key={p.id} className="flex items-center gap-3 text-sm">
-                  <span className="h-1.5 w-1.5 rounded-full bg-warning animate-pulse-subtle" />
-                  <div className="flex-1 min-w-0">
-                    <div className="truncate">{p.recipientLabel ?? p.recipient}</div>
-                    <div className="text-xs text-muted-foreground tabular-nums">
-                      {formatAmount(p.amount, p.token)}
-                    </div>
-                  </div>
-                  <ModeBadge mode={p.mode} />
-                </li>
-              ))}
-
-              {payments.filter((p) => p.status === "pending" || p.status === "pending_settlement" || p.status === "pending_veilhub_registration").length === 0 && (
-                <li className="text-sm text-muted-foreground">No pending payments.</li>
-              )}
-            </ul>
-          </div>
-
-          <div className="surface-card p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Wallet className="h-4 w-4 text-walnut" />
-              <h3 className="font-display text-base">Settlement</h3>
-            </div>
-
-            <div className="space-y-3 text-sm">
-              <Row label="Settled today" value={String(stats?.settledToday ?? "—")} />
-              <Row label="Volume (30d)" value={`${stats?.volume30d ?? "—"} USDC`} />
-              <Row label="Network" value="Arc Testnet" badge />
-            </div>
-          </div>
-
-          <div className="surface-card p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <ShieldCheck className="h-4 w-4 text-walnut" />
-              <h3 className="font-display text-base">Live deployment</h3>
-            </div>
-
-            <div className="space-y-3 text-sm">
-              <Row label="Network" value={`${ACTIVE_ARC_DEPLOYMENT.network} (${ACTIVE_ARC_DEPLOYMENT.chainId})`} />
-
-              <div className="flex items-start justify-between gap-3">
-                <span className="text-muted-foreground">VeilHub</span>
-                <a
-                  href={getArcExplorerAddressUrl(ACTIVE_ARC_DEPLOYMENT.veilHub)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex min-w-0 items-center gap-1.5 break-all text-right font-mono text-xs underline"
-                >
-                  {shortAddress(ACTIVE_ARC_DEPLOYMENT.veilHub)}
-                  <ExternalLink className="h-3 w-3 shrink-0" />
-                </a>
-              </div>
-
-              <div className="flex items-start justify-between gap-3">
-                <span className="text-muted-foreground">USDC</span>
-                <a
-                  href={getArcExplorerAddressUrl(ACTIVE_ARC_DEPLOYMENT.usdc)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex min-w-0 items-center gap-1.5 break-all text-right font-mono text-xs underline"
-                >
-                  {shortAddress(ACTIVE_ARC_DEPLOYMENT.usdc)}
-                  <ExternalLink className="h-3 w-3 shrink-0" />
-                </a>
-              </div>
-            </div>
-          </div>
-
-          <div className="surface-card p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <KeyRound className="h-4 w-4 text-confidential" />
-              <h3 className="font-display text-base">Private records</h3>
-            </div>
-
-            <ul className="space-y-3">
-              {activity
-                .filter((a) => a.kind === "disclosure" || a.kind === "access")
-                .slice(0, 3)
-                .map((a) => (
-                  <li key={a.id} className="text-sm">
-                    <div className="font-medium">{a.title}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {a.description} · {formatRelative(a.timestamp)}
-                    </div>
-                  </li>
-                ))}
-
-              {activity.filter((a) => a.kind === "disclosure" || a.kind === "access").length === 0 && (
-                <li className="text-sm text-muted-foreground">No disclosure activity yet.</li>
-              )}
-            </ul>
-
-            <Button asChild variant="outline" size="sm" className="w-full mt-4">
-              <Link to="/app/access">Manage access</Link>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/app/history">
+                <HistoryIcon className="mr-2 h-4 w-4" />
+                View History
+              </Link>
             </Button>
           </div>
+
+          <div className="divide-y divide-border">
+            {!stats && !ledgerStatus &&
+              Array.from({ length: 5 }).map((_, index) => (
+                <div key={index} className="p-5">
+                  <Skeleton className="h-12 w-full" />
+                </div>
+              ))}
+
+            {stats && recentPayments.length === 0 && (
+              <div className="px-5 py-12 text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-beige text-walnut">
+                  <Send className="h-5 w-5" />
+                </div>
+                <div className="mt-3 font-medium">No payments yet</div>
+                <p className="mt-1 text-sm text-muted-foreground">Send an Open Payment to start the ledger.</p>
+              </div>
+            )}
+
+            {recentPayments.map((payment) => (
+              <div
+                key={payment.id}
+                className="grid gap-3 px-5 py-4 transition-colors hover:bg-secondary/35 lg:grid-cols-[minmax(0,1.45fr)_minmax(180px,0.8fr)_150px_130px_110px]"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-beige text-walnut">
+                      {payment.type === "batch" ? (
+                        <Layers className="h-4 w-4" />
+                      ) : isUnifiedPaymentSource(payment.source) ? (
+                        <WalletCards className="h-4 w-4" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate font-medium">{paymentTitle(payment)}</div>
+                      <div className="truncate text-sm text-muted-foreground">{paymentSubtitle(payment)}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center text-sm text-muted-foreground">
+                  {getLiquiditySource(payment)}
+                </div>
+
+                <div className="flex items-center font-medium tabular-nums">
+                  {payment.amountHidden ? "Hidden amount" : formatAmount(payment.amount, payment.token)}
+                </div>
+
+                <div className="flex items-center">
+                  <StatusPill tone={statusTone(payment.status)}>{statusLabel(payment.status)}</StatusPill>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 lg:justify-end">
+                  <span className="text-sm text-muted-foreground">{formatRelative(payment.createdAt)}</span>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setActivePayment(payment)}>
+                    <Eye className="mr-1.5 h-3.5 w-3.5" />
+                    Details
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
+
+        <aside className="surface-card h-fit p-5 xl:sticky xl:top-24">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-display text-xl font-semibold">System Status</h2>
+              <p className="text-sm text-muted-foreground">Live rails and setup health.</p>
+            </div>
+            <Server className="h-5 w-5 text-walnut" />
+          </div>
+
+          <div className="space-y-3">
+            <SystemRow
+              icon={<Server className="h-4 w-4" />}
+              label="API ledger"
+              value={ledgerHealth}
+              tone={ledgerTone}
+              description="Dashboard and History read real API records."
+            />
+            <SystemRow
+              icon={<ShieldCheck className="h-4 w-4" />}
+              label="Arc Direct"
+              value="Live"
+              tone="success"
+              description="Open payments route through VeilHub."
+              href={getArcExplorerAddressUrl(ACTIVE_ARC_DEPLOYMENT.veilHub)}
+            />
+            <SystemRow
+              icon={<WalletCards className="h-4 w-4" />}
+              label="Unified USDC Balance"
+              value="Available"
+              tone="success"
+              description="Wallet-owned deposits, balance reads, and spends."
+            />
+            <SystemRow
+              icon={<Lock className="h-4 w-4" />}
+              label="Private Payment"
+              value="Coming soon"
+              tone="neutral"
+              description="Preparing native Arc Private Kit integration."
+            />
+            <SystemRow
+              icon={<ExternalLink className="h-4 w-4" />}
+              label="Network"
+              value="Arc Testnet"
+              tone="success"
+              description={`Chain ID ${ACTIVE_ARC_DEPLOYMENT.chainId}; USDC ${shortAddress(ACTIVE_ARC_DEPLOYMENT.usdc)}.`}
+              href={getArcExplorerAddressUrl(ACTIVE_ARC_DEPLOYMENT.usdc)}
+            />
+          </div>
+        </aside>
+      </section>
+
+      <PaymentDetailsDrawer payment={activePayment} onClose={() => setActivePayment(null)} />
+    </div>
+  );
+}
+
+function HeroRail({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/10 px-3 py-2">
+      <div className="flex min-w-0 items-center gap-2 text-white/85">
+        {icon}
+        <span className="truncate text-sm">{label}</span>
       </div>
+      <span className="shrink-0 text-sm font-medium text-white">{value}</span>
     </div>
   );
 }
