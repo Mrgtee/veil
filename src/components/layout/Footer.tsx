@@ -8,7 +8,7 @@ export function Footer() {
           <VeilLogo size={20} />
           <span className="font-display text-foreground">Veil</span>
           <span className="opacity-50">·</span>
-          <span>Open payments and VeilShield architecture</span>
+          <span>Open payments today. Arc Private Kit coming soon.</span>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span>Built on</span>

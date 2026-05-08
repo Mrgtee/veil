@@ -27,6 +27,6 @@ Open Batch Payments, add a second row, show total, then open History and point o
 
 ## 2:30-3:00 - Closed Payment Architecture
 
-"Closed Payment means the amount is hidden onchain, not just hidden in the UI. Normal ERC20 transfers cannot do that. VeilShield is the experimental deposit-note-nullifier-ZK architecture. Until it is deployed and audited, Veil blocks visible transfers from pretending to be closed payments."
+"Closed Payment means the amount is hidden onchain, not just hidden in the UI. Normal ERC20 transfers cannot do that. Veil now shows Coming soon with Arc Private Kit, and it blocks visible transfers from pretending to be private payments."
 
-Open Closed Records or Privacy Design docs and end with the roadmap to full Noir/ZK settlement.
+Open Private Records or Privacy Design docs and end with the roadmap to native Arc privacy integration. Mention VeilShield only as experimental research, not the user-facing private payment path.

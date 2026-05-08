@@ -33,7 +33,7 @@ const mobileNav = [
   { to: "/app/batch", label: "Batch Payments", icon: Layers },
   { to: "/app/unified-balance", label: "Unified Balance", icon: WalletCards },
   { to: "/app/history", label: "History", icon: History },
-  { to: "/app/confidential", label: "Closed Records", icon: Lock },
+  { to: "/app/confidential", label: "Private Records", icon: Lock },
   { to: "/app/access", label: "Access Control", icon: ShieldCheck },
   { to: "/app/settings", label: "Settings", icon: Settings },
 ];

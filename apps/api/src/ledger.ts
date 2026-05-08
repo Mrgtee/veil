@@ -232,24 +232,24 @@ function createConfidentialRecordIfNeeded(ledger: Ledger, payment: LedgerPayment
 }
 
 function paymentOperationLabel(operation?: string) {
-  if (operation === "shield_deposit") return "VeilShield deposit";
-  if (operation === "shield_transfer") return "VeilShield transfer";
-  if (operation === "shield_withdraw") return "VeilShield withdraw";
+  if (operation === "shield_deposit") return "Experimental private deposit";
+  if (operation === "shield_transfer") return "Experimental private transfer";
+  if (operation === "shield_withdraw") return "Experimental private withdraw";
   return "payment";
 }
 
 function paymentActivityTitle(payment: LedgerPayment) {
   const status = payment.status.replaceAll("_", " ");
 
-  if (payment.operation === "shield_deposit") return `VeilShield deposit ${status}`;
-  if (payment.operation === "shield_transfer") return `VeilShield transfer ${status}`;
-  if (payment.operation === "shield_withdraw") return `VeilShield withdraw ${status}`;
+  if (payment.operation === "shield_deposit") return `Experimental private deposit ${status}`;
+  if (payment.operation === "shield_transfer") return `Experimental private transfer ${status}`;
+  if (payment.operation === "shield_withdraw") return `Experimental private withdraw ${status}`;
 
   if (payment.type === "batch") {
-    return `${payment.mode === "confidential" ? "Closed" : "Open"} batch ${status}`;
+    return `${payment.mode === "confidential" ? "Private" : "Open"} batch ${status}`;
   }
 
-  return `${payment.mode === "confidential" ? "Closed" : "Open"} payment ${status}`;
+  return `${payment.mode === "confidential" ? "Private" : "Open"} payment ${status}`;
 }
 
 export async function getPayments() {

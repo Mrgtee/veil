@@ -28,7 +28,7 @@ Current Arc Testnet deployment:
 
 File: `contracts/src/VeilShield.sol`
 
-VeilShield is experimental/testnet-only and is not production-ready. It defines the future hidden-amount architecture:
+VeilShield is experimental/testnet-only and is not production-ready. User-facing private payments will prioritize Arc Private Kit; VeilShield defines a research hidden-amount architecture:
 
 - deposit USDC into the shielded pool
 - register private note commitments
@@ -180,8 +180,8 @@ Closed payments:
 4. Deploy `TransferVerifier` and `WithdrawVerifier` on Arc Testnet.
 5. Deploy `VeilShieldVerifierAdapter(transferVerifier, withdrawVerifier)`.
 6. Deploy `VeilShield(usdc, verifierAdapter, owner)` on testnet only.
-7. Configure `VITE_VEIL_SHIELD_ADDRESS`, `VITE_VEIL_SHIELD_TRANSFER_VERIFIER_ADDRESS`, and `VITE_VEIL_SHIELD_WITHDRAW_VERIFIER_ADDRESS`.
-8. Keep hidden-transfer submit blocked until browser proof generation, recipient note handoff, indexing, and audits are complete.
+7. Keep the addresses documented under Experimental Research / Developer Preview.
+8. Keep user-facing Private/Closed Payment blocked until Arc Private Kit integration is available, wired, tested, and audited.
 
 Do not deploy VeilShield as production-ready until circuits, verifier wiring, prover integration, note discovery, indexing, and audits are complete.
 

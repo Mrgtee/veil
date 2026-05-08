@@ -33,7 +33,7 @@ export const PAYMENT_MODE_OPTIONS: Array<{
     value: "confidential",
     label: "Closed Payment",
     shortLabel: "Closed",
-    description: "Sender and recipient stay visible; the amount belongs in VeilShield's hidden-amount layer.",
+    description: "Coming soon with Arc Private Kit.",
   },
 ];
 
@@ -74,7 +74,7 @@ export function getPaymentSourceLabel(
   const normalized = String(source || "").toLowerCase().replaceAll("_", "-");
 
   if (normalized.includes("veilshield") || normalized.includes("closed")) {
-    return "VeilShield closed-payment pool";
+    return "Experimental private research pool";
   }
 
   if (isUnifiedPaymentSource(source)) {

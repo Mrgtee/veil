@@ -8,13 +8,11 @@ import { Lock, Eye, ShieldAlert, ShieldCheck, KeyRound } from "lucide-react";
 import { formatDateTime } from "@/lib/format";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { getVeilShieldSetup } from "@/lib/payments/veilShield";
 
 export default function ConfidentialRecords() {
   const [records, setRecords] = useState<ConfidentialRecord[]>([]);
   const [loading, setLoading] = useState<string | null>(null);
   const [status, setStatus] = useState("");
-  const veilShieldSetup = getVeilShieldSetup();
 
   useEffect(() => {
     veilApi
@@ -46,18 +44,18 @@ export default function ConfidentialRecords() {
     <div className="space-y-6">
       <SectionHeader
         eyebrow="Privacy"
-        title="Closed payment records"
-        description="Experimental VeilShield references and disclosure status for future hidden-amount settlement."
+        title="Private payment records"
+        description="Future Arc Private Kit records and disclosure status for hidden/private settlement."
       />
 
       <div className="surface-card p-5 bg-confidential-soft/40 ring-confidential">
         <div className="flex items-start gap-3">
           <Lock className="h-4 w-4 mt-0.5 text-confidential" />
           <div className="text-sm">
-            <div className="font-medium">VeilShield is experimental</div>
-            <p className="text-muted-foreground text-xs mt-0.5">Closed payments are about hiding the amount onchain with sender and recipient still visible. This area is for VeilShield records and disclosure state; it does not mean hidden-amount settlement is live yet.</p>
-            <p className="text-muted-foreground text-xs mt-2">
-              Milestone 2 status: {veilShieldSetup.statusLabel}. {veilShieldSetup.detail}
+            <div className="font-medium">Coming soon with Arc Private Kit.</div>
+            <p className="text-muted-foreground text-xs mt-0.5">
+              Veil is preparing native Arc privacy integration for hidden/private payment support. No fake privacy is
+              being shipped, and visible ERC20 transfers are not recorded as private payments.
             </p>
           </div>
         </div>
@@ -118,7 +116,8 @@ export default function ConfidentialRecords() {
 
         {records.length === 0 && !status && (
           <div className="surface-card p-5 text-sm text-muted-foreground md:col-span-2">
-            No VeilShield closed-payment records are present. Closed settlement remains blocked until real verifier/circuit-backed hidden-amount payments are deployed and proof generation is wired.
+            No private payment records are present. User-facing private payments will prioritize Arc Private Kit once
+            the native privacy stack is available and wired.
           </div>
         )}
       </div>

@@ -1,13 +1,13 @@
 # Veil
 
-Veil is an Arc-based open and closed USDC payment workspace.
+Veil is an Arc-based USDC payment workspace for live Open Payments and upcoming native Arc private payments.
 
 Users choose both a payment mode and a payment source before sending:
 
 1. Open Payment or Closed Payment
 2. Arc Direct or Unified Balance USDC
 
-Open Payment is visible USDC settlement on Arc. Closed Payment means sender and recipient remain visible while the amount is hidden onchain. Veil does not treat hidden memos, labels, private names, or UI-only records as closed settlement.
+Open Payment is visible USDC settlement on Arc. Closed/Private Payment is currently positioned as "Coming soon with Arc Private Kit." Veil is preparing native Arc privacy integration for hidden/private payment support and does not treat hidden memos, labels, private names, UI-only records, or visible ERC20 transfers as private settlement.
 
 ## Why Arc
 
@@ -16,19 +16,15 @@ Arc is the settlement target because it is designed around stablecoin payments a
 ## What Works Today
 
 - Global wallet connection through the app shell and top bar.
-- API-backed payment ledger for Dashboard, History, Activity, Closed Records, Access Control, and Audit Trail.
+- API-backed payment ledger for Dashboard, History, Activity, Private Records, Access Control, and Audit Trail.
 - Arc Direct single and batch Open Payments through the deployed Arc Testnet `VeilHub` and ERC20 USDC when env values are configured.
 - USDC allowance checks and `approve` requests only when VeilHub needs more allowance.
 - Unified Balance deposits, balance reads, and spends through Circle AppKit with the connected user wallet.
 - Unified Balance remains usable even when VeilHub is missing; successful spends are recorded as pending VeilHub registration.
 - Pending settlement records when Unified Balance appears deducted but final Arc confirmation is delayed.
 - Mobile navigation to every main app area.
-- VeilHub and VeilShield contract architecture.
-- Milestone 2 Noir prototype circuits for VeilShield transfer and withdraw proofs.
-- Generated Solidity verifier contracts and a VeilShield verifier adapter for Arc Testnet deployment.
-- Developer-preview VeilShield deposits from the connected Arc wallet when a real Noir-generated note commitment is provided.
-- Local encrypted testnet note storage in the browser for deposited VeilShield notes.
-- CLI helper tooling for Noir/BB note commitment, proof artifact generation, and developer-only proof submission.
+- VeilHub contract architecture for live Open Payments.
+- Experimental VeilShield research contracts, Noir prototype circuits, generated verifiers, and CLI proof tooling for developer preview only.
 
 ## Temporary Testnet Ledger
 
@@ -38,7 +34,8 @@ Production direction:
 
 - database or indexed storage for app records
 - VeilHub event indexing for open payments and Unified Balance references
-- VeilShield event indexing when closed payments are live
+- Arc Private Kit indexing/integration when user-facing private payments are live
+- VeilShield event indexing only for experimental research records if that layer continues beyond prototype work
 - reconciliation between API records, Arc transactions, and indexed contract events
 
 `localStorage` is only used for harmless wallet/session or Unified Balance display cache, not payment truth.
@@ -51,7 +48,13 @@ Open Payment sends visible USDC on Arc. Sender, recipient, token, and amount are
 
 ### Closed Payment
 
-Closed Payment is blocked/setup-required until frontend proof generation, note management, and audits are complete. A normal ERC20 transfer cannot hide amount. VeilShield’s intended model is deposit -> private note -> hidden transfer with nullifier/proof -> withdraw.
+Closed/Private Payment is not user-facing yet. The app shows "Coming soon with Arc Private Kit." Veil will prioritize Arc's native privacy kit for hidden/private payment support.
+
+A normal ERC20 transfer cannot hide amount, so Veil does not ship fake privacy. Until the native Arc private-payment stack is available, wired, tested, and audited, the frontend blocks Private/Closed Payment submission.
+
+### Experimental Research / Developer Preview
+
+VeilShield remains experimental research, not the user-facing private payment path. Its prototype model is deposit -> private note -> hidden transfer with nullifier/proof -> withdraw.
 
 Milestone 2 now includes local Noir circuits for a first testnet-only hidden-amount prototype:
 
@@ -59,7 +62,7 @@ Milestone 2 now includes local Noir circuits for a first testnet-only hidden-amo
 - withdraw circuit: proves a public withdrawal amount matches a hidden note commitment and nullifier
 - shared Pedersen helpers for prototype commitments and nullifiers
 
-These circuits now have generated Solidity verifiers committed under `contracts/src/verifiers/` and a verifier adapter. The app can create a real VeilShield deposit after a Noir-generated commitment is pasted into the developer-preview form. A local CLI can generate proof artifacts and submit them to VeilShield for developer preview, but browser proof generation and recipient note handoff are not implemented yet. Normal Closed Payment transfer submission remains blocked in the app.
+These circuits now have generated Solidity verifiers committed under `contracts/src/verifiers/` and a verifier adapter. Local CLI tooling can generate proof artifacts and submit them to VeilShield for developer preview, but browser proof generation, recipient note handoff, indexing, and audits are not complete. Normal Closed/Private Payment transfer submission remains blocked in the app.
 
 ## Payment Sources
 
@@ -108,13 +111,17 @@ Dashboard and History read from the API ledger. They show settled, failed, pendi
 - Deployer: `0xfE84F8661D575B4fEd8BEAFcbF6b3Fa9c4f9207F`
 - Arc USDC: `0x3600000000000000000000000000000000000000`
 - VeilHub: `0x30c77c1C20A5cBB171DE9090789F3dB98aA9734b`
+
+Arc Direct single and batch Open Payments have been live-tested through this VeilHub deployment and recorded in the API ledger as settled Arc Testnet transactions.
+
+### Experimental Research / Developer Preview Addresses
+
 - TransferVerifier: `0xc5B31339159d9371Cb0efb49F001d5506407CE6a`
 - WithdrawVerifier: `0xA1e76f8AC92220596AacC7009d62a2fe22a55253`
 - VeilShieldVerifierAdapter: `0x9EfeBa2F99D7f79541A2e8824bFcd8Be628D0253`
 - VeilShield: `0x1BC23d45aEc7229809841a6FCd578A9C61A5667D`
 
-Arc Direct single and batch payments have been live-tested through this VeilHub deployment and recorded in the API ledger as settled Arc Testnet transactions.
-VeilShield contracts are deployed for developer-preview verification. Shield deposits can be tested with real commitments, but Closed Payment transfer submission remains blocked until browser proof generation, recipient note handoff, indexing, and audits are complete.
+VeilShield contracts are deployed only for experimental developer-preview verification. They are not the current user-facing Private Payment path.
 
 See `docs/DEPLOYMENT.md` for frontend env, contract env, and redeploy commands.
 
@@ -137,10 +144,15 @@ VITE_VEIL_HUB_ADDRESS=0x30c77c1C20A5cBB171DE9090789F3dB98aA9734b
 VITE_ARC_USDC_ADDRESS=0x3600000000000000000000000000000000000000
 VITE_ARC_CHAIN_ID=5042002
 VITE_ARC_RPC_URL=https://rpc.testnet.arc.network
+VEIL_LEDGER_PATH=./data/veil-ledger.json
+```
+
+Optional experimental research env only:
+
+```bash
 VITE_VEIL_SHIELD_ADDRESS=0x1BC23d45aEc7229809841a6FCd578A9C61A5667D
 VITE_VEIL_SHIELD_TRANSFER_VERIFIER_ADDRESS=0xc5B31339159d9371Cb0efb49F001d5506407CE6a
 VITE_VEIL_SHIELD_WITHDRAW_VERIFIER_ADDRESS=0xA1e76f8AC92220596AacC7009d62a2fe22a55253
-VEIL_LEDGER_PATH=./data/veil-ledger.json
 ```
 
 Do not commit `.env`, `.env.contracts`, private keys, Circle keys, database URLs, encryption keys, or API secrets.
@@ -184,18 +196,12 @@ Run `forge test` only when Foundry is installed.
 2. Configure frontend env values for VeilHub and Arc USDC.
 3. Run the API with a durable `VEIL_LEDGER_PATH` for testnet.
 4. Move production records to database/indexer infrastructure before mainnet use.
-5. To deploy the testnet-only VeilShield stack, use `contracts/script/DeployVeilShield.s.sol`. It deploys `TransferVerifier`, `WithdrawVerifier`, `VeilShieldVerifierAdapter`, and `VeilShield`.
-6. Keep Closed Payment transfer submission blocked in the frontend until proof generation, note discovery, indexing, and audits are complete.
+5. User-facing Private/Closed Payment should prioritize Arc Private Kit integration when the native Arc privacy stack is available.
+6. Keep VeilShield under Experimental Research / Developer Preview unless the product direction explicitly changes after audits.
 
-## VeilShield Developer Preview
+## Experimental Research / Developer Preview
 
-The Closed Payment panel includes a developer-preview deposit flow:
-
-1. Generate a local note secret and salt in the browser.
-2. Run the displayed Noir helper command locally to calculate the Pedersen note commitment and nullifier.
-3. Paste the returned commitment into the app.
-4. Deposit USDC into VeilShield through the connected Arc wallet.
-5. Veil records the real deposit transaction in the API ledger as `operation=shield_deposit` and stores the note payload encrypted in this browser only.
+VeilShield is retained as an experimental research layer. It is testnet-only, unaudited, and no longer drives the normal Private/Closed Payment UI. Use it only from local developer tooling when intentionally testing the prototype.
 
 CLI helper:
 
@@ -215,14 +221,15 @@ node scripts/veilshield-submit-proof.mjs transfer --artifact /tmp/veil-transfer-
 node scripts/veilshield-submit-proof.mjs withdraw --artifact /tmp/veil-withdraw-artifact.json --record-ledger
 ```
 
-The submitter simulates the contract call, checks note/nullifier state, submits only real proof bytes, waits for a real tx hash, and records the API ledger only after success when `--record-ledger` and `VEIL_API_BASE_URL` are set. Browser Closed Payment submit remains blocked.
+The submitter simulates the contract call, checks note/nullifier state, submits only real proof bytes, waits for a real tx hash, and records the API ledger only after success when `--record-ledger` and `VEIL_API_BASE_URL` are set. Browser Private/Closed Payment submit remains blocked and is expected to prioritize Arc Private Kit.
 
 ## Known Limitations
 
 - The JSON ledger is temporary testnet infrastructure, not production storage.
 - Arc Direct is disabled until VeilHub env values are configured in `.env.local`.
-- Browser Closed Payment transfer settlement is blocked until browser proof generation, recipient note handoff, note discovery, indexing, and audit are complete. Developer CLI proof submission exists for testnet only.
-- VeilShield note secrets are stored locally in browser-encrypted testnet storage. This is not a production custody or recovery model.
+- Browser Private/Closed Payment settlement is blocked until Arc Private Kit integration is available, wired, tested, and audited.
+- VeilShield developer CLI proof submission exists for testnet research only and is not the user-facing private-payment path.
+- VeilShield research note secrets must stay local to the developer environment. This is not a production custody or recovery model.
 - Noir prototype commitments currently use Pedersen for local correctness; the production hash choice must be reviewed before deployment.
 - The generated verifiers are deploy-ready for Arc Testnet experiments, not production-ready confidential payment infrastructure.
 - The deployed transfer prototype currently requires additional note-handoff work before recipient output notes can be safely discovered and spent.
@@ -234,7 +241,6 @@ The submitter simulates the contract call, checks note/nullifier state, submits 
 - Add production monitoring and event indexing for the deployed Arc Testnet VeilHub.
 - Add database/indexer-backed ledger storage.
 - Index VeilHub events for open payments and Unified Balance references.
-- Add browser proof-generation flow.
-- Add recipient note handoff and local/importable note recovery.
-- Index VeilShield events for closed-payment discovery.
+- Integrate Arc Private Kit for user-facing hidden/private payment support.
+- Keep VeilShield research isolated unless it is explicitly revisited after audits.
 - Add settlement reconciliation jobs for delayed Unified Balance finalization.

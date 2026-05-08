@@ -68,7 +68,7 @@ app.get("/api/config", (_req, res) => {
     },
     ledger: {
       model: "temporary-testnet-json-ledger",
-      productionDirection: "database/indexer with VeilHub and VeilShield event indexing",
+      productionDirection: "database/indexer with VeilHub indexing and Arc Private Kit integration",
     },
   });
 });
@@ -123,7 +123,7 @@ app.post("/api/confidential/payment-intent", (_req, res) => {
   res.status(410).json({
     ok: false,
     error:
-      "Closed Payment settlement is not live. VeilShield requires deployed verifier/circuits before hidden-amount payments can be created.",
+      "Private Payment settlement is coming soon with Arc Private Kit. Visible Arc transfers are not accepted as private payments.",
   });
 });
 

@@ -40,7 +40,7 @@ export default function SignIn() {
               </div>
 
               <h1 className="font-display text-5xl leading-tight font-semibold">
-                Open payments on Arc, with VeilShield architecture for closed hidden-amount settlement.
+                Open payments on Arc, with private payments coming soon through Arc Private Kit.
               </h1>
 
               <p className="mt-6 max-w-lg text-base leading-7 text-white/75">
@@ -60,7 +60,7 @@ export default function SignIn() {
 
                 <div className="flex items-center gap-3">
                   <Lock className="h-4 w-4" />
-                  Closed payments focus on hiding amounts onchain through VeilShield.
+                  Native Arc privacy integration is being prepared for hidden/private support.
                 </div>
               </div>
             </div>
@@ -102,7 +102,7 @@ export default function SignIn() {
               <div className="rounded-xl border bg-secondary/40 p-4 text-sm text-muted-foreground">
                 <div className="font-medium text-foreground">What Veil does</div>
                 <p className="mt-1">
-                  Veil helps you complete open Arc payments and prepare closed hidden-amount settlement.
+                  Veil helps you complete open Arc payments today and is preparing private payments with Arc Private Kit.
                 </p>
               </div>
 

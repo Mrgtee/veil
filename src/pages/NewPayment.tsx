@@ -2,11 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { isAddress } from "viem";
 import { useAccount } from "wagmi";
-import { AlertCircle, CheckCircle2, ExternalLink, Lock, RefreshCw, Send, ShieldCheck, WalletCards } from "lucide-react";
+import { AlertCircle, CheckCircle2, ExternalLink, Lock, RefreshCw, Send, WalletCards } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { SectionHeader } from "@/components/veil/SectionHeader";
 import type { PaymentMode } from "@/types/veil";
 import {
@@ -23,19 +22,8 @@ import {
   sendVeilHubOpenPayment,
 } from "@/lib/payments/arcDirect";
 import { formatPaymentError, getErrorMessage, isSettlementDelay } from "@/lib/payments/errors";
-import { makeBytes32Id, makeCommitmentId, makeId } from "@/lib/payments/ids";
-import { recordShieldDeposit, recordSinglePayment } from "@/lib/payments/recording";
-import { depositVeilShieldNote, getVeilShieldSetup, isBytes32 } from "@/lib/payments/veilShield";
-import {
-  buildNoirNoteCommand,
-  buildNoirTransferCommand,
-  getShieldedNoteBalance,
-  listVeilShieldNotes,
-  randomBytes32,
-  randomNoirField,
-  savePreparedVeilShieldNote,
-  type DecryptedVeilShieldNote,
-} from "@/lib/payments/veilShieldNotes";
+import { makeBytes32Id, makeId } from "@/lib/payments/ids";
+import { recordSinglePayment } from "@/lib/payments/recording";
 import {
   balanceReducedEnough,
   getActiveUnifiedSources,
@@ -127,20 +115,8 @@ export default function NewPayment() {
   const [loading, setLoading] = useState(false);
   const [balance, setBalance] = useState<UnifiedBalanceData | null>(null);
   const [balanceStatus, setBalanceStatus] = useState("");
-  const [shieldNotes, setShieldNotes] = useState<DecryptedVeilShieldNote[]>([]);
-  const [shieldNoteSecret, setShieldNoteSecret] = useState("");
-  const [shieldNoteSalt, setShieldNoteSalt] = useState("");
-  const [shieldNoteCommitment, setShieldNoteCommitment] = useState("");
-  const [shieldNoteNullifier, setShieldNoteNullifier] = useState("");
-  const [shieldEncryptedRef, setShieldEncryptedRef] = useState("");
-  const [shieldTransferOutputSalt, setShieldTransferOutputSalt] = useState("");
-  const [shieldTransferChangeSalt, setShieldTransferChangeSalt] = useState("");
-  const [shieldStatus, setShieldStatus] = useState("");
-  const [shieldDepositLoading, setShieldDepositLoading] = useState(false);
   const submittingRef = useRef(false);
-  const shieldDepositRef = useRef(false);
   const veilHubSetup = getVeilHubSetup();
-  const veilShieldSetup = getVeilShieldSetup();
 
   const isClosedMode = mode === "confidential";
   const confirmedBalance = getBalanceNumber(balance, "totalConfirmedBalance");
@@ -150,36 +126,6 @@ export default function NewPayment() {
   const unifiedBalanceTooLow =
     source === "unified-balance" && amountNumber > 0 && confirmedBalance < amountNumber;
   const arcDirectSetupMissing = source === "arc-direct" && !veilHubSetup.ready;
-  const shieldNoteBalance = getShieldedNoteBalance(shieldNotes);
-  const shieldAmountBase = useMemo(() => {
-    try {
-      return parseUsdcAmount(amount).toString();
-    } catch {
-      return "";
-    }
-  }, [amount]);
-  const noteCommand =
-    address && shieldAmountBase && shieldNoteSecret && shieldNoteSalt
-      ? buildNoirNoteCommand({
-          owner: address,
-          amountBase: shieldAmountBase,
-          secret: shieldNoteSecret,
-          salt: shieldNoteSalt,
-        })
-      : "";
-  const transferPreviewCommand =
-    address && recipient && shieldAmountBase && shieldNotes[0] && shieldTransferOutputSalt && shieldTransferChangeSalt
-      ? buildNoirTransferCommand({
-          sender: address,
-          recipient,
-          inputAmountBase: shieldNotes[0].amountBase,
-          transferAmountBase: shieldAmountBase || "0",
-          secret: shieldNotes[0].secret,
-          inputSalt: shieldNotes[0].salt,
-          outputSalt: shieldTransferOutputSalt,
-          changeSalt: shieldTransferChangeSalt,
-        })
-      : "";
 
   const canSubmit = useMemo(() => {
     if (!mode || !source || isClosedMode) return false;
@@ -231,93 +177,6 @@ export default function NewPayment() {
       loadUnifiedBalance();
     }
   }, [address, source]);
-
-  useEffect(() => {
-    if (!address) {
-      setShieldNotes([]);
-      return;
-    }
-
-    listVeilShieldNotes(address)
-      .then(setShieldNotes)
-      .catch(() => setShieldNotes([]));
-  }, [address]);
-
-  function prepareShieldNoteSeed() {
-    if (!address) {
-      setShieldStatus("Connect a wallet in the top bar before preparing a local note.");
-      return;
-    }
-
-    setShieldNoteSecret(randomNoirField());
-    setShieldNoteSalt(randomNoirField());
-    setShieldEncryptedRef(randomBytes32());
-    setShieldTransferOutputSalt(randomNoirField());
-    setShieldTransferChangeSalt(randomNoirField());
-    setShieldNoteCommitment("");
-    setShieldNoteNullifier("");
-    setShieldStatus("Local note secret and salt generated. Run the Noir helper command, then paste the returned commitment before depositing.");
-  }
-
-  async function submitShieldDeposit() {
-    if (shieldDepositRef.current) return;
-    shieldDepositRef.current = true;
-
-    try {
-      setShieldDepositLoading(true);
-      setShieldStatus("Preparing VeilShield deposit...");
-
-      if (!address) throw new Error("Connect a wallet in the top bar first.");
-      parseUsdcAmount(amount);
-      if (!shieldNoteSecret || !shieldNoteSalt) throw new Error("Generate or enter the local note secret and salt first.");
-      if (!isBytes32(shieldNoteCommitment)) throw new Error("Paste the bytes32 commitment returned by the Noir helper before depositing.");
-      if (shieldNoteNullifier && !isBytes32(shieldNoteNullifier)) throw new Error("Nullifier must be bytes32 if provided.");
-
-      const encryptedNoteRef = isBytes32(shieldEncryptedRef) ? shieldEncryptedRef : randomBytes32();
-      setShieldStatus("Checking USDC allowance and depositing into VeilShield...");
-      const deposit = await depositVeilShieldNote({
-        amount,
-        noteCommitment: shieldNoteCommitment,
-        encryptedNoteRef,
-      });
-
-      await savePreparedVeilShieldNote({
-        owner: address,
-        amount,
-        amountBase: deposit.amountBase,
-        decimals: deposit.decimals,
-        commitment: deposit.noteCommitment,
-        encryptedNoteRef: deposit.encryptedNoteRef,
-        secret: shieldNoteSecret as `0x${string}`,
-        salt: shieldNoteSalt as `0x${string}`,
-        nullifier: isBytes32(shieldNoteNullifier) ? shieldNoteNullifier : undefined,
-        depositTxHash: deposit.txHash,
-      });
-
-      try {
-        await recordShieldDeposit({
-          owner: address,
-          amount,
-          amountBase: deposit.amountBase,
-          decimals: deposit.decimals,
-          txHash: deposit.txHash,
-          approvalTxHash: deposit.approvalTxHash,
-          commitmentId: deposit.noteCommitment,
-          encryptedNoteRef: deposit.encryptedNoteRef,
-        });
-      } catch (ledgerErr) {
-        throw new Error(`VeilShield deposit submitted (${deposit.txHash}), but API ledger write failed: ${getErrorMessage(ledgerErr)}`);
-      }
-
-      setShieldNotes(await listVeilShieldNotes(address));
-      setShieldStatus("VeilShield deposit confirmed and recorded. Hidden transfer proof generation remains a developer-preview step.");
-    } catch (err) {
-      setShieldStatus(formatPaymentError(err, "VeilShield deposit failed."));
-    } finally {
-      shieldDepositRef.current = false;
-      setShieldDepositLoading(false);
-    }
-  }
 
   async function submitUnifiedBalancePayment(paymentId: `0x${string}`, commitmentId?: string) {
     if (!address) throw new Error("Wallet is not connected in the app.");
@@ -443,17 +302,16 @@ export default function NewPayment() {
 
       if (isClosedMode) {
         throw new Error(
-          `Closed Payment requires VeilShield deposit and proof generation. ${veilShieldSetup.statusLabel}. Visible Arc transfers remain blocked.`
+          "Coming soon with Arc Private Kit. Veil is preparing native Arc privacy integration for hidden/private payment support; visible Arc transfers remain blocked as private payments."
         );
       }
 
-      const commitmentId = mode === "confidential" ? makeCommitmentId() : undefined;
       const paymentId = makeBytes32Id();
       let nextResult: PaymentResult;
 
       if (source === "unified-balance") {
         setStatus("Spending confirmed Unified Balance USDC into Arc...");
-        nextResult = await submitUnifiedBalancePayment(paymentId, commitmentId);
+        nextResult = await submitUnifiedBalancePayment(paymentId);
         await loadUnifiedBalance(false);
       } else {
         if (!veilHubSetup.ready) {
@@ -479,7 +337,6 @@ export default function NewPayment() {
             memo,
             txHash: hubResult.txHash,
             paymentId,
-            commitmentId,
             status: "settled",
             settlementNote: hubResult.approvalTxHash
               ? `USDC approval ${hubResult.approvalTxHash} confirmed before VeilHub payment.`
@@ -513,7 +370,7 @@ export default function NewPayment() {
       : !source
         ? "Choose payment source"
         : isClosedMode
-          ? "Closed Payment needs VeilShield"
+          ? "Coming soon with Arc Private Kit"
           : arcDirectSetupMissing
             ? "VeilHub setup required"
             : unifiedBalanceTooLow
@@ -621,185 +478,14 @@ export default function NewPayment() {
             <div className="flex items-start gap-3">
               <Lock className="mt-0.5 h-4 w-4 text-confidential" />
               <div>
-                <div className="font-medium">Closed Payment is hidden-amount settlement.</div>
+                <div className="font-medium">Coming soon with Arc Private Kit.</div>
                 <p className="mt-1 text-muted-foreground">
-                  A normal Arc wallet transfer exposes the amount onchain. Closed Payment requires VeilShield deposit,
-                  private notes, proof generation, hidden transfer, and withdraw; this page will not submit a visible
-                  transfer as closed.
+                  Veil is preparing native Arc privacy integration for hidden/private payment support. Until that
+                  stack is available and wired, this app will not submit visible USDC transfers as private payments.
                 </p>
-                <div className="mt-3 rounded-md border border-confidential/20 bg-background/70 p-3">
-                  <div className="font-medium">{veilShieldSetup.statusLabel}</div>
-                  <p className="mt-1 text-muted-foreground">{veilShieldSetup.detail}</p>
-                  {veilShieldSetup.missing.length > 0 && (
-                    <div className="mt-2 font-mono text-xs">
-                      Missing: {veilShieldSetup.missing.join(", ")}
-                    </div>
-                  )}
-                  <div className="mt-3 grid gap-1.5">
-                    {veilShieldSetup.checklist.map((item) => (
-                      <div key={item.label} className="flex items-center gap-2 text-xs">
-                        <CheckCircle2
-                          className={cn("h-3.5 w-3.5", item.complete ? "text-success" : "text-muted-foreground")}
-                        />
-                        <span className={item.complete ? "" : "text-muted-foreground"}>{item.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mt-4 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-                  <div className="rounded-md border border-confidential/20 bg-background/70 p-3">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <div className="font-medium">Developer preview: shield deposit</div>
-                        <p className="mt-1 text-muted-foreground">
-                          This creates a real VeilShield note commitment. It does not pay the recipient yet, and it
-                          does not enable Closed Payment transfer submission.
-                        </p>
-                      </div>
-                      <Button type="button" variant="outline" size="sm" onClick={prepareShieldNoteSeed}>
-                        <ShieldCheck className="mr-2 h-4 w-4" />
-                        Prepare note
-                      </Button>
-                    </div>
-
-                    <div className="mt-3 grid gap-3 md:grid-cols-2">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="shield-secret">Local note secret</Label>
-                        <Input
-                          id="shield-secret"
-                          value={shieldNoteSecret}
-                          onChange={(event) => setShieldNoteSecret(event.target.value)}
-                          placeholder="0x..."
-                          autoComplete="off"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label htmlFor="shield-salt">Local note salt</Label>
-                        <Input
-                          id="shield-salt"
-                          value={shieldNoteSalt}
-                          onChange={(event) => setShieldNoteSalt(event.target.value)}
-                          placeholder="0x..."
-                          autoComplete="off"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5 md:col-span-2">
-                        <Label htmlFor="shield-command">Local Noir command</Label>
-                        <Textarea
-                          id="shield-command"
-                          readOnly
-                          value={noteCommand || "Generate a note seed and enter an amount to get the Noir helper command."}
-                          className="min-h-24 font-mono text-xs"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5 md:col-span-2">
-                        <Label htmlFor="shield-commitment">Commitment returned by Noir helper</Label>
-                        <Input
-                          id="shield-commitment"
-                          value={shieldNoteCommitment}
-                          onChange={(event) => setShieldNoteCommitment(event.target.value)}
-                          placeholder="0x bytes32 commitment"
-                          autoComplete="off"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label htmlFor="shield-nullifier">Nullifier returned by Noir helper</Label>
-                        <Input
-                          id="shield-nullifier"
-                          value={shieldNoteNullifier}
-                          onChange={(event) => setShieldNoteNullifier(event.target.value)}
-                          placeholder="0x bytes32 nullifier"
-                          autoComplete="off"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label htmlFor="shield-ref">Encrypted note reference</Label>
-                        <Input
-                          id="shield-ref"
-                          value={shieldEncryptedRef}
-                          onChange={(event) => setShieldEncryptedRef(event.target.value)}
-                          placeholder="0x bytes32 local reference"
-                          autoComplete="off"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="mt-3 flex flex-col gap-3 border-t pt-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="text-xs text-muted-foreground">
-                        Note secrets stay encrypted in this browser only. Losing this browser state can make testnet
-                        notes unrecoverable.
-                      </div>
-
-                      <Button
-                        type="button"
-                        onClick={submitShieldDeposit}
-                        disabled={
-                          shieldDepositLoading ||
-                          !address ||
-                          !shieldAmountBase ||
-                          !isBytes32(shieldNoteCommitment) ||
-                          !shieldNoteSecret ||
-                          !shieldNoteSalt ||
-                          !veilShieldSetup.deployed
-                        }
-                        className="bg-confidential text-confidential-foreground hover:opacity-95"
-                      >
-                        {shieldDepositLoading ? "Depositing..." : "Deposit to VeilShield"}
-                      </Button>
-                    </div>
-
-                    {shieldStatus && (
-                      <div className="mt-3 rounded-md border bg-secondary/40 p-3 text-xs text-muted-foreground">
-                        {shieldStatus}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="rounded-md border border-confidential/20 bg-background/70 p-3">
-                    <div className="font-medium">Local shielded notes</div>
-                    <p className="mt-1 text-muted-foreground">
-                      Browser-local developer preview balance: {shieldNoteBalance.toFixed(6)} USDC.
-                    </p>
-
-                    <div className="mt-3 space-y-2">
-                      {shieldNotes.slice(0, 3).map((note) => (
-                        <div key={note.id} className="rounded-md border bg-card p-2 text-xs">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-medium tabular-nums">{note.amount} USDC</span>
-                            <span className="capitalize text-muted-foreground">{note.status}</span>
-                          </div>
-                          <div className="mt-1 break-all font-mono text-muted-foreground">
-                            {note.commitment}
-                          </div>
-                        </div>
-                      ))}
-
-                      {shieldNotes.length === 0 && (
-                        <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
-                          No local VeilShield notes are stored for this wallet yet.
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="mt-3 rounded-md border border-warning/30 bg-warning/5 p-3 text-xs">
-                      <div className="font-medium">Transfer remains blocked</div>
-                      <p className="mt-1 text-muted-foreground">
-                        Browser proof generation and recipient note handoff are not wired. Generate a local artifact
-                        with the Noir helper and submit it with `scripts/veilshield-submit-proof.mjs`; this browser
-                        still will not submit a hidden transfer until that path is reviewed.
-                      </p>
-                      {transferPreviewCommand && (
-                        <Textarea readOnly value={transferPreviewCommand} className="mt-2 min-h-20 font-mono text-xs" />
-                      )}
-                    </div>
-                  </div>
-                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Open Payment remains live through Arc Direct via VeilHub and Unified Balance USDC.
+                </p>
               </div>
             </div>
           </div>

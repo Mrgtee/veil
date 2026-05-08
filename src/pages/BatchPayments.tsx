@@ -24,7 +24,6 @@ import {
 import { formatPaymentError, getErrorMessage, isSettlementDelay } from "@/lib/payments/errors";
 import { makeBytes32Id, makeId } from "@/lib/payments/ids";
 import { recordBatchPayment } from "@/lib/payments/recording";
-import { getVeilShieldSetup } from "@/lib/payments/veilShield";
 import {
   balanceReducedEnough,
   getBalanceNumber,
@@ -160,7 +159,6 @@ export default function BatchPayments() {
   const [results, setResults] = useState<RowResult[]>([]);
   const submittingRef = useRef(false);
   const veilHubSetup = getVeilHubSetup();
-  const veilShieldSetup = getVeilShieldSetup();
 
   const totalAmount = useMemo(() => getBatchTotal(rows), [rows]);
   const filledRows = useMemo(
@@ -415,7 +413,7 @@ export default function BatchPayments() {
       if (!source) throw new Error("Choose Arc Direct or Unified Balance USDC.");
       if (isClosedMode) {
         throw new Error(
-          `Closed batch payments require VeilShield deposit and proof generation. ${veilShieldSetup.statusLabel}. Visible batch transfers remain blocked.`
+          "Coming soon with Arc Private Kit. Veil is preparing native Arc privacy integration for hidden/private batch payment support; visible batch transfers remain blocked as private payments."
         );
       }
 
@@ -443,7 +441,7 @@ export default function BatchPayments() {
       : !source
         ? "Choose payment source"
         : isClosedMode
-          ? "Closed Batch needs VeilShield"
+          ? "Coming soon with Arc Private Kit"
           : source === "arc-direct" && !veilHubSetup.ready
             ? "VeilHub setup required"
             : source === "unified-balance"
@@ -560,30 +558,15 @@ export default function BatchPayments() {
 
           {isClosedMode && (
             <div className="rounded-lg border border-confidential/30 bg-confidential-soft/60 p-3 text-sm">
-              <div className="font-medium">Closed batch settlement must hide amounts onchain.</div>
+              <div className="font-medium">Coming soon with Arc Private Kit.</div>
               <p className="mt-1 text-muted-foreground">
-                That requires VeilShield deposit, proof generation, hidden transfer, and withdraw. Visible batch
-                transfers are intentionally blocked.
+                Veil is preparing native Arc privacy integration for hidden/private batch payment support. Until that
+                stack is available and wired, visible batch transfers are intentionally blocked as private payments.
               </p>
-              <div className="mt-3 rounded-md border border-confidential/20 bg-background/70 p-3">
-                <div className="font-medium">{veilShieldSetup.statusLabel}</div>
-                <p className="mt-1 text-muted-foreground">{veilShieldSetup.detail}</p>
-                {veilShieldSetup.missing.length > 0 && (
-                  <div className="mt-2 font-mono text-xs">
-                    Missing: {veilShieldSetup.missing.join(", ")}
-                  </div>
-                )}
-                <div className="mt-3 grid gap-1.5">
-                  {veilShieldSetup.checklist.map((item) => (
-                    <div key={item.label} className="flex items-center gap-2 text-xs">
-                      <CheckCircle2
-                        className={cn("h-3.5 w-3.5", item.complete ? "text-success" : "text-muted-foreground")}
-                      />
-                      <span className={item.complete ? "" : "text-muted-foreground"}>{item.label}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Arc Direct remains the recommended live batch path: one allowance if needed, then one VeilHub batch
+                transaction for every recipient.
+              </p>
             </div>
           )}
         </div>

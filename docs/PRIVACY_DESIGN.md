@@ -6,6 +6,12 @@ An ERC20 transfer emits public `Transfer(from, to, amount)` data. Anyone can rea
 
 For that reason, Veil does not call a visible transfer a Closed Payment.
 
+## Current Product Positioning
+
+User-facing Private/Closed Payment is coming soon with Arc Private Kit. Veil is preparing native Arc privacy integration for hidden/private payment support and will not ship fake privacy while that stack is pending.
+
+VeilShield remains an experimental developer-preview and research layer. Its deployed Arc Testnet contracts and Noir circuits are useful for studying amount-hiding mechanics, but they are not the current user-facing Private Payment path.
+
 ## Closed Payment Definition
 
 Closed Payment means:
@@ -16,9 +22,9 @@ Closed Payment means:
 
 This is different from anonymous payments. Veil's target privacy model is amount confidentiality with visible counterparties.
 
-## VeilShield Model
+## Experimental VeilShield Model
 
-VeilShield uses a shielded accounting model:
+VeilShield uses a shielded accounting model for research:
 
 1. Deposit: a user deposits public USDC into VeilShield and creates a private note commitment.
 2. Private note: the note represents value without exposing the amount in future transfer events.
@@ -113,7 +119,7 @@ Verifier logic is behind `IVeilShieldVerifier` and the production adapter at `co
 
 ## Note Storage Preview
 
-The app now supports local testnet note storage for VeilShield deposits:
+The prior developer preview included local testnet note storage for VeilShield deposits:
 
 - note commitment is public and can be stored in the API ledger after a real deposit transaction
 - amount, secret, salt, and optional nullifier are encrypted locally in the browser
@@ -121,16 +127,15 @@ The app now supports local testnet note storage for VeilShield deposits:
 - losing browser storage can make a testnet note unrecoverable
 - this local encryption is a developer preview, not a production key-management system
 
-Deposit flow is real: the connected wallet approves VeilShield if needed and calls `VeilShield.deposit(amount, noteCommitment, encryptedNoteRef)`. Hidden transfers and withdrawals can now be submitted only from the local developer CLI with real Noir/BB proof artifacts. They remain blocked in the browser until real browser proof generation and note handoff are wired.
+Hidden transfers and withdrawals can be submitted only from the local developer CLI with real Noir/BB proof artifacts. The browser app no longer exposes VeilShield as the normal Private Payment flow. User-facing private payments will prioritize Arc Private Kit.
 
 ## What Remains Before Closed Payment Can Go Live
 
-- Wire browser proof generation or a reviewed local prover bridge for real witnesses.
-- Add a recipient note discovery and handoff model so recipients can find and spend their output notes.
-- Add a Merkle tree or accumulator for scalable note membership.
-- Index VeilShield events for closed-payment records.
+- Integrate Arc Private Kit once the native Arc privacy stack is available.
+- Build user-facing status, indexing, and history around Arc-native private payment events.
 - Replace the JSON ledger with production database/indexer infrastructure before mainnet.
 - Complete a formal threat model and external security audit.
+- Keep VeilShield research isolated unless it is explicitly revisited after audits.
 
 ## Tooling
 
@@ -207,8 +212,8 @@ node scripts/veilshield-submit-proof.mjs transfer --artifact /tmp/veil-transfer-
 node scripts/veilshield-submit-proof.mjs withdraw --artifact /tmp/veil-withdraw-artifact.json --record-ledger
 ```
 
-These commands use real Noir/BB execution and real VeilShield calls. They are not browser proof generation and do not make Closed Payment user-facing yet. Transfer amounts stay in the artifact `localPrivate` section and are not written to the ledger.
+These commands use real Noir/BB execution and real VeilShield calls. They are research tooling only; they are not browser proof generation and do not make Closed Payment user-facing. Transfer amounts stay in the artifact `localPrivate` section and are not written to the ledger.
 
 ## Security Requirements
 
-VeilShield must remain experimental and testnet-only until audited. The prototype proves local circuit correctness only; it is not a production confidential payment system. No UI should imply that a normal visible Arc transfer hides the amount.
+VeilShield must remain experimental and testnet-only until audited. The prototype proves local circuit correctness only; it is not a production confidential payment system. User-facing private payments will prioritize Arc Private Kit, and no UI should imply that a normal visible Arc transfer hides the amount.

@@ -51,9 +51,9 @@ function isUnifiedPayment(payment: ExtendedPayment) {
 }
 
 function operationLabel(payment: ExtendedPayment) {
-  if (payment.operation === "shield_deposit") return "VeilShield deposit";
-  if (payment.operation === "shield_transfer") return "VeilShield transfer";
-  if (payment.operation === "shield_withdraw") return "VeilShield withdraw";
+  if (payment.operation === "shield_deposit") return "Experimental private deposit";
+  if (payment.operation === "shield_transfer") return "Experimental private transfer";
+  if (payment.operation === "shield_withdraw") return "Experimental private withdraw";
   return payment.recipientLabel ?? payment.recipient;
 }
 
@@ -247,7 +247,7 @@ export default function Dashboard() {
       <SectionHeader
         eyebrow="Operations"
         title="Payment workspace"
-        description="Open Arc payments today, with VeilShield architecture for future hidden-amount closed payments."
+        description="Open Arc payments are live today. Private payments are coming soon with Arc Private Kit."
         actions={
           <>
             <Button asChild variant="outline" className="h-10">
@@ -280,8 +280,8 @@ export default function Dashboard() {
             </h2>
 
             <p className="text-sm text-muted-foreground mt-2 max-w-2xl">
-              Veil lets users deposit USDC into a unified balance, spend into Arc settlement,
-              and prepare for audited hidden-amount closed payments through VeilShield.
+              Veil lets users deposit USDC into a unified balance and spend into Arc settlement today.
+              Native Arc privacy integration is being prepared for future hidden/private payment support.
             </p>
           </div>
 
@@ -347,11 +347,11 @@ export default function Dashboard() {
             />
 
             <StatCard
-              label="Closed payments"
+              label="Private payments"
               value={stats.confidentialPayments.toLocaleString()}
               accent="confidential"
               icon={<Lock className="h-5 w-5" />}
-              hint="hidden amount layer"
+              hint="Arc Private Kit soon"
             />
 
             <StatCard
@@ -373,7 +373,7 @@ export default function Dashboard() {
               <div>
                 <h3 className="font-display text-lg">Recent payments</h3>
                 <p className="text-xs text-muted-foreground">
-                  Latest open and closed Arc payment records
+                  Latest live Open Payment records and any experimental private research records
                 </p>
               </div>
 
@@ -458,8 +458,8 @@ export default function Dashboard() {
             <QuickAction
               to="/app/confidential"
               icon={<Lock className="h-4 w-4" />}
-              title="Closed records"
-              desc="VeilShield references"
+              title="Private records"
+              desc="Arc Private Kit coming soon"
               confidential
             />
           </div>
@@ -548,7 +548,7 @@ export default function Dashboard() {
           <div className="surface-card p-5">
             <div className="flex items-center gap-2 mb-4">
               <KeyRound className="h-4 w-4 text-confidential" />
-              <h3 className="font-display text-base">Closed records</h3>
+              <h3 className="font-display text-base">Private records</h3>
             </div>
 
             <ul className="space-y-3">

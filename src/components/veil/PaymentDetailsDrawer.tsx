@@ -41,9 +41,9 @@ function isArcDirectPayment(payment: ExtendedPayment) {
 }
 
 function operationLabel(payment: ExtendedPayment) {
-  if (payment.operation === "shield_deposit") return "VeilShield deposit";
-  if (payment.operation === "shield_transfer") return "VeilShield hidden transfer";
-  if (payment.operation === "shield_withdraw") return "VeilShield withdraw";
+  if (payment.operation === "shield_deposit") return "Experimental private deposit";
+  if (payment.operation === "shield_transfer") return "Experimental private transfer";
+  if (payment.operation === "shield_withdraw") return "Experimental private withdraw";
   return payment.type === "batch" ? "Payment batch" : "Payment";
 }
 
@@ -156,7 +156,7 @@ export function PaymentDetailsDrawer({
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               {p.source === "veilshield_closed"
-                ? `${operationLabel(p)} recorded from a real VeilShield transaction.`
+                ? `${operationLabel(p)} recorded from an experimental research transaction.`
                 : isUnified
                 ? "Unified Balance USDC payment settled on Arc."
                 : "Arc Direct payment settled through VeilHub on Arc."}
@@ -288,13 +288,12 @@ export function PaymentDetailsDrawer({
             <div className="rounded-xl border border-purple-200 bg-purple-50/50 p-4">
               <div className="flex items-center gap-2 text-sm font-medium text-purple-800">
                 <Lock className="h-4 w-4" />
-                Closed payment reference
+                Private payment reference
               </div>
 
               <p className="mt-2 text-sm text-muted-foreground">
-                Closed payments are intended to hide the amount onchain through VeilShield. Deposit records are real
-                pool deposits, but hidden transfer submission remains developer-preview until proof generation and note
-                handoff are wired.
+                Coming soon with Arc Private Kit. Veil is preparing native Arc privacy integration for user-facing
+                hidden/private payment support; experimental research records do not make private payments live.
               </p>
 
               {p.commitmentId && (

@@ -71,40 +71,25 @@ Current SDK investigation:
 ## Closed Payment Selection
 
 1. User can select `Closed Payment`.
-2. Veil explains that closed means sender-visible, recipient-visible, amount-hidden settlement.
-3. Veil blocks visible ERC20 settlement because normal transfers expose amount.
-4. Veil shows Milestone 2 setup state: VeilShield and generated verifiers are deployed, local note storage exists, and proof generation is still pending.
-5. Developer-preview users can prepare a local note secret/salt, run the Noir helper command, paste the returned commitment, and deposit USDC into VeilShield.
-6. Veil records successful real deposit transactions in the API ledger as `shield_deposit` only after a tx hash exists.
-7. Hidden transfer submission remains disabled in the browser until browser proof generation, recipient note handoff, indexing, and audit are complete.
+2. Veil shows `Coming soon with Arc Private Kit.`
+3. Veil explains that it is preparing native Arc privacy integration for hidden/private payment support.
+4. Veil explains that true private settlement cannot be a visible ERC20 transfer because normal transfers expose amount.
+5. Veil blocks submit until Arc Private Kit integration is available, wired, tested, and audited.
 
-## VeilShield Developer Preview Deposit
+## Experimental Research / Developer Preview
 
-1. User selects `Closed Payment` in `New Payment`.
-2. User clicks `Prepare note`; the browser creates local testnet note secret/salt values and an encrypted note reference.
-3. User runs the displayed `node scripts/veilshield-dev-proof.mjs note ...` command locally with Noir/Nargo installed.
-4. User pastes the returned commitment and optional nullifier into the app.
-5. Veil switches to Arc if needed, checks USDC balance and allowance, requests `approve` only if needed, and calls `VeilShield.deposit`.
-6. Veil stores amount, secret, salt, and nullifier encrypted in this browser only.
-7. Veil writes the API ledger record as `source=veilshield_closed`, `operation=shield_deposit`, `status=settled`.
-8. The note appears in local shielded note balance, but it is still a developer-preview note until proof submit/withdraw flows are wired.
+VeilShield is no longer the normal user-facing Private Payment flow. It remains documented research tooling only:
 
-## VeilShield Developer Preview Proof Submission
+1. Developers can generate Noir note, transfer, and withdraw artifacts locally.
+2. Developers can submit real proof artifacts to the deployed Arc Testnet VeilShield contracts from a local shell.
+3. The submit script validates artifacts, checks note/nullifier state, simulates the contract call, sends the transaction, waits for the receipt, and records `shield_transfer` only after a real tx hash exists.
+4. Normal browser users cannot submit VeilShield deposits, transfers, or withdrawals from the Private Payment UI.
 
-1. Developer exports or reads the local note secret/salt from their own testnet preview context.
-2. Developer runs `node scripts/veilshield-dev-proof.mjs transfer ... --artifact-out /tmp/veil-transfer-artifact.json`.
-3. The helper writes a JSON artifact with proof bytes, ordered public inputs, contract-call fields, and local-private amount/secret fields separated.
-4. Developer sources `contracts/.env` with `PRIVATE_KEY`, `ARC_TESTNET_RPC_URL`, `VEIL_SHIELD_ADDRESS`, and `ARC_USDC_ADDRESS`.
-5. Developer runs `node scripts/veilshield-submit-proof.mjs transfer --artifact /tmp/veil-transfer-artifact.json --record-ledger`.
-6. The submit script validates the artifact, verifies the private key matches the proof sender, checks VeilShield note/nullifier state, simulates `transferNote`, sends the transaction, waits for the receipt, and records `shield_transfer` only after a real tx hash exists.
-7. Withdraw artifacts use the same pattern with `node scripts/veilshield-dev-proof.mjs withdraw ...` and `node scripts/veilshield-submit-proof.mjs withdraw ...`.
-8. Normal browser users still cannot submit Closed Payment transfers.
+## Private Records And Access
 
-## Closed Records And Access
-
-1. `Closed Records` lists VeilShield commitment/disclosure records from the API ledger.
-2. `Access Control` grants or revokes disclosure permissions for those records.
-3. These pages do not imply hidden-amount settlement is live.
+1. `Private Records` is reserved for future Arc Private Kit records and disclosure state.
+2. `Access Control` grants or revokes disclosure permissions for private records when they exist.
+3. These pages do not imply hidden/private settlement is live.
 
 ## Mobile Navigation
 
@@ -115,6 +100,6 @@ Mobile users can access:
 - Batch Payments
 - Unified Balance
 - History
-- Closed Records
+- Private Records
 - Access Control
 - Settings

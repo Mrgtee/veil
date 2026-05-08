@@ -68,9 +68,9 @@ function modeLabel(mode: string) {
 }
 
 function operationLabel(payment: Payment) {
-  if (payment.operation === "shield_deposit") return "VeilShield deposit";
-  if (payment.operation === "shield_transfer") return "VeilShield hidden transfer";
-  if (payment.operation === "shield_withdraw") return "VeilShield withdraw";
+  if (payment.operation === "shield_deposit") return "Experimental private deposit";
+  if (payment.operation === "shield_transfer") return "Experimental private transfer";
+  if (payment.operation === "shield_withdraw") return "Experimental private withdraw";
   return `${payment.type} payment`;
 }
 
@@ -233,7 +233,7 @@ export default function History() {
       <SectionHeader
         eyebrow="Ledger"
         title="Payment history"
-        description="Search and inspect open payments, pending settlements, and closed-payment references."
+        description="Search and inspect live Open Payments, pending settlements, and future private-payment references."
         actions={
           <Button variant="outline" onClick={exportCsv}>
             <Download className="h-4 w-4 mr-2" /> Export CSV
