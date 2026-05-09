@@ -1,11 +1,15 @@
-import { createConfig, http } from "wagmi";
-import { injected } from "wagmi/connectors";
+import { getDefaultConfig } from "@rainbow-me/rainbowkit";
+import { http } from "wagmi";
 import { arcTestnet } from "./arc";
 
-export const wagmiConfig = createConfig({
-  chains: [arcTestnet],
-  connectors: [injected()],
+export const walletConnectProjectId =
+  import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || "00000000000000000000000000000000";
+
+export const wagmiConfig = getDefaultConfig({
+  appName: "Veil",
+  projectId: walletConnectProjectId,
+  chains: [arcTestnet] as const,
   transports: {
-    [arcTestnet.id]: http("https://rpc.testnet.arc.network"),
+    [arcTestnet.id]: http(arcTestnet.rpcUrls.default.http[0]),
   },
 });

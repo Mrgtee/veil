@@ -1,6 +1,6 @@
 import { Buffer } from "buffer";
 import type { SourceChain, SourceChainValue } from "./types";
-import { getInjectedProvider, requestWalletAccount, switchEvmChain } from "./wallet";
+import { getWalletProvider, requestWalletAccount, switchEvmChain } from "./wallet";
 
 export type { SourceChainValue } from "./types";
 
@@ -174,7 +174,7 @@ async function getCircleTools(): Promise<CircleTools> {
 
 export async function getWalletAdapter() {
   await requestWalletAccount();
-  const provider = getInjectedProvider();
+  const provider = await getWalletProvider();
   const { createViemAdapterFromProvider } = await getCircleTools();
 
   return createViemAdapterFromProvider({ provider });

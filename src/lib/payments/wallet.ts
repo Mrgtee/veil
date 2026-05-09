@@ -1,11 +1,12 @@
 import { arcTestnet } from "@/lib/arc";
+import { wagmiConfig } from "@/lib/wallet";
+import type { EIP1193Provider } from "viem";
+import { getAccount } from "wagmi/actions";
 import type { SourceChain } from "./types";
 
 declare global {
   interface Window {
-    ethereum?: {
-      request: (input: { method: string; params?: unknown[] }) => Promise<unknown>;
-    };
+    ethereum?: EIP1193Provider;
   }
 }
 
@@ -25,13 +26,37 @@ export function getInjectedProvider() {
   return window.ethereum;
 }
 
+function isEip1193Provider(value: unknown): value is EIP1193Provider {
+  return typeof value === "object" && value !== null && typeof (value as EIP1193Provider).request === "function";
+}
+
+export async function getWalletProvider(chainId?: number): Promise<EIP1193Provider> {
+  const account = getAccount(wagmiConfig);
+  const connector = account.connector;
+
+  if (connector?.getProvider) {
+    const provider = await connector.getProvider(chainId ? { chainId } : undefined);
+    if (isEip1193Provider(provider)) {
+      return provider;
+    }
+  }
+
+  return getInjectedProvider();
+}
+
 export function rememberWallet(account: string) {
   localStorage.setItem("veil.wallet", account);
   localStorage.setItem("veil.operator", account);
 }
 
 export async function requestWalletAccount(options: { request?: boolean } = {}) {
-  const provider = getInjectedProvider();
+  const connected = getAccount(wagmiConfig);
+  if (connected.address) {
+    rememberWallet(connected.address);
+    return connected.address;
+  }
+
+  const provider = await getWalletProvider();
   const accounts = await provider.request({ method: options.request ? "eth_requestAccounts" : "eth_accounts" }) as string[] | undefined;
   let account = accounts?.[0];
 
@@ -49,7 +74,7 @@ export async function requestWalletAccount(options: { request?: boolean } = {}) 
 }
 
 export async function switchEvmChain(chain: Pick<SourceChain, "label" | "chainIdHex" | "rpcUrl" | "explorerUrl" | "nativeCurrency">) {
-  const provider = getInjectedProvider();
+  const provider = await getWalletProvider(Number.parseInt(chain.chainIdHex, 16));
 
   try {
     await provider.request({

@@ -1,29 +1,19 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { Wallet, Send, WalletCards, Lock } from "lucide-react";
+import { Send, WalletCards, Lock } from "lucide-react";
+import { useAccount } from "wagmi";
 import { VeilWordmark } from "@/components/brand/VeilLogo";
-import { requestWalletAccount } from "@/lib/payments/wallet";
+import { VeilConnectButton } from "@/components/wallet/VeilConnectButton";
 
 export default function SignIn() {
   const navigate = useNavigate();
-  const [status, setStatus] = useState("");
-  const [loading, setLoading] = useState(false);
+  const { isConnected } = useAccount();
 
-  async function connectWallet() {
-    try {
-      setLoading(true);
-      setStatus("Connecting wallet...");
-
-      await requestWalletAccount({ request: true });
-
-      setStatus("Wallet connected. Opening Veil...");
+  useEffect(() => {
+    if (isConnected) {
       navigate("/app");
-    } catch (err) {
-      setStatus(err instanceof Error ? err.message : "Unable to connect wallet. Please open Veil inside a wallet browser.");
-    } finally {
-      setLoading(false);
     }
-  }
+  }, [isConnected, navigate]);
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -58,20 +48,7 @@ export default function SignIn() {
               </p>
             </div>
 
-            <button
-              onClick={connectWallet}
-              disabled={loading}
-              className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-gradient-brand px-4 font-medium text-primary-foreground transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Wallet className="h-4 w-4" />
-              {loading ? "Connecting..." : "Connect Wallet"}
-            </button>
-
-            {status && (
-              <div className="mt-4 rounded-lg border bg-secondary/40 p-3 text-sm">
-                {status}
-              </div>
-            )}
+            <VeilConnectButton fullWidth className="mt-6 h-12" />
           </div>
         </div>
       </section>

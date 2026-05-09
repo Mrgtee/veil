@@ -11,7 +11,7 @@ import {
 import { arcTestnet } from "@/lib/arc";
 import { erc20Abi, veilHubAbi } from "@/lib/abi";
 import { ARC_RPC_URL, ARC_USDC_ADDRESS, USE_VEIL_HUB, VEIL_HUB_ADDRESS } from "@/lib/env";
-import { ensureArcNetwork, getInjectedProvider, requestWalletAccount } from "./wallet";
+import { ensureArcNetwork, getWalletProvider, requestWalletAccount } from "./wallet";
 
 export type BatchRecipientRow = {
   id: string;
@@ -42,11 +42,13 @@ const publicClient = createPublicClient({
   transport: http(ARC_RPC_URL),
 });
 
-function getWalletClient(account: `0x${string}`) {
+async function getWalletClient(account: `0x${string}`) {
+  const provider = await getWalletProvider(arcTestnet.id);
+
   return createWalletClient({
     account,
     chain: arcTestnet,
-    transport: custom(getInjectedProvider()),
+    transport: custom(provider),
   });
 }
 
@@ -119,7 +121,7 @@ async function readArcUsdcAllowance(account: `0x${string}`) {
 async function ensureUsdcAllowance(input: {
   account: `0x${string}`;
   amountBase: bigint;
-  walletClient: ReturnType<typeof getWalletClient>;
+  walletClient: Awaited<ReturnType<typeof getWalletClient>>;
 }) {
   const allowance = await readArcUsdcAllowance(input.account);
   if (allowance >= input.amountBase) return undefined;
@@ -141,7 +143,7 @@ async function prepareVeilHubPayment(amount: string) {
   await ensureArcNetwork();
 
   const account = await requestWalletAccount();
-  const walletClient = getWalletClient(account as `0x${string}`);
+  const walletClient = await getWalletClient(account as `0x${string}`);
   const decimals = await readArcUsdcDecimals();
   const amountBase = parseUsdcAmount(amount, decimals);
   const balance = await readArcUsdcBalance(account as `0x${string}`);
@@ -213,7 +215,7 @@ export async function sendVeilHubOpenBatch(input: {
   await ensureArcNetwork();
 
   const account = await requestWalletAccount();
-  const walletClient = getWalletClient(account as `0x${string}`);
+  const walletClient = await getWalletClient(account as `0x${string}`);
   const decimals = await readArcUsdcDecimals();
   const amountBases = input.amounts.map((amount) => parseUsdcAmount(amount, decimals));
   const totalBase = amountBases.reduce((sum, amount) => sum + amount, 0n);
@@ -266,7 +268,7 @@ export async function registerUnifiedBalanceReference(input: {
   await ensureArcNetwork();
 
   const account = await requestWalletAccount();
-  const walletClient = getWalletClient(account as `0x${string}`);
+  const walletClient = await getWalletClient(account as `0x${string}`);
   const decimals = await readArcUsdcDecimals();
   const amountBase = parseUsdcAmount(input.amount, decimals);
   const txHash = await walletClient.writeContract({

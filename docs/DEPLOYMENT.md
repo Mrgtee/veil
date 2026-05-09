@@ -43,7 +43,10 @@ VITE_VEIL_HUB_ADDRESS=0x30c77c1C20A5cBB171DE9090789F3dB98aA9734b
 VITE_ARC_USDC_ADDRESS=0x3600000000000000000000000000000000000000
 VITE_ARC_CHAIN_ID=5042002
 VITE_ARC_RPC_URL=https://rpc.testnet.arc.network
+VITE_WALLETCONNECT_PROJECT_ID=<walletconnect project id>
 ```
+
+RainbowKit uses Arc Testnet (`5042002`) for wallet selection, account display, and network switching. `VITE_WALLETCONNECT_PROJECT_ID` is required for WalletConnect and mobile wallet support.
 
 With these values, Arc Direct single payments call `VeilHub.payOpen`, and Arc Direct batch payments call `VeilHub.payOpenBatch`. The frontend reads USDC decimals, checks wallet USDC balance and VeilHub allowance, requests `approve` only when needed, then records the real transaction result in the API ledger.
 

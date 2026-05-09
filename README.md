@@ -15,7 +15,7 @@ Arc is the settlement target because it is designed around stablecoin payments a
 
 ## What Works Today
 
-- Global wallet connection through the app shell and top bar.
+- RainbowKit wallet connection through the app shell and top bar.
 - API-backed payment ledger for Dashboard, History, Activity, Private Records, Access Control, and Audit Trail.
 - Arc Direct single and batch Open Payments through the deployed Arc Testnet `VeilHub` and ERC20 USDC when env values are configured.
 - USDC allowance checks and `approve` requests only when VeilHub needs more allowance.
@@ -39,6 +39,10 @@ Production direction:
 - reconciliation between API records, Arc transactions, and indexed contract events
 
 `localStorage` is only used for harmless wallet/session or Unified USDC Balance display cache, not payment truth.
+
+## Wallet Connection
+
+RainbowKit powers wallet selection, account display, and Arc Testnet network switching. The supported app network is Arc Testnet (`5042002`). WalletConnect and mobile wallet support require a local `VITE_WALLETCONNECT_PROJECT_ID`.
 
 ## Payment Modes
 
@@ -144,6 +148,7 @@ VITE_VEIL_HUB_ADDRESS=0x30c77c1C20A5cBB171DE9090789F3dB98aA9734b
 VITE_ARC_USDC_ADDRESS=0x3600000000000000000000000000000000000000
 VITE_ARC_CHAIN_ID=5042002
 VITE_ARC_RPC_URL=https://rpc.testnet.arc.network
+VITE_WALLETCONNECT_PROJECT_ID=<walletconnect project id>
 VEIL_LEDGER_PATH=./data/veil-ledger.json
 ```
 

@@ -5,7 +5,18 @@ import { Footer } from "./Footer";
 import { useAccount } from "wagmi";
 
 export function AppShell() {
-  const { isConnected } = useAccount();
+  const { isConnected, isConnecting, isReconnecting } = useAccount();
+
+  if (isConnecting || isReconnecting) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-background px-6 text-center">
+        <div>
+          <div className="font-display text-2xl text-foreground">Opening Veil</div>
+          <div className="mt-2 text-sm text-muted-foreground">Checking wallet connection.</div>
+        </div>
+      </div>
+    );
+  }
 
   if (!isConnected) return <Navigate to="/" replace />;
 

@@ -3,9 +3,10 @@
 ## Sign In
 
 1. User opens Veil.
-2. User connects an EVM wallet once.
-3. Veil remembers the session locally and opens `/app`.
+2. User connects an EVM wallet once through RainbowKit.
+3. Veil opens `/app`.
 4. The top bar displays the connected wallet globally.
+5. If the wallet is on the wrong network, RainbowKit prompts a switch to Arc Testnet.
 
 ## New Open Payment With Arc Direct
 
