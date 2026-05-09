@@ -9,8 +9,8 @@ const nav = [
   { to: "/app/batch", label: "Batch Payments", icon: Layers },
   { to: "/app/unified-balance", label: "Unified USDC", icon: WalletCards },
   { to: "/app/history", label: "History", icon: History },
-  { to: "/app/confidential", label: "Private Records", icon: Lock },
-  { to: "/app/access", label: "Access Control", icon: ShieldCheck },
+  { to: "/app/confidential", label: "Private Records", icon: Lock, badge: "Soon" },
+  { to: "/app/access", label: "Access Control", icon: ShieldCheck, badge: "Preview" },
   { to: "/app/settings", label: "Settings", icon: Settings },
 ];
 
@@ -43,20 +43,27 @@ export function Sidebar() {
             >
               <Icon className={cn("h-4 w-4", active ? "text-sidebar-primary" : "text-sidebar-foreground/60")} />
               <span className="flex-1">{item.label}</span>
+              {item.badge && (
+                <span className="rounded-md border border-sidebar-border bg-sidebar-background/40 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-sidebar-foreground/55">
+                  {item.badge}
+                </span>
+              )}
               {active && <ChevronRight className="h-3.5 w-3.5 text-sidebar-primary" />}
             </NavLink>
           );
         })}
       </nav>
 
-      <div className="m-3 p-4 rounded-lg bg-sidebar-accent/60 border border-sidebar-border">
-        <div className="flex items-center gap-2 text-xs text-sidebar-foreground/80">
+      <div className="m-3 rounded-lg border border-sidebar-border bg-sidebar-accent/60 p-3">
+        <div className="flex items-center gap-2 text-xs text-sidebar-foreground/85">
           <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse-subtle" />
-          Network: Arc Testnet
+          Arc Testnet
         </div>
-        <p className="mt-2 text-xs text-sidebar-foreground/60 leading-relaxed">
-          Open settlement online. Arc Private Kit coming soon.
-        </p>
+        <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-sidebar-foreground/60">
+          <span>VeilHub live</span>
+          <span>|</span>
+          <span>Private Kit soon</span>
+        </div>
       </div>
     </aside>
   );

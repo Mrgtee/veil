@@ -28,8 +28,8 @@ const mobileNav = [
   { to: "/app/batch", label: "Batch Payments", icon: Layers },
   { to: "/app/unified-balance", label: "Unified USDC", icon: WalletCards },
   { to: "/app/history", label: "History", icon: History },
-  { to: "/app/confidential", label: "Private Records", icon: Lock },
-  { to: "/app/access", label: "Access Control", icon: ShieldCheck },
+  { to: "/app/confidential", label: "Private Records", icon: Lock, badge: "Soon" },
+  { to: "/app/access", label: "Access Control", icon: ShieldCheck, badge: "Preview" },
   { to: "/app/settings", label: "Settings", icon: Settings },
 ];
 
@@ -61,7 +61,12 @@ export function TopBar() {
                     className="cursor-pointer"
                   >
                     <Icon className="h-4 w-4 mr-2" />
-                    {item.label}
+                    <span className="flex-1">{item.label}</span>
+                    {item.badge && (
+                      <span className="rounded-md border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                        {item.badge}
+                      </span>
+                    )}
                   </DropdownMenuItem>
                 );
               })}

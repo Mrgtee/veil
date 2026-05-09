@@ -18,7 +18,7 @@ import { PaymentDetailsDrawer } from "@/components/veil/PaymentDetailsDrawer";
 import { veilApi } from "@/services/veilApi";
 import type { DashboardStats, Payment, PaymentStatus } from "@/types/veil";
 import type { UnifiedBalanceData } from "@/lib/payments/unifiedBalance";
-import { formatAmount, formatRelative, truncateAddress } from "@/lib/format";
+import { formatAmount, formatRelative } from "@/lib/format";
 import { getPaymentSourceLabel, isUnifiedPaymentSource } from "@/lib/payments/types";
 import { cn } from "@/lib/utils";
 
@@ -56,7 +56,7 @@ function getPaymentName(payment: ExtendedPayment) {
   if (payment.operation === "shield_transfer") return "Experimental private transfer";
   if (payment.operation === "shield_withdraw") return "Experimental private withdraw";
   if (payment.type === "batch") return payment.recipientLabel || "Batch payment";
-  return payment.recipientLabel || truncateAddress(payment.recipient);
+  return payment.recipientLabel || "Open payment";
 }
 
 function getPaymentDetail(payment: ExtendedPayment) {
@@ -64,7 +64,8 @@ function getPaymentDetail(payment: ExtendedPayment) {
     return payment.batchCount ? `${payment.batchCount} recipients` : "Multiple recipients";
   }
 
-  return truncateAddress(payment.recipient);
+  if (payment.recipientLabel) return "Single recipient";
+  return payment.recipient ? "Recipient in details" : "Single recipient";
 }
 
 function getStatusTone(status: PaymentStatus): Tone {
@@ -160,7 +161,7 @@ export default function Dashboard() {
 
     if (cached) {
       setUnifiedBalance(cached);
-      setBalanceStatus("Wallet cache");
+      setBalanceStatus("Connected wallet");
       return;
     }
 
@@ -210,21 +211,21 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 xl:-mx-2 2xl:-mx-8">
-      <section className="overflow-hidden rounded-lg border border-cocoa/15 bg-gradient-card p-6 shadow-sm sm:p-8">
-        <div className="flex min-h-[280px] flex-col justify-between gap-8">
-          <div className="space-y-5">
+      <section className="overflow-hidden rounded-lg border border-cocoa/15 bg-gradient-card px-5 py-5 shadow-sm sm:px-6 sm:py-6">
+        <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
+          <div className="space-y-4">
             <Pill tone="success">Supports Circle Unified USDC balance</Pill>
-            <div className="max-w-3xl space-y-3">
-              <h1 className="font-display text-4xl font-semibold leading-tight text-foreground sm:text-5xl">
-                Open and Private Payment
+            <div className="max-w-3xl space-y-2">
+              <h1 className="font-display text-3xl font-semibold leading-tight text-foreground sm:text-4xl">
+                USDC payments on Arc
               </h1>
-              <p className="max-w-2xl text-base leading-7 text-muted-foreground">
+              <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
                 Send USDC on Arc with VeilHub and Arc Direct. Private Payment is coming soon with Arc Private Kit.
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex shrink-0 flex-wrap gap-2">
             <Button asChild className="bg-gradient-brand text-primary-foreground hover:opacity-95">
               <Link to="/app/payments/new">
                 <Send className="mr-2 h-4 w-4" />
@@ -234,11 +235,12 @@ export default function Dashboard() {
             <Button asChild variant="outline">
               <Link to="/app/batch">
                 <Layers className="mr-2 h-4 w-4" />
-                Submit Batch
+                Create Batch
               </Link>
             </Button>
-            <Button asChild variant="ghost">
+            <Button asChild variant="secondary" className="border border-sand bg-beige/80 hover:bg-beige">
               <Link to="/app/unified-balance">
+                <WalletCards className="mr-2 h-4 w-4" />
                 Unified USDC
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>

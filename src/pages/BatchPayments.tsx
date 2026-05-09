@@ -446,7 +446,7 @@ export default function BatchPayments() {
             ? "VeilHub setup required"
             : source === "unified-balance"
               ? "Start Payouts"
-              : "Submit Batch";
+              : "Create Batch";
 
   return (
     <div className="space-y-6">
