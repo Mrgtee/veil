@@ -8,10 +8,8 @@ import {
   Eye,
   History as HistoryIcon,
   Layers,
-  Lock,
   RefreshCw,
   Send,
-  ShieldCheck,
   WalletCards,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -148,20 +146,6 @@ function Metric({
   );
 }
 
-function RailStatus({ icon, label, value, tone }: { icon: ReactNode; label: string; value: string; tone: Tone }) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3 py-3">
-      <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-beige text-walnut">
-          {icon}
-        </div>
-        <span className="truncate text-sm font-medium">{label}</span>
-      </div>
-      <Pill tone={tone}>{value}</Pill>
-    </div>
-  );
-}
-
 export default function Dashboard() {
   const { address } = useAccount();
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -226,53 +210,39 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 xl:-mx-2 2xl:-mx-8">
-      <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="overflow-hidden rounded-lg border border-cocoa/15 bg-gradient-card p-6 shadow-sm sm:p-8">
-          <div className="flex min-h-[280px] flex-col justify-between gap-8">
-            <div className="space-y-5">
-              <Pill tone="success">Open payments live</Pill>
-              <div className="max-w-3xl space-y-3">
-                <h1 className="font-display text-4xl font-semibold leading-tight text-foreground sm:text-5xl">
-                  Open and Private Payment
-                </h1>
-                <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-                  Send USDC on Arc with VeilHub, Arc Direct, and Circle Unified USDC Balance. Private Payment is coming soon with Arc Private Kit.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <Button asChild className="bg-gradient-brand text-primary-foreground hover:opacity-95">
-                <Link to="/app/payments/new">
-                  <Send className="mr-2 h-4 w-4" />
-                  Send Payment
-                </Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link to="/app/batch">
-                  <Layers className="mr-2 h-4 w-4" />
-                  Submit Batch
-                </Link>
-              </Button>
-              <Button asChild variant="ghost">
-                <Link to="/app/unified-balance">
-                  Unified USDC
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
+      <section className="overflow-hidden rounded-lg border border-cocoa/15 bg-gradient-card p-6 shadow-sm sm:p-8">
+        <div className="flex min-h-[280px] flex-col justify-between gap-8">
+          <div className="space-y-5">
+            <Pill tone="success">Supports Circle Unified USDC balance</Pill>
+            <div className="max-w-3xl space-y-3">
+              <h1 className="font-display text-4xl font-semibold leading-tight text-foreground sm:text-5xl">
+                Open and Private Payment
+              </h1>
+              <p className="max-w-2xl text-base leading-7 text-muted-foreground">
+                Send USDC on Arc with VeilHub and Arc Direct. Private Payment is coming soon with Arc Private Kit.
+              </p>
             </div>
           </div>
-        </div>
 
-        <div className="surface-card p-5">
-          <div className="mb-4">
-            <h2 className="font-display text-xl font-semibold">Payment rails</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Current product state.</p>
-          </div>
-          <div className="space-y-3">
-            <RailStatus icon={<ShieldCheck className="h-4 w-4" />} label="Arc Direct via VeilHub" value="Live" tone="success" />
-            <RailStatus icon={<WalletCards className="h-4 w-4" />} label="Circle Unified USDC Balance" value="Available" tone="success" />
-            <RailStatus icon={<Lock className="h-4 w-4" />} label="Private Payment" value="Coming soon" tone="neutral" />
+          <div className="flex flex-wrap gap-2">
+            <Button asChild className="bg-gradient-brand text-primary-foreground hover:opacity-95">
+              <Link to="/app/payments/new">
+                <Send className="mr-2 h-4 w-4" />
+                Send Payment
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/app/batch">
+                <Layers className="mr-2 h-4 w-4" />
+                Submit Batch
+              </Link>
+            </Button>
+            <Button asChild variant="ghost">
+              <Link to="/app/unified-balance">
+                Unified USDC
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
           </div>
         </div>
       </section>
