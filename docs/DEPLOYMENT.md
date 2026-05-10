@@ -58,6 +58,34 @@ The local API ledger can use the default path or a local override. Do not commit
 VEIL_LEDGER_PATH=./data/veil-ledger.json
 ```
 
+## Vercel Preview Deployment
+
+Veil includes a Vercel configuration for preview hosting:
+
+- Vite builds to `dist`.
+- React Router routes rewrite to `index.html`.
+- API ledger routes are served from the Vercel serverless function in `api/[...path].ts`.
+- Production frontend builds use same-origin API calls when `VITE_API_BASE_URL` is not set.
+
+The checked-in `vercel.json` sets only public Arc Testnet values:
+
+```bash
+VITE_USE_VEIL_HUB=true
+VITE_VEIL_HUB_ADDRESS=0x30c77c1C20A5cBB171DE9090789F3dB98aA9734b
+VITE_ARC_USDC_ADDRESS=0x3600000000000000000000000000000000000000
+VITE_ARC_CHAIN_ID=5042002
+VITE_ARC_RPC_URL=https://rpc.testnet.arc.network
+VEIL_LEDGER_PATH=/tmp/veil-ledger.json
+```
+
+Set this value in Vercel project settings for production-quality wallet support:
+
+```bash
+VITE_WALLETCONNECT_PROJECT_ID=<walletconnect project id>
+```
+
+The Vercel JSON ledger is preview infrastructure only. Serverless `/tmp` storage can be reset by platform lifecycle events and is not a durable source of truth. A production Vercel deployment should point `VITE_API_BASE_URL` at a durable API or replace the JSON ledger with database/indexer storage.
+
 ## VeilShield Prototype Env
 
 These public Arc Testnet addresses are optional research references only. The normal app now positions Private Payment as `Coming soon with Arc Private Kit`.

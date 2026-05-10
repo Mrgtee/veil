@@ -204,6 +204,14 @@ Run `forge test` only when Foundry is installed.
 5. User-facing Private Payment should prioritize Arc Private Kit integration when the native Arc privacy stack is available.
 6. Keep VeilShield under Experimental Research / Developer Preview unless the product direction explicitly changes after audits.
 
+### Vercel Preview Deployment
+
+Veil can be deployed to Vercel as a Vite frontend with serverless API routes under `/api`. In production builds, the frontend uses same-origin API calls when `VITE_API_BASE_URL` is not set.
+
+The checked-in `vercel.json` configures the public Arc Testnet values for the current VeilHub deployment. Add a real `VITE_WALLETCONNECT_PROJECT_ID` in the Vercel project settings for WalletConnect and mobile wallet support.
+
+The Vercel serverless JSON ledger uses `/tmp/veil-ledger.json` for preview deployments. That is useful for smoke testing, but it is not durable production storage. Use a database or indexer-backed API before relying on hosted payment history.
+
 ## Experimental Research / Developer Preview
 
 VeilShield is retained as an experimental research layer. It is testnet-only, unaudited, and no longer drives the normal Private Payment UI. Use it only from local developer tooling when intentionally testing the prototype.

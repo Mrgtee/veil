@@ -159,7 +159,9 @@ function defaultLedger(): Ledger {
 }
 
 function ledgerPath() {
-  return process.env.VEIL_LEDGER_PATH || path.join(process.cwd(), "data", "veil-ledger.json");
+  if (process.env.VEIL_LEDGER_PATH) return process.env.VEIL_LEDGER_PATH;
+  if (process.env.VERCEL) return "/tmp/veil-ledger.json";
+  return path.join(process.cwd(), "data", "veil-ledger.json");
 }
 
 function nowIso() {
