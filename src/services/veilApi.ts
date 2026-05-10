@@ -24,6 +24,14 @@ type PaymentWrite = {
   operation?: PaymentOperation;
   status: "settled" | "pending_settlement" | "pending_veilhub_registration" | "failed";
   recipient: string;
+  recipients?: string[];
+  sender?: string;
+  owner?: string;
+  payer?: string;
+  walletAddress?: string;
+  createdBy?: string;
+  unifiedBalanceOwner?: string;
+  batchSender?: string;
   recipientLabel?: string;
   amount: string;
   amountBase: string;
@@ -50,6 +58,12 @@ type PaymentWrite = {
 type RequestOptions = {
   retries?: number;
 };
+
+function withWallet(path: string, wallet?: string) {
+  if (!wallet) return path;
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}wallet=${encodeURIComponent(wallet)}`;
+}
 
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -102,28 +116,28 @@ async function request<T>(path: string, init?: RequestInit, options: RequestOpti
 }
 
 export const veilApi = {
-  listPayments(): Promise<Payment[]> {
-    return request<Payment[]>("/api/payments");
+  listPayments(wallet?: string): Promise<Payment[]> {
+    return request<Payment[]>(withWallet("/api/payments", wallet));
   },
 
-  listConfidentialRecords(): Promise<ConfidentialRecord[]> {
-    return request<ConfidentialRecord[]>("/api/confidential-records");
+  listConfidentialRecords(wallet?: string): Promise<ConfidentialRecord[]> {
+    return request<ConfidentialRecord[]>(withWallet("/api/confidential-records", wallet));
   },
 
-  listDisclosureAccess(): Promise<DisclosureAccess[]> {
-    return request<DisclosureAccess[]>("/api/disclosure-access");
+  listDisclosureAccess(wallet?: string): Promise<DisclosureAccess[]> {
+    return request<DisclosureAccess[]>(withWallet("/api/disclosure-access", wallet));
   },
 
-  listAuditTrail(): Promise<AuditEvent[]> {
-    return request<AuditEvent[]>("/api/audit-trail");
+  listAuditTrail(wallet?: string): Promise<AuditEvent[]> {
+    return request<AuditEvent[]>(withWallet("/api/audit-trail", wallet));
   },
 
-  listActivity(): Promise<ActivityEvent[]> {
-    return request<ActivityEvent[]>("/api/activity");
+  listActivity(wallet?: string): Promise<ActivityEvent[]> {
+    return request<ActivityEvent[]>(withWallet("/api/activity", wallet));
   },
 
-  getDashboardStats(): Promise<DashboardStats> {
-    return request<DashboardStats>("/api/dashboard");
+  getDashboardStats(wallet?: string): Promise<DashboardStats> {
+    return request<DashboardStats>(withWallet("/api/dashboard", wallet));
   },
 
   recordPayment(input: PaymentWrite): Promise<Payment> {

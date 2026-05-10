@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAccount } from "wagmi";
 import { SectionHeader } from "@/components/veil/SectionHeader";
 import { veilApi } from "@/services/veilApi";
 import type { Payment } from "@/types/veil";
@@ -130,24 +131,45 @@ function SourceBadge({ payment }: { payment: Payment }) {
 }
 
 export default function History() {
+  const { address } = useAccount();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
   const [active, setActive] = useState<Payment | null>(null);
   const [ledgerStatus, setLedgerStatus] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+    setPayments([]);
+    setActive(null);
+
+    if (!address) {
+      setLedgerStatus("");
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
     veilApi
-      .listPayments()
+      .listPayments(address)
       .then((items) => {
+        if (cancelled) return;
         setPayments(items);
         setLedgerStatus("");
+        setLoading(false);
       })
       .catch((err) => {
+        if (cancelled) return;
         setLedgerStatus(err instanceof Error ? err.message : "Veil API ledger is unavailable.");
         setPayments([]);
+        setLoading(false);
       });
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [address]);
 
   const filtered = useMemo(() => {
     return payments.filter((p) => {
@@ -297,7 +319,15 @@ export default function History() {
             </thead>
 
             <tbody className="divide-y divide-border">
-              {filtered.map((p) => (
+              {!ledgerStatus && loading && (
+                <tr>
+                  <td colSpan={10} className="px-5 py-12 text-center text-muted-foreground">
+                    Loading history for connected wallet...
+                  </td>
+                </tr>
+              )}
+
+              {!loading && filtered.map((p) => (
                 <tr key={p.id} className="hover:bg-secondary/40 transition-colors">
                   <td className="px-5 py-3.5">
                     <div className="font-mono text-xs text-muted-foreground">{p.id}</div>
@@ -383,10 +413,12 @@ export default function History() {
                 </tr>
               ))}
 
-              {filtered.length === 0 && (
+              {!loading && filtered.length === 0 && (
                 <tr>
                   <td colSpan={10} className="px-5 py-12 text-center text-muted-foreground">
-                    No payments match your filters.
+                    {payments.length === 0 && filter === "all" && !query
+                      ? "No payments yet for this wallet."
+                      : "No payments match your filters."}
                   </td>
                 </tr>
               )}

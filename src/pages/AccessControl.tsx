@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useAccount } from "wagmi";
 import { SectionHeader } from "@/components/veil/SectionHeader";
 import { veilApi } from "@/services/veilApi";
 import type { AuditEvent, ConfidentialRecord, DisclosureAccess } from "@/types/veil";
@@ -12,6 +13,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 
 export default function AccessControl() {
+  const { address } = useAccount();
   const [records, setRecords] = useState<ConfidentialRecord[]>([]);
   const [access, setAccess] = useState<DisclosureAccess[]>([]);
   const [audit, setAudit] = useState<AuditEvent[]>([]);
@@ -20,19 +22,33 @@ export default function AccessControl() {
   const [days, setDays] = useState("30");
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState("");
+  const loadRequestRef = useRef(0);
 
-  async function loadAccessState() {
+  async function loadAccessState(wallet?: string) {
+    const requestId = loadRequestRef.current + 1;
+    loadRequestRef.current = requestId;
+
+    if (!wallet) {
+      setRecords([]);
+      setAccess([]);
+      setAudit([]);
+      setStatus("");
+      return;
+    }
+
     try {
       const [nextRecords, nextAccess, nextAudit] = await Promise.all([
-        veilApi.listConfidentialRecords(),
-        veilApi.listDisclosureAccess(),
-        veilApi.listAuditTrail(),
+        veilApi.listConfidentialRecords(wallet),
+        veilApi.listDisclosureAccess(wallet),
+        veilApi.listAuditTrail(wallet),
       ]);
+      if (loadRequestRef.current !== requestId) return;
       setRecords(nextRecords);
       setAccess(nextAccess);
       setAudit(nextAudit);
       setStatus("");
     } catch (err) {
+      if (loadRequestRef.current !== requestId) return;
       setRecords([]);
       setAccess([]);
       setAudit([]);
@@ -41,8 +57,8 @@ export default function AccessControl() {
   }
 
   useEffect(() => {
-    loadAccessState();
-  }, []);
+    void loadAccessState(address);
+  }, [address]);
 
   const grant = async () => {
     if (!selected || !viewer) return;
@@ -50,7 +66,7 @@ export default function AccessControl() {
       const nextAccess = await veilApi.grantAccess({ recordId: selected.id, viewer, durationDays: parseInt(days) || undefined });
       setAccess((a) => [nextAccess, ...a]);
       setRecords((rs) => rs.map((r) => r.id === selected.id ? { ...r, disclosureStatus: "granted", authorizedViewers: [...new Set([...r.authorizedViewers, viewer])] } : r));
-      await veilApi.listAuditTrail().then(setAudit);
+      await veilApi.listAuditTrail(address).then(setAudit);
       toast.success("Access granted", { description: `${viewer} can now view ${selected.commitmentId}` });
       setOpen(false); setViewer("");
     } catch (err) {
@@ -62,7 +78,7 @@ export default function AccessControl() {
     try {
       await veilApi.revokeAccess(a.id);
       setAccess((all) => all.map((x) => x.id === a.id ? { ...x, revoked: true } : x));
-      await veilApi.listAuditTrail().then(setAudit);
+      await veilApi.listAuditTrail(address).then(setAudit);
       toast.success("Access revoked");
     } catch (err) {
       toast.error("Access revoke failed", { description: err instanceof Error ? err.message : "Veil API ledger is unavailable." });
@@ -161,7 +177,7 @@ export default function AccessControl() {
               })}
               {records.length === 0 && !status && (
                 <div className="px-5 py-8 text-sm text-muted-foreground">
-                  No private records yet.
+                  No private records yet for this wallet.
                 </div>
               )}
             </div>

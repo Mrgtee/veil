@@ -224,6 +224,7 @@ export default function NewPayment() {
         await recordSinglePayment({
           mode: mode as PaymentMode,
           source: "unified-balance",
+          walletAddress: address,
           recipient,
           recipientLabel,
           amount,
@@ -264,6 +265,7 @@ export default function NewPayment() {
         await recordSinglePayment({
           mode: mode as PaymentMode,
           source: "unified-balance",
+          walletAddress: address,
           recipient,
           recipientLabel,
           amount,
@@ -297,6 +299,7 @@ export default function NewPayment() {
 
       if (!mode) throw new Error("Choose Open Payment or Private Payment.");
       if (!source) throw new Error("Choose Arc Direct or Unified USDC.");
+      if (!address) throw new Error("Wallet is not connected in the app.");
       if (!isAddress(recipient)) throw new Error("Enter a valid Arc recipient address.");
       parseUsdcAmount(amount);
 
@@ -329,6 +332,7 @@ export default function NewPayment() {
           await recordSinglePayment({
             mode,
             source: "arc-direct",
+            walletAddress: address,
             recipient,
             recipientLabel,
             amount,

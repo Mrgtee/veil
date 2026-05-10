@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAccount } from "wagmi";
 import { SectionHeader } from "@/components/veil/SectionHeader";
 import { veilApi } from "@/services/veilApi";
 import type { ConfidentialRecord } from "@/types/veil";
@@ -10,22 +11,37 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export default function ConfidentialRecords() {
+  const { address } = useAccount();
   const [records, setRecords] = useState<ConfidentialRecord[]>([]);
   const [loading, setLoading] = useState<string | null>(null);
   const [status, setStatus] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
+    setRecords([]);
+
+    if (!address) {
+      setStatus("");
+      return;
+    }
+
     veilApi
-      .listConfidentialRecords()
+      .listConfidentialRecords(address)
       .then((items) => {
+        if (cancelled) return;
         setRecords(items);
         setStatus("");
       })
       .catch((err) => {
+        if (cancelled) return;
         setRecords([]);
         setStatus(err instanceof Error ? err.message : "Veil API ledger is unavailable.");
       });
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [address]);
 
   const requestReveal = async (id: string) => {
     try {
@@ -115,7 +131,7 @@ export default function ConfidentialRecords() {
 
         {records.length === 0 && !status && (
           <div className="surface-card p-5 text-sm text-muted-foreground md:col-span-2">
-            No private payment records yet.
+            No private payment records yet for this wallet.
           </div>
         )}
       </div>

@@ -44,6 +44,11 @@ function asyncRoute(handler: (req: express.Request, res: express.Response) => Pr
   };
 }
 
+function getWalletFilter(req: express.Request) {
+  const wallet = req.query.wallet;
+  return typeof wallet === "string" && wallet.trim() ? wallet.trim() : undefined;
+}
+
 app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "veil-api" });
 });
@@ -73,8 +78,8 @@ app.get("/api/config", (_req, res) => {
   });
 });
 
-app.get("/api/payments", asyncRoute(async (_req, res) => {
-  sendOk(res, await getPayments());
+app.get("/api/payments", asyncRoute(async (req, res) => {
+  sendOk(res, await getPayments(getWalletFilter(req)));
 }));
 
 app.post("/api/payments", asyncRoute(async (req, res) => {
@@ -82,16 +87,16 @@ app.post("/api/payments", asyncRoute(async (req, res) => {
   sendOk(res, await createPayment(body));
 }));
 
-app.get("/api/dashboard", asyncRoute(async (_req, res) => {
-  sendOk(res, await getDashboardStats());
+app.get("/api/dashboard", asyncRoute(async (req, res) => {
+  sendOk(res, await getDashboardStats(getWalletFilter(req)));
 }));
 
-app.get("/api/activity", asyncRoute(async (_req, res) => {
-  sendOk(res, await getActivity());
+app.get("/api/activity", asyncRoute(async (req, res) => {
+  sendOk(res, await getActivity(getWalletFilter(req)));
 }));
 
-app.get("/api/confidential-records", asyncRoute(async (_req, res) => {
-  sendOk(res, await getConfidentialRecords());
+app.get("/api/confidential-records", asyncRoute(async (req, res) => {
+  sendOk(res, await getConfidentialRecords(getWalletFilter(req)));
 }));
 
 app.post("/api/confidential-records/:id/reveal-request", asyncRoute(async (req, res) => {
@@ -100,8 +105,8 @@ app.post("/api/confidential-records/:id/reveal-request", asyncRoute(async (req, 
   sendOk(res, { id });
 }));
 
-app.get("/api/disclosure-access", asyncRoute(async (_req, res) => {
-  sendOk(res, await getDisclosureAccess());
+app.get("/api/disclosure-access", asyncRoute(async (req, res) => {
+  sendOk(res, await getDisclosureAccess(getWalletFilter(req)));
 }));
 
 app.post("/api/disclosure-access", asyncRoute(async (req, res) => {
@@ -115,8 +120,12 @@ app.post("/api/disclosure-access/:id/revoke", asyncRoute(async (req, res) => {
   sendOk(res, { id });
 }));
 
-app.get("/api/audit-trail", asyncRoute(async (_req, res) => {
-  sendOk(res, await getAuditTrail());
+app.get("/api/audit-trail", asyncRoute(async (req, res) => {
+  sendOk(res, await getAuditTrail(getWalletFilter(req)));
+}));
+
+app.get("/api/audit", asyncRoute(async (req, res) => {
+  sendOk(res, await getAuditTrail(getWalletFilter(req)));
 }));
 
 app.post("/api/confidential/payment-intent", (_req, res) => {

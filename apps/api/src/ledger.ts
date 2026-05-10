@@ -29,6 +29,14 @@ const paymentSchema = z.object({
   operation: paymentOperationSchema.optional(),
   status: paymentStatusSchema,
   recipient: z.string().min(1),
+  recipients: z.array(z.string()).optional(),
+  sender: z.string().optional(),
+  owner: z.string().optional(),
+  payer: z.string().optional(),
+  walletAddress: z.string().optional(),
+  createdBy: z.string().optional(),
+  unifiedBalanceOwner: z.string().optional(),
+  batchSender: z.string().optional(),
   recipientLabel: z.string().optional(),
   amount: z.string().min(1),
   amountBase: z.string().min(1),
@@ -57,6 +65,9 @@ const confidentialRecordSchema = z.object({
   id: z.string().min(1),
   paymentId: z.string().min(1),
   commitmentId: z.string().min(1),
+  owner: z.string().optional(),
+  walletAddress: z.string().optional(),
+  createdBy: z.string().optional(),
   disclosureStatus: disclosureStatusSchema,
   authorizedViewers: z.array(z.string()),
   createdAt: z.string().datetime(),
@@ -96,6 +107,14 @@ export const createPaymentSchema = z.object({
   operation: paymentOperationSchema.optional().default("payment"),
   status: paymentStatusSchema,
   recipient: z.string().min(1),
+  recipients: z.array(z.string()).optional().default([]),
+  sender: z.string().optional().default(""),
+  owner: z.string().optional().default(""),
+  payer: z.string().optional().default(""),
+  walletAddress: z.string().optional().default(""),
+  createdBy: z.string().optional().default(""),
+  unifiedBalanceOwner: z.string().optional().default(""),
+  batchSender: z.string().optional().default(""),
   recipientLabel: z.string().optional().default(""),
   amount: z.string().min(1),
   amountBase: z.string().min(1),
@@ -159,6 +178,83 @@ function hasRealTxHash(value?: string) {
     .some((item) => /^0x[a-fA-F0-9]{64}$/.test(item));
 }
 
+function normalizeWallet(value?: string) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function walletValuesMatch(wallet: string | undefined, values: Array<string | undefined>) {
+  const target = normalizeWallet(wallet);
+  if (!target) return true;
+  return values.map(normalizeWallet).some((value) => value === target);
+}
+
+function paymentWalletFields(payment: Pick<LedgerPayment, "sender" | "owner" | "payer" | "walletAddress" | "createdBy" | "unifiedBalanceOwner" | "batchSender" | "recipient" | "recipients">) {
+  return [
+    payment.sender,
+    payment.owner,
+    payment.payer,
+    payment.walletAddress,
+    payment.createdBy,
+    payment.unifiedBalanceOwner,
+    payment.batchSender,
+    payment.recipient,
+    ...(payment.recipients || []),
+  ];
+}
+
+function paymentMatchesWallet(payment: LedgerPayment, wallet?: string) {
+  return walletValuesMatch(wallet, paymentWalletFields(payment));
+}
+
+function recordMatchesWallet(ledger: Ledger, record: Ledger["confidentialRecords"][number], wallet?: string) {
+  if (!wallet) return true;
+  if (walletValuesMatch(wallet, [record.owner, record.walletAddress, record.createdBy, ...record.authorizedViewers])) {
+    return true;
+  }
+
+  const payment = ledger.payments.find((item) => item.id === record.paymentId);
+  return payment ? paymentMatchesWallet(payment, wallet) : false;
+}
+
+function accessMatchesWallet(ledger: Ledger, access: Ledger["disclosureAccess"][number], wallet?: string) {
+  if (!wallet) return true;
+  if (walletValuesMatch(wallet, [access.viewer, access.grantedBy])) return true;
+
+  const record = ledger.confidentialRecords.find((item) => item.id === access.recordId);
+  return record ? recordMatchesWallet(ledger, record, wallet) : false;
+}
+
+function auditMatchesWallet(ledger: Ledger, audit: Ledger["auditTrail"][number], wallet?: string) {
+  if (!wallet) return true;
+  if (walletValuesMatch(wallet, [audit.actor, audit.target])) return true;
+
+  const payment = ledger.payments.find((item) =>
+    [item.id, item.txHash, item.pendingReference, item.paymentId, item.batchId, item.commitmentId]
+      .filter(Boolean)
+      .map(normalizeWallet)
+      .includes(normalizeWallet(audit.target))
+  );
+  if (payment && paymentMatchesWallet(payment, wallet)) return true;
+
+  const record = ledger.confidentialRecords.find((item) => item.id === audit.target || item.commitmentId === audit.target);
+  if (record && recordMatchesWallet(ledger, record, wallet)) return true;
+
+  const access = ledger.disclosureAccess.find((item) => item.id === audit.target || item.recordId === audit.target);
+  return access ? accessMatchesWallet(ledger, access, wallet) : false;
+}
+
+function paymentInputHasWalletOwner(input: LedgerPaymentInput) {
+  return [
+    input.sender,
+    input.owner,
+    input.payer,
+    input.walletAddress,
+    input.createdBy,
+    input.unifiedBalanceOwner,
+    input.batchSender,
+  ].some((value) => Boolean(normalizeWallet(value)));
+}
+
 function assertPaymentIsTruthful(input: LedgerPaymentInput) {
   if (input.status === "settled" && !hasRealTxHash(input.txHash)) {
     throw new Error("Settled payments require a real transaction hash.");
@@ -174,6 +270,10 @@ function assertPaymentIsTruthful(input: LedgerPaymentInput) {
     !String(input.txHash || "").startsWith("pending_")
   ) {
     throw new Error("Pending settlement payments require an explicit pending reference.");
+  }
+
+  if ((input.status !== "failed" || input.txHash || input.pendingReference) && !paymentInputHasWalletOwner(input)) {
+    throw new Error("Payment records require the connected wallet owner address.");
   }
 }
 
@@ -225,6 +325,9 @@ function createConfidentialRecordIfNeeded(ledger: Ledger, payment: LedgerPayment
     id: makeId("rec"),
     paymentId: payment.id,
     commitmentId: payment.commitmentId,
+    owner: payment.owner || payment.sender || payment.payer || payment.walletAddress || payment.createdBy,
+    walletAddress: payment.walletAddress,
+    createdBy: payment.createdBy,
     disclosureStatus: "private",
     authorizedViewers: [],
     createdAt: payment.createdAt,
@@ -252,24 +355,32 @@ function paymentActivityTitle(payment: LedgerPayment) {
   return `${payment.mode === "confidential" ? "Private" : "Open"} payment ${status}`;
 }
 
-export async function getPayments() {
+export async function getPayments(wallet?: string) {
   const ledger = await readLedger();
-  return ledger.payments.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+  return ledger.payments
+    .filter((payment) => paymentMatchesWallet(payment, wallet))
+    .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
 }
 
-export async function getConfidentialRecords() {
+export async function getConfidentialRecords(wallet?: string) {
   const ledger = await readLedger();
-  return ledger.confidentialRecords.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+  return ledger.confidentialRecords
+    .filter((record) => recordMatchesWallet(ledger, record, wallet))
+    .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
 }
 
-export async function getDisclosureAccess() {
+export async function getDisclosureAccess(wallet?: string) {
   const ledger = await readLedger();
-  return ledger.disclosureAccess.sort((a, b) => +new Date(b.grantedAt) - +new Date(a.grantedAt));
+  return ledger.disclosureAccess
+    .filter((access) => accessMatchesWallet(ledger, access, wallet))
+    .sort((a, b) => +new Date(b.grantedAt) - +new Date(a.grantedAt));
 }
 
-export async function getAuditTrail() {
+export async function getAuditTrail(wallet?: string) {
   const ledger = await readLedger();
-  return ledger.auditTrail.sort((a, b) => +new Date(b.timestamp) - +new Date(a.timestamp));
+  return ledger.auditTrail
+    .filter((audit) => auditMatchesWallet(ledger, audit, wallet))
+    .sort((a, b) => +new Date(b.timestamp) - +new Date(a.timestamp));
 }
 
 export async function createPayment(input: LedgerPaymentInput) {
@@ -285,6 +396,9 @@ export async function createPayment(input: LedgerPaymentInput) {
     const id = makeId(input.type === "batch" ? "batch" : "pmt");
     const txHash = input.txHash || input.pendingReference || undefined;
 
+    const recipients = input.recipients || [];
+    const bridgeTxHashes = input.bridgeTxHashes || [];
+
     const payment: LedgerPayment = {
       id,
       type: input.type,
@@ -293,6 +407,14 @@ export async function createPayment(input: LedgerPaymentInput) {
       operation: input.operation === "payment" ? undefined : input.operation,
       status: input.status,
       recipient: input.recipient,
+      recipients: recipients.length > 0 ? recipients : undefined,
+      sender: input.sender || undefined,
+      owner: input.owner || undefined,
+      payer: input.payer || undefined,
+      walletAddress: input.walletAddress || undefined,
+      createdBy: input.createdBy || undefined,
+      unifiedBalanceOwner: input.unifiedBalanceOwner || undefined,
+      batchSender: input.batchSender || undefined,
       recipientLabel: input.recipientLabel || undefined,
       amount: input.amount,
       amountBase: input.amountBase,
@@ -312,7 +434,7 @@ export async function createPayment(input: LedgerPaymentInput) {
       sourceChain: input.sourceChain || undefined,
       destinationChain: input.destinationChain || "Arc Testnet",
       bridgeUsed: input.bridgeUsed || undefined,
-      bridgeTxHashes: input.bridgeTxHashes.length > 0 ? input.bridgeTxHashes : undefined,
+      bridgeTxHashes: bridgeTxHashes.length > 0 ? bridgeTxHashes : undefined,
       settlementNote: input.settlementNote || undefined,
       error: input.error || undefined,
     };
@@ -324,7 +446,7 @@ export async function createPayment(input: LedgerPaymentInput) {
       payment.mode === "confidential"
         ? `${paymentOperationLabel(payment.operation)} recorded`
         : "Open payment recorded",
-      payment.source,
+      payment.owner || payment.sender || payment.payer || payment.walletAddress || payment.createdBy || payment.source,
       payment.txHash || payment.pendingReference || payment.id
     );
 
@@ -389,17 +511,20 @@ export async function revokeAccess(accessId: string) {
   });
 }
 
-export async function getActivity() {
+export async function getActivity(wallet?: string) {
   const ledger = await readLedger();
+  const payments = ledger.payments.filter((payment) => paymentMatchesWallet(payment, wallet));
+  const records = ledger.confidentialRecords.filter((record) => recordMatchesWallet(ledger, record, wallet));
+  const accessRows = ledger.disclosureAccess.filter((access) => accessMatchesWallet(ledger, access, wallet));
   const events = [
-    ...ledger.payments.map((payment) => ({
+    ...payments.map((payment) => ({
       id: `evt_${payment.id}`,
       kind: payment.type === "batch" ? "batch" as const : "payment" as const,
       title: paymentActivityTitle(payment),
       description: payment.txHash || payment.pendingReference || payment.id,
       timestamp: payment.createdAt,
     })),
-    ...ledger.confidentialRecords
+    ...records
       .filter((record) => record.disclosureStatus !== "private")
       .map((record) => ({
         id: `evt_rec_${record.id}`,
@@ -413,7 +538,7 @@ export async function getActivity() {
         description: record.commitmentId,
         timestamp: record.createdAt,
       })),
-    ...ledger.disclosureAccess.map((access) => ({
+    ...accessRows.map((access) => ({
       id: `evt_acc_${access.id}`,
       kind: "access" as const,
       title: access.revoked ? "Access revoked" : "Access granted",
@@ -425,12 +550,13 @@ export async function getActivity() {
   return events.sort((a, b) => +new Date(b.timestamp) - +new Date(a.timestamp));
 }
 
-export async function getDashboardStats() {
+export async function getDashboardStats(wallet?: string) {
   const ledger = await readLedger();
+  const payments = ledger.payments.filter((payment) => paymentMatchesWallet(payment, wallet));
   const today = new Date().toISOString().slice(0, 10);
   const within30d = (iso: string) => Date.now() - new Date(iso).getTime() <= 30 * 24 * 60 * 60 * 1000;
 
-  const volume30d = ledger.payments
+  const volume30d = payments
     .filter((payment) => within30d(payment.createdAt))
     .reduce((sum, payment) => {
       const amount = Number(payment.amount || "0");
@@ -438,12 +564,12 @@ export async function getDashboardStats() {
     }, 0);
 
   return {
-    totalPayments: ledger.payments.length,
-    openPayments: ledger.payments.filter((payment) => payment.mode === "open").length,
-    confidentialPayments: ledger.payments.filter((payment) => payment.mode === "confidential").length,
-    batchPayments: ledger.payments.filter((payment) => payment.type === "batch").length,
-    pendingCount: ledger.payments.filter((payment) => payment.status === "pending_settlement" || payment.status === "pending_veilhub_registration").length,
-    settledToday: ledger.payments.filter((payment) => payment.status === "settled" && payment.createdAt.slice(0, 10) === today).length,
+    totalPayments: payments.length,
+    openPayments: payments.filter((payment) => payment.mode === "open").length,
+    confidentialPayments: payments.filter((payment) => payment.mode === "confidential").length,
+    batchPayments: payments.filter((payment) => payment.type === "batch").length,
+    pendingCount: payments.filter((payment) => payment.status === "pending_settlement" || payment.status === "pending_veilhub_registration").length,
+    settledToday: payments.filter((payment) => payment.status === "settled" && payment.createdAt.slice(0, 10) === today).length,
     volume30d: volume30d.toFixed(4),
   };
 }

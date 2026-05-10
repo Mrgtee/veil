@@ -33,6 +33,14 @@ export interface Payment {
   operation?: PaymentOperation;
   status: PaymentStatus;
   recipient: string;
+  recipients?: string[];
+  sender?: string;
+  owner?: string;
+  payer?: string;
+  walletAddress?: string;
+  createdBy?: string;
+  unifiedBalanceOwner?: string;
+  batchSender?: string;
   recipientLabel?: string;
   amount: string;
   amountBase?: string;
@@ -60,6 +68,9 @@ export interface ConfidentialRecord {
   id: string;
   paymentId: string;
   commitmentId: string;
+  owner?: string;
+  walletAddress?: string;
+  createdBy?: string;
   disclosureStatus: DisclosureStatus;
   authorizedViewers: string[];
   createdAt: string;

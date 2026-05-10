@@ -195,6 +195,7 @@ export default function BatchPayments() {
   }
 
   async function submitArcDirectBatch(cleanRows: BatchRecipientRow[], nextBatchId: `0x${string}`) {
+    if (!address) throw new Error("Wallet is not connected.");
     if (!veilHubSetup.ready) {
       throw new Error(`Arc Direct requires VeilHub setup: ${veilHubSetup.missing.join(", ")}.`);
     }
@@ -227,6 +228,7 @@ export default function BatchPayments() {
       await recordBatchPayment({
         mode: "open",
         source: "arc-direct",
+        walletAddress: address,
         rows: cleanRows,
         txHash: hubResult.txHash,
         batchId: nextBatchId,
@@ -321,6 +323,7 @@ export default function BatchPayments() {
               await recordBatchPayment({
                 mode: "open",
                 source: "unified-balance",
+                walletAddress: address,
                 rows: cleanRows,
                 txHash: settledTxHashes.filter(Boolean).join(",") || undefined,
                 pendingReference: pendingRef,
@@ -344,6 +347,7 @@ export default function BatchPayments() {
           await recordBatchPayment({
             mode: "open",
             source: "unified-balance",
+            walletAddress: address,
             rows: cleanRows,
             txHash: settledTxHashes.join(","),
             veilHubTxHash: veilHubTxHashes.join(",") || undefined,
@@ -369,6 +373,7 @@ export default function BatchPayments() {
       await recordBatchPayment({
         mode: "open",
         source: "unified-balance",
+        walletAddress: address,
         rows: cleanRows,
         txHash: settledTxHashes.filter(Boolean).join(",") || undefined,
         veilHubTxHash: veilHubTxHashes.join(",") || undefined,

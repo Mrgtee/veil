@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useAccount } from "wagmi";
 import {
@@ -17,7 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PaymentDetailsDrawer } from "@/components/veil/PaymentDetailsDrawer";
 import { veilApi } from "@/services/veilApi";
 import type { DashboardStats, Payment, PaymentStatus } from "@/types/veil";
-import type { UnifiedBalanceData } from "@/lib/payments/unifiedBalance";
+import { readUnifiedBalance, type UnifiedBalanceData } from "@/lib/payments/unifiedBalance";
 import { formatAmount, formatRelative } from "@/lib/format";
 import { getPaymentSourceLabel, isUnifiedPaymentSource } from "@/lib/payments/types";
 import { cn } from "@/lib/utils";
@@ -155,29 +155,60 @@ export default function Dashboard() {
   const [unifiedBalance, setUnifiedBalance] = useState<UnifiedBalanceData | null>(null);
   const [balanceStatus, setBalanceStatus] = useState("");
   const [ledgerStatus, setLedgerStatus] = useState("");
+  const balanceRequestRef = useRef(0);
 
-  const loadUnifiedBalance = useCallback(() => {
-    const cached = readUnifiedBalanceCache(address);
+  const loadUnifiedBalance = useCallback(async (showCached = true) => {
+    const requestId = balanceRequestRef.current + 1;
+    balanceRequestRef.current = requestId;
 
-    if (cached) {
-      setUnifiedBalance(cached);
-      setBalanceStatus("Connected wallet");
+    if (!address) {
+      setUnifiedBalance(null);
+      setBalanceStatus("Connect wallet");
       return;
     }
 
-    setUnifiedBalance(null);
-    setBalanceStatus("Open Unified USDC to load");
+    if (showCached) {
+      setUnifiedBalance(null);
+      setBalanceStatus("Loading balance for connected wallet...");
+    }
+
+    const cached = showCached ? readUnifiedBalanceCache(address) : null;
+
+    if (cached) {
+      setUnifiedBalance(cached);
+      setBalanceStatus("Refreshing connected wallet...");
+    }
+
+    try {
+      const latest = await readUnifiedBalance(address);
+      if (balanceRequestRef.current !== requestId) return;
+      setUnifiedBalance(latest);
+      setBalanceStatus("Connected wallet");
+    } catch {
+      if (balanceRequestRef.current !== requestId) return;
+      setUnifiedBalance(cached);
+      setBalanceStatus(cached ? "Connected wallet" : "Open Unified USDC to load");
+    }
   }, [address]);
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadDashboard() {
+      setStats(null);
+      setPayments([]);
+      setActivePayment(null);
+
+      if (!address) {
+        setLedgerStatus("");
+        return;
+      }
+
       try {
         setLedgerStatus("");
         const [nextStats, nextPayments] = await Promise.all([
-          veilApi.getDashboardStats(),
-          veilApi.listPayments(),
+          veilApi.getDashboardStats(address),
+          veilApi.listPayments(address),
         ]);
 
         if (cancelled) return;
@@ -195,10 +226,10 @@ export default function Dashboard() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [address]);
 
   useEffect(() => {
-    loadUnifiedBalance();
+    void loadUnifiedBalance();
   }, [loadUnifiedBalance]);
 
   const recentPayments = useMemo(() => payments.slice(0, 7), [payments]);
@@ -220,7 +251,7 @@ export default function Dashboard() {
                 USDC payments on Arc
               </h1>
               <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-                Send USDC on Arc with VeilHub and Arc Direct. Private Payment is coming soon with Arc Private Kit.
+                Send single or batch USDC payments on Arc
               </p>
             </div>
           </div>
@@ -285,7 +316,7 @@ export default function Dashboard() {
               action={
                 <button
                   type="button"
-                  onClick={loadUnifiedBalance}
+                  onClick={() => void loadUnifiedBalance(false)}
                   className="inline-flex items-center gap-1 text-xs font-medium text-walnut hover:text-espresso"
                 >
                   <RefreshCw className="h-3 w-3" />
@@ -340,7 +371,7 @@ export default function Dashboard() {
               {stats && recentPayments.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-5 py-12 text-center">
-                    <div className="font-medium">No payments yet</div>
+                    <div className="font-medium">No payments yet for this wallet.</div>
                     <div className="mt-1 text-sm text-muted-foreground">Send an Open Payment to start the ledger.</div>
                   </td>
                 </tr>

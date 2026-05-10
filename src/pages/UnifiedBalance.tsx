@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAccount } from "wagmi";
 import { ArrowRight, ExternalLink, RefreshCw, WalletCards } from "lucide-react";
@@ -34,6 +34,7 @@ export default function UnifiedBalance() {
   const [status, setStatus] = useState("");
   const [loadingBalance, setLoadingBalance] = useState(false);
   const [depositing, setDepositing] = useState(false);
+  const balanceRequestRef = useRef(0);
 
   const selectedChain = UNIFIED_BALANCE_SOURCE_CHAINS.find((chain) => chain.value === sourceChain);
   const confirmed = getBalanceNumber(balance, "totalConfirmedBalance");
@@ -42,33 +43,48 @@ export default function UnifiedBalance() {
   const depositSteps = normalizeSteps(depositResult);
   const depositTxHash = getFinalTxHash(depositResult);
 
-  async function loadBalance(showCached = true) {
-    if (!address) return;
+  function formatBalanceValue(value: number) {
+    return value === 0 ? "0.00" : value.toFixed(6);
+  }
+
+  const loadBalance = useCallback(async (showCached = true) => {
+    const requestId = balanceRequestRef.current + 1;
+    balanceRequestRef.current = requestId;
+
+    if (!address) {
+      setBalance(null);
+      setStatus("Connect wallet to load Unified USDC Balance.");
+      return;
+    }
 
     try {
       setLoadingBalance(true);
 
       if (showCached) {
+        setBalance(null);
+        setStatus("Loading balance for connected wallet...");
         const cached = readUnifiedBalanceCache(address);
         if (cached) {
           setBalance(cached);
-          setStatus("Refreshing balance...");
-        } else {
-          setStatus("Loading Unified USDC Balance...");
+          setStatus("Refreshing connected wallet...");
         }
       } else {
         setStatus("Refreshing Unified USDC Balance...");
       }
 
       const latest = await readUnifiedBalance(address);
+      if (balanceRequestRef.current !== requestId) return;
       setBalance(latest);
       setStatus("Balance refreshed.");
     } catch (err) {
+      if (balanceRequestRef.current !== requestId) return;
       setStatus(formatPaymentError(err, "Unable to load Unified USDC Balance."));
     } finally {
-      setLoadingBalance(false);
+      if (balanceRequestRef.current === requestId) {
+        setLoadingBalance(false);
+      }
     }
-  }
+  }, [address]);
 
   async function handleSourceChainChange(nextValue: SourceChainValue) {
     setSourceChain(nextValue);
@@ -111,10 +127,13 @@ export default function UnifiedBalance() {
   }
 
   useEffect(() => {
+    setBalance(null);
+    setDepositResult(null);
+
     if (address) {
-      loadBalance();
+      void loadBalance();
     }
-  }, [address]);
+  }, [address, loadBalance]);
 
   return (
     <div className="space-y-6">
@@ -138,7 +157,7 @@ export default function UnifiedBalance() {
             <div>
               <h2 className="text-lg font-medium">Your balance</h2>
               <p className="text-sm text-muted-foreground">
-                This balance is read from the globally connected wallet.
+                This balance is read from the connected wallet.
               </p>
             </div>
 
@@ -156,13 +175,13 @@ export default function UnifiedBalance() {
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-lg border p-4">
               <div className="text-xs text-muted-foreground">Confirmed</div>
-              <div className="mt-1 text-2xl font-semibold tabular-nums">{confirmed.toFixed(6)}</div>
+              <div className="mt-1 text-2xl font-semibold tabular-nums">{formatBalanceValue(confirmed)}</div>
               <div className="text-xs text-muted-foreground">USDC spendable now</div>
             </div>
 
             <div className="rounded-lg border p-4">
               <div className="text-xs text-muted-foreground">Pending</div>
-              <div className="mt-1 text-2xl font-semibold tabular-nums">{pending.toFixed(6)}</div>
+              <div className="mt-1 text-2xl font-semibold tabular-nums">{formatBalanceValue(pending)}</div>
               <div className="text-xs text-muted-foreground">Waiting to confirm</div>
             </div>
           </div>

@@ -21,6 +21,7 @@ export function getLedgerSource(source: PaymentSource) {
 export async function recordSinglePayment(input: {
   mode: PaymentMode;
   source: PaymentSource;
+  walletAddress: string;
   recipient: string;
   recipientLabel?: string;
   amount: string;
@@ -37,6 +38,21 @@ export async function recordSinglePayment(input: {
   error?: string;
 }) {
   const amountBase = input.amountBase || parseUnits(input.amount, input.decimals ?? 6).toString();
+  const ownerFields =
+    input.source === "unified-balance"
+      ? {
+          owner: input.walletAddress,
+          walletAddress: input.walletAddress,
+          createdBy: input.walletAddress,
+          unifiedBalanceOwner: input.walletAddress,
+        }
+      : {
+          sender: input.walletAddress,
+          payer: input.walletAddress,
+          owner: input.walletAddress,
+          walletAddress: input.walletAddress,
+          createdBy: input.walletAddress,
+        };
 
   return await veilApi.recordPayment({
     type: "single",
@@ -44,6 +60,7 @@ export async function recordSinglePayment(input: {
     source: getLedgerSource(input.source),
     status: input.status || "settled",
     recipient: input.recipient,
+    ...ownerFields,
     recipientLabel: input.recipientLabel,
     amount: input.amount || displayAmountFromBase(amountBase, input.decimals),
     amountBase,
@@ -66,6 +83,7 @@ export async function recordSinglePayment(input: {
 export async function recordBatchPayment(input: {
   mode: PaymentMode;
   source: PaymentSource;
+  walletAddress: string;
   rows: Array<{ recipient: string; amount: string; memo?: string; recipientLabel?: string }>;
   txHash?: string;
   pendingReference?: string;
@@ -85,12 +103,32 @@ export async function recordBatchPayment(input: {
       .reduce((sum, row) => sum + parseUnits(row.amount, decimals), 0n)
       .toString();
 
+  const ownerFields =
+    input.source === "unified-balance"
+      ? {
+          owner: input.walletAddress,
+          walletAddress: input.walletAddress,
+          createdBy: input.walletAddress,
+          unifiedBalanceOwner: input.walletAddress,
+          batchSender: input.walletAddress,
+        }
+      : {
+          sender: input.walletAddress,
+          payer: input.walletAddress,
+          owner: input.walletAddress,
+          walletAddress: input.walletAddress,
+          createdBy: input.walletAddress,
+          batchSender: input.walletAddress,
+        };
+
   return await veilApi.recordPayment({
     type: "batch",
     mode: input.mode,
     source: getLedgerSource(input.source),
     status: input.status || "settled",
     recipient: `${input.rows.length} recipients`,
+    recipients: input.rows.map((row) => row.recipient),
+    ...ownerFields,
     recipientLabel: `${input.rows.length} recipients`,
     amount: displayAmountFromBase(amountBase, decimals),
     amountBase,

@@ -178,6 +178,7 @@ async function recordLedger(artifact, txHash) {
 
   const isTransfer = artifact.kind === "transfer";
   const p = artifact.publicInputs;
+  const ownerAddress = isTransfer ? p.senderAddress : p.ownerAddress;
   const body = {
     type: "single",
     mode: "confidential",
@@ -185,6 +186,11 @@ async function recordLedger(artifact, txHash) {
     operation: isTransfer ? "shield_transfer" : "shield_withdraw",
     status: "settled",
     recipient: isTransfer ? p.recipientAddress : p.recipientAddress,
+    sender: isTransfer ? ownerAddress : undefined,
+    owner: ownerAddress,
+    payer: ownerAddress,
+    walletAddress: ownerAddress,
+    createdBy: ownerAddress,
     recipientLabel: isTransfer ? "VeilShield recipient" : "VeilShield withdrawal recipient",
     amount: isTransfer ? "hidden" : amountBaseToDisplay(p.withdrawAmountBase),
     amountBase: isTransfer ? "0" : p.withdrawAmountBase,
