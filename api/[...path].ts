@@ -12,7 +12,7 @@ import {
   grantAccessSchema,
   requestReveal,
   revokeAccess,
-} from "../apps/api/src/ledger";
+} from "../apps/api/src/ledger.js";
 
 type QueryValue = string | string[] | undefined;
 
