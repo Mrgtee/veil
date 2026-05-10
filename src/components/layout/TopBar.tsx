@@ -48,7 +48,7 @@ export function TopBar() {
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="start" className="w-64">
-              <DropdownMenuLabel>Veil workspace</DropdownMenuLabel>
+              <DropdownMenuLabel>Veilarc workspace</DropdownMenuLabel>
               <DropdownMenuSeparator />
 
               {mobileNav.map((item) => {

@@ -20,7 +20,7 @@ export const ARC_CHAIN = {
 
 export function getInjectedProvider() {
   if (!window.ethereum) {
-    throw new Error("No wallet detected. Open Veil inside MetaMask, Rabby, Rainbow, OKX Wallet, or another EVM wallet browser.");
+    throw new Error("No wallet detected. Open Veilarc inside MetaMask, Rabby, Rainbow, OKX Wallet, or another EVM wallet browser.");
   }
 
   return window.ethereum;

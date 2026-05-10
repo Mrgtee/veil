@@ -11,7 +11,7 @@ export function AppShell() {
     return (
       <div className="grid min-h-screen place-items-center bg-background px-6 text-center">
         <div>
-          <div className="font-display text-2xl text-foreground">Opening Veil</div>
+          <div className="font-display text-2xl text-foreground">Opening Veilarc</div>
           <div className="mt-2 text-sm text-muted-foreground">Checking wallet connection.</div>
         </div>
       </div>

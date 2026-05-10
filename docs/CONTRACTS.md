@@ -1,10 +1,12 @@
 # Contracts
 
+The user-facing app brand is Veilarc. The deployed contract names remain `VeilHub` and `VeilShield`; existing addresses and ABI references are unchanged.
+
 ## VeilHub
 
 File: `contracts/src/VeilHub.sol`
 
-VeilHub is the main on-chain identity for open Veil payments on Arc. The frontend Arc Direct flow is wired to this contract and does not use retired native-transfer, vault, or batch-payout fallbacks.
+VeilHub is the main on-chain identity for open Veilarc payments on Arc. The frontend Arc Direct flow is wired to this contract and does not use retired native-transfer, vault, or batch-payout fallbacks.
 
 Features:
 

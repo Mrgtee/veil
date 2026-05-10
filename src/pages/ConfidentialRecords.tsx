@@ -35,7 +35,7 @@ export default function ConfidentialRecords() {
       .catch((err) => {
         if (cancelled) return;
         setRecords([]);
-        setStatus(err instanceof Error ? err.message : "Veil API ledger is unavailable.");
+        setStatus(err instanceof Error ? err.message : "Veilarc API ledger is unavailable.");
       });
 
     return () => {
@@ -50,7 +50,7 @@ export default function ConfidentialRecords() {
       setRecords((rs) => rs.map((r) => r.id === id ? { ...r, disclosureStatus: "requested" } : r));
       toast.success("Reveal request submitted", { description: "An authorizer will review shortly." });
     } catch (err) {
-      toast.error("Reveal request failed", { description: err instanceof Error ? err.message : "Veil API ledger is unavailable." });
+      toast.error("Reveal request failed", { description: err instanceof Error ? err.message : "Veilarc API ledger is unavailable." });
     } finally {
       setLoading(null);
     }
@@ -70,7 +70,7 @@ export default function ConfidentialRecords() {
           <div className="text-sm">
             <div className="font-medium">Coming soon with Arc Private Kit.</div>
             <p className="text-muted-foreground text-xs mt-0.5">
-              Veil is preparing native Arc privacy support. Open payments are live today.
+              Veilarc is preparing native Arc privacy support. Open payments are live today.
             </p>
           </div>
         </div>

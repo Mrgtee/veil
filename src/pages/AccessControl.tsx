@@ -52,7 +52,7 @@ export default function AccessControl() {
       setRecords([]);
       setAccess([]);
       setAudit([]);
-      setStatus(err instanceof Error ? err.message : "Veil API ledger is unavailable.");
+      setStatus(err instanceof Error ? err.message : "Veilarc API ledger is unavailable.");
     }
   }
 
@@ -70,7 +70,7 @@ export default function AccessControl() {
       toast.success("Access granted", { description: `${viewer} can now view ${selected.commitmentId}` });
       setOpen(false); setViewer("");
     } catch (err) {
-      toast.error("Access grant failed", { description: err instanceof Error ? err.message : "Veil API ledger is unavailable." });
+      toast.error("Access grant failed", { description: err instanceof Error ? err.message : "Veilarc API ledger is unavailable." });
     }
   };
 
@@ -81,7 +81,7 @@ export default function AccessControl() {
       await veilApi.listAuditTrail(address).then(setAudit);
       toast.success("Access revoked");
     } catch (err) {
-      toast.error("Access revoke failed", { description: err instanceof Error ? err.message : "Veil API ledger is unavailable." });
+      toast.error("Access revoke failed", { description: err instanceof Error ? err.message : "Veilarc API ledger is unavailable." });
     }
   };
 

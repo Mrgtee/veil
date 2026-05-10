@@ -15,11 +15,11 @@ export function VeilLogo({
         className
       )}
       style={{ width: size, height: size }}
-      aria-label="Veil"
+      aria-label="Veilarc"
     >
       <img
         src={veilLogo}
-        alt="Veil"
+        alt="Veilarc"
         className="block object-contain"
         style={{
           width: size * 0.86,
@@ -39,7 +39,7 @@ export function VeilWordmark({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
     <div className="inline-flex items-center gap-2.5">
       <VeilLogo size={sz} />
       <span className={cn("font-display tracking-tight font-medium text-foreground", text)}>
-        Veil
+        Veilarc
       </span>
     </div>
   );

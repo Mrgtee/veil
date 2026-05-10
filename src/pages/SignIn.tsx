@@ -42,7 +42,7 @@ export default function SignIn() {
 
           <div className="surface-card mx-auto w-full max-w-md p-5 sm:p-6">
             <div className="space-y-2">
-              <h2 className="font-display text-2xl font-semibold">Enter Veil</h2>
+              <h2 className="font-display text-2xl font-semibold">Enter Veilarc</h2>
               <p className="text-sm text-muted-foreground">
                 Connect your wallet to open the payment workspace.
               </p>

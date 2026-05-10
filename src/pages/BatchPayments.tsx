@@ -565,7 +565,7 @@ export default function BatchPayments() {
             <div className="rounded-lg border border-confidential/30 bg-confidential-soft/60 p-3 text-sm">
               <div className="font-medium">Coming soon with Arc Private Kit.</div>
               <p className="mt-1 text-muted-foreground">
-                Veil is preparing native Arc privacy support. Open payments are live today.
+                Veilarc is preparing native Arc privacy support. Open payments are live today.
               </p>
               <p className="mt-2 text-xs text-muted-foreground">
                 Visible transfers are blocked as private payments.

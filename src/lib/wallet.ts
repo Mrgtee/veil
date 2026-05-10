@@ -6,7 +6,7 @@ export const walletConnectProjectId =
   import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || "00000000000000000000000000000000";
 
 export const wagmiConfig = getDefaultConfig({
-  appName: "Veil",
+  appName: "Veilarc",
   projectId: walletConnectProjectId,
   chains: [arcTestnet] as const,
   transports: {

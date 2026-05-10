@@ -1,11 +1,11 @@
 # Architecture
 
-Veil has four layers:
+Veilarc has four layers:
 
 1. Vite React wallet app
 2. API-owned temporary testnet ledger
 3. Arc contracts for VeilHub identity and experimental privacy research
-4. Future database/indexer infrastructure for production truth
+4. Future Supabase/Postgres and indexer infrastructure for production truth
 
 ## Frontend
 
@@ -87,7 +87,7 @@ Safety requirements before implementing escrow:
 - Partial distribution must be avoided or explicitly modeled with recoverable state.
 - Tests must cover mismatched totals, invalid recipients, zero amounts, expired batches, duplicate batch IDs, failed transfers, pause/refund behavior, and ledger/indexer reconciliation.
 
-Veil should not implement this escrow path until the contract design and tests are complete.
+Veilarc should not implement this escrow path until the contract design and tests are complete.
 
 ## API Ledger
 
@@ -113,7 +113,7 @@ Ledger operations:
 - `shield_transfer`
 - `shield_withdraw`
 
-Production direction is a database/indexer stack with VeilHub event indexing and Arc Private Kit event/indexing integration when user-facing private payments are live.
+Production direction is a Supabase/Postgres API ledger plus an indexer stack with VeilHub event indexing and Arc Private Kit event/indexing integration when user-facing private payments are live. The migration plan is documented in `docs/DURABLE_STORAGE_PLAN.md`.
 
 ## Private Payment Positioning
 

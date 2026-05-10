@@ -1,13 +1,17 @@
-# Veil
+# Veilarc
 
-Veil is an Arc-based USDC payment workspace for live Open Payments and upcoming native Arc private payments.
+Veilarc is an Arc-based USDC payment workspace for live Open Payments and upcoming native Arc private payments.
+
+Product line: Open payments today. Private payments soon.
+
+Domain direction: `veilarc.xyz`
 
 Users choose both a payment mode and a payment source before sending:
 
 1. Open Payment or Private Payment
 2. Arc Direct or Unified USDC Balance
 
-Open Payment is visible USDC settlement on Arc. Private Payment is currently positioned as "Coming soon with Arc Private Kit." Veil is preparing native Arc privacy integration for hidden/private payment support and does not treat hidden memos, labels, private names, UI-only records, or visible ERC20 transfers as private settlement.
+Open Payment is visible USDC settlement on Arc. Private Payment is currently positioned as "Coming soon with Arc Private Kit." Veilarc is preparing native Arc privacy integration for hidden/private payment support and does not treat hidden memos, labels, private names, UI-only records, or visible ERC20 transfers as private settlement.
 
 ## Why Arc
 
@@ -38,6 +42,8 @@ Production direction:
 - VeilShield event indexing only for experimental research records if that layer continues beyond prototype work
 - reconciliation between API records, Arc transactions, and indexed contract events
 
+See `docs/DURABLE_STORAGE_PLAN.md` for the Supabase/Postgres ledger and indexing migration plan.
+
 `localStorage` is only used for harmless wallet/session or Unified USDC Balance display cache, not payment truth.
 
 ## Wallet Connection
@@ -52,9 +58,9 @@ Open Payment sends visible USDC on Arc. Sender, recipient, token, and amount are
 
 ### Private Payment
 
-Private Payment is not user-facing yet. The app shows "Coming soon with Arc Private Kit." Veil will prioritize Arc's native privacy kit for hidden/private payment support.
+Private Payment is not user-facing yet. The app shows "Coming soon with Arc Private Kit." Veilarc will prioritize Arc's native privacy kit for hidden/private payment support.
 
-A normal ERC20 transfer cannot hide amount, so Veil does not ship fake privacy. Until the native Arc private-payment stack is available, wired, tested, and audited, the frontend blocks Private Payment submission.
+A normal ERC20 transfer cannot hide amount, so Veilarc does not ship fake privacy. Until the native Arc private-payment stack is available, wired, tested, and audited, the frontend blocks Private Payment submission.
 
 ### Experimental Research / Developer Preview
 
@@ -84,7 +90,7 @@ When configured, the frontend reads USDC decimals, checks wallet balance and all
 
 Unified USDC Balance uses Circle AppKit in the browser with the connected wallet. Backend-managed wallets are not used for user-facing deposit, balance, or spend.
 
-If a Unified USDC Balance spend succeeds and VeilHub is configured, Veil records the payment and registers a VeilHub reference. If VeilHub is missing or registration fails after spend, Veil records `pending_veilhub_registration`. If balance is deducted but final settlement is delayed, Veil records `pending_settlement`. If balance is not deducted, Veil does not record success.
+If a Unified USDC Balance spend succeeds and VeilHub is configured, Veilarc records the payment and registers a VeilHub reference. If VeilHub is missing or registration fails after spend, Veilarc records `pending_veilhub_registration`. If balance is deducted but final settlement is delayed, Veilarc records `pending_settlement`. If balance is not deducted, Veilarc does not record success.
 
 ## Batch Payments
 
@@ -95,6 +101,8 @@ Batch Payments use form rows as the main UX. Users add/remove recipients, review
 Dashboard and History read from the API ledger. They show settled, failed, pending settlement, and pending VeilHub registration states. Payment details expose transaction hashes, pending references, source, mode, and settlement notes.
 
 ## Contract Architecture
+
+The app brand is Veilarc. The deployed contract names remain `VeilHub` and `VeilShield`; those names are part of the current on-chain deployment and should not be renamed without a new deployment plan.
 
 - `contracts/src/VeilHub.sol`: main on-chain identity for open ERC20 USDC payments on Arc. It routes single/batch payments, records Unified USDC Balance references, emits `bytes32` IDs, and uses SafeERC20, ReentrancyGuard, Pausable, and Ownable patterns.
 - `contracts/src/VeilShield.sol`: experimental testnet-only hidden-amount architecture with deposits, note commitments, nullifiers, proof hooks, and withdrawals.
@@ -206,7 +214,7 @@ Run `forge test` only when Foundry is installed.
 
 ### Vercel Preview Deployment
 
-Veil can be deployed to Vercel as a Vite frontend with serverless API routes under `/api`. In production builds, the frontend uses same-origin API calls when `VITE_API_BASE_URL` is not set.
+Veilarc can be deployed to Vercel as a Vite frontend with serverless API routes under `/api`. In production builds, the frontend uses same-origin API calls when `VITE_API_BASE_URL` is not set.
 
 The checked-in `vercel.json` configures the public Arc Testnet values for the current VeilHub deployment. Add a real `VITE_WALLETCONNECT_PROJECT_ID` in the Vercel project settings for WalletConnect and mobile wallet support.
 

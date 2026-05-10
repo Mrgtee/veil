@@ -292,7 +292,7 @@ export function PaymentDetailsDrawer({
               </div>
 
               <p className="mt-2 text-sm text-muted-foreground">
-                Coming soon with Arc Private Kit. Veil is preparing native Arc privacy integration for user-facing
+                Coming soon with Arc Private Kit. Veilarc is preparing native Arc privacy integration for user-facing
                 hidden/private payment support; experimental research records do not make private payments live.
               </p>
 

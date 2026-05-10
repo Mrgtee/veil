@@ -48,7 +48,7 @@ export default function Settings() {
       <SectionHeader
         eyebrow="Workspace"
         title="Settings"
-        description="Live configuration for this Veil session."
+        description="Live configuration for this Veilarc session."
       />
 
       <div className="grid gap-4 lg:grid-cols-2">

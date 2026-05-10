@@ -4,6 +4,8 @@
 
 VeilHub is deployed on Arc Testnet and is the required on-chain route for Arc Direct Open Payments. User-facing Private Payment is coming soon with Arc Private Kit; VeilShield is not the normal private-payment path.
 
+The user-facing app brand is Veilarc, but the deployed contract names and addresses below remain unchanged.
+
 | Item | Value |
 | --- | --- |
 | Chain | Arc Testnet |
@@ -60,7 +62,7 @@ VEIL_LEDGER_PATH=./data/veil-ledger.json
 
 ## Vercel Preview Deployment
 
-Veil includes a Vercel configuration for preview hosting:
+Veilarc includes a Vercel configuration for preview hosting:
 
 - Vite builds to `dist`.
 - React Router routes rewrite to `index.html`.

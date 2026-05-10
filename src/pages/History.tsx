@@ -161,7 +161,7 @@ export default function History() {
       })
       .catch((err) => {
         if (cancelled) return;
-        setLedgerStatus(err instanceof Error ? err.message : "Veil API ledger is unavailable.");
+        setLedgerStatus(err instanceof Error ? err.message : "Veilarc API ledger is unavailable.");
         setPayments([]);
         setLoading(false);
       });

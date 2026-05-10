@@ -86,7 +86,7 @@ async function request<T>(path: string, init?: RequestInit, options: RequestOpti
       });
     } catch (err) {
       const detail = err instanceof Error && err.message ? ` ${err.message}` : "";
-      lastError = new Error(`Veil API is unavailable at ${APP_API_BASE}.${detail}`);
+      lastError = new Error(`Veilarc API is unavailable at ${APP_API_BASE}.${detail}`);
 
       if (attempt < retries) {
         await wait(300 * (attempt + 1));
@@ -102,7 +102,7 @@ async function request<T>(path: string, init?: RequestInit, options: RequestOpti
       return payload.data as T;
     }
 
-    lastError = new Error(payload?.error || `Veil API request failed with HTTP ${response.status}.`);
+    lastError = new Error(payload?.error || `Veilarc API request failed with HTTP ${response.status}.`);
 
     if (response.status >= 500 && attempt < retries) {
       await wait(300 * (attempt + 1));
@@ -112,7 +112,7 @@ async function request<T>(path: string, init?: RequestInit, options: RequestOpti
     throw lastError;
   }
 
-  throw lastError || new Error("Veil API request failed.");
+  throw lastError || new Error("Veilarc API request failed.");
 }
 
 export const veilApi = {

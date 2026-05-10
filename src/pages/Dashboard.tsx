@@ -216,7 +216,7 @@ export default function Dashboard() {
         setPayments(nextPayments as ExtendedPayment[]);
       } catch (err) {
         if (cancelled) return;
-        setLedgerStatus(err instanceof Error ? err.message : "Veil API ledger is unavailable.");
+        setLedgerStatus(err instanceof Error ? err.message : "Veilarc API ledger is unavailable.");
         setStats(null);
         setPayments([]);
       }

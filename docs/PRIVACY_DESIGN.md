@@ -4,11 +4,11 @@
 
 An ERC20 transfer emits public `Transfer(from, to, amount)` data. Anyone can read the sender, recipient, token, and amount from logs and state changes. A native-value transfer similarly exposes value in the transaction. Hiding a memo, label, invoice reference, or UI text does not hide the payment amount onchain.
 
-For that reason, Veil does not call a visible transfer a Private Payment.
+For that reason, Veilarc does not call a visible transfer a Private Payment.
 
 ## Current Product Positioning
 
-User-facing Private Payment is coming soon with Arc Private Kit. Veil is preparing native Arc privacy integration for hidden/private payment support and will not ship fake privacy while that stack is pending.
+User-facing Private Payment is coming soon with Arc Private Kit. Veilarc is preparing native Arc privacy integration for hidden/private payment support and will not ship fake privacy while that stack is pending.
 
 VeilShield remains an experimental developer-preview and research layer. Its deployed Arc Testnet contracts and Noir circuits are useful for studying amount-hiding mechanics, but they are not the current user-facing Private Payment path.
 
@@ -20,7 +20,7 @@ Private Payment means:
 - recipient remains visible
 - amount is hidden onchain during the private transfer
 
-This is different from anonymous payments. Veil's target privacy model is amount confidentiality with visible counterparties.
+This is different from anonymous payments. Veilarc's target privacy model is amount confidentiality with visible counterparties.
 
 ## Experimental VeilShield Model
 

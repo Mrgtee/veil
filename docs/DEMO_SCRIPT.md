@@ -1,8 +1,8 @@
 # 3-Minute Townhall Demo Script
 
-## 0:00-0:30 - Open Veil
+## 0:00-0:30 - Open Veilarc
 
-"Veil is an Arc-based USDC payment workspace. Users connect one wallet globally, then choose payment mode and payment source before sending."
+"Veilarc is an Arc-based USDC payment workspace. Users connect one wallet globally, then choose payment mode and payment source before sending."
 
 Show the top bar wallet and mobile menu.
 Mention that Dashboard and History now read from the API-owned testnet ledger, not browser payment storage.
@@ -27,6 +27,6 @@ Open Batch Payments, add a second row, show total, then open History and point o
 
 ## 2:30-3:00 - Private Payment Architecture
 
-"Private Payment means the amount is hidden onchain, not just hidden in the UI. Normal ERC20 transfers cannot do that. Veil now shows Coming soon with Arc Private Kit, and it blocks visible transfers from pretending to be private payments."
+"Private Payment means the amount is hidden onchain, not just hidden in the UI. Normal ERC20 transfers cannot do that. Veilarc now shows Coming soon with Arc Private Kit, and it blocks visible transfers from pretending to be private payments."
 
 Open Private Records or Privacy Design docs and end with the roadmap to native Arc privacy integration. Mention VeilShield only as experimental research, not the user-facing private payment path.
