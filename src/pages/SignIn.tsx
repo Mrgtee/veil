@@ -26,16 +26,16 @@ export default function SignIn() {
 
             <div className="max-w-2xl space-y-4">
               <h1 className="font-display text-4xl font-semibold leading-tight sm:text-5xl">
-                Open and private-ready USDC payments on Arc.
+                Open and private USDC payments on Arc.
               </h1>
               <p className="max-w-xl text-base leading-7 text-muted-foreground">
-                Send single or batch payments with Arc Direct, Unified USDC, and VeilHub tracking.
+                Send single or batch payments.
               </p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3">
               <FeatureCard icon={<Send className="h-4 w-4" />} title="Arc Direct" text="Live through VeilHub." />
-              <FeatureCard icon={<WalletCards className="h-4 w-4" />} title="Unified USDC" text="Wallet-owned balance." />
+              <FeatureCard icon={<WalletCards className="h-4 w-4" />} title="Unified USDC" text="Supports Circle unified USDC." />
               <FeatureCard icon={<Lock className="h-4 w-4" />} title="Private payments" text="Coming soon." />
             </div>
           </div>
