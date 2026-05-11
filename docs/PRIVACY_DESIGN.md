@@ -133,7 +133,7 @@ Hidden transfers and withdrawals can be submitted only from the local developer 
 
 - Integrate Arc Private Kit once the native Arc privacy stack is available.
 - Build user-facing status, indexing, and history around Arc-native private payment events.
-- Replace the JSON ledger with production database/indexer infrastructure before mainnet.
+- Keep Supabase/Postgres as the production API ledger and add event indexing before mainnet.
 - Complete a formal threat model and external security audit.
 - Keep VeilShield research isolated unless it is explicitly revisited after audits.
 

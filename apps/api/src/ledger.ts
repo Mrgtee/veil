@@ -147,6 +147,19 @@ export const grantAccessSchema = z.object({
 export type Ledger = z.infer<typeof ledgerSchema>;
 export type LedgerPayment = z.infer<typeof paymentSchema>;
 export type LedgerPaymentInput = z.infer<typeof createPaymentSchema>;
+type LedgerBackend = "json" | "supabase";
+
+type SupabaseConfig = {
+  url: string;
+  serviceRoleKey: string;
+};
+
+const supabasePayloadRowSchema = z.object({
+  payload: z.unknown(),
+});
+
+const supabasePayloadRowsSchema = z.array(supabasePayloadRowSchema);
+const SUPABASE_PAGE_SIZE = 1000;
 
 function defaultLedger(): Ledger {
   return {
@@ -162,6 +175,50 @@ function ledgerPath() {
   if (process.env.VEIL_LEDGER_PATH) return process.env.VEIL_LEDGER_PATH;
   if (process.env.VERCEL) return "/tmp/veil-ledger.json";
   return path.join(process.cwd(), "data", "veil-ledger.json");
+}
+
+function requestedLedgerBackend(): LedgerBackend {
+  const requested = String(process.env.VEIL_LEDGER_BACKEND || "").trim().toLowerCase();
+  if (requested === "supabase") return "supabase";
+  if (requested === "json") return "json";
+  return process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY ? "supabase" : "json";
+}
+
+function isSupabaseLedgerEnabled() {
+  return requestedLedgerBackend() === "supabase";
+}
+
+function getSupabaseConfig(): SupabaseConfig {
+  const url = String(process.env.SUPABASE_URL || "").trim().replace(/\/$/, "");
+  const serviceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
+
+  if (!url || !serviceRoleKey) {
+    throw new Error("Supabase ledger requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.");
+  }
+
+  return { url, serviceRoleKey };
+}
+
+export function getLedgerBackendInfo() {
+  if (isSupabaseLedgerEnabled()) {
+    const configured = Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+    return {
+      model: "supabase-postgres-ledger",
+      configured,
+      durable: configured,
+      productionReady: configured,
+      productionDirection: "Supabase/Postgres ledger with VeilHub event indexing and Arc Private Kit integration",
+    };
+  }
+
+  return {
+    model: process.env.VERCEL ? "temporary-vercel-preview-json-ledger" : "temporary-testnet-json-ledger",
+    configured: true,
+    durable: false,
+    productionReady: false,
+    productionDirection: "Supabase/Postgres ledger with VeilHub event indexing and Arc Private Kit integration",
+  };
 }
 
 function nowIso() {
@@ -188,6 +245,10 @@ function walletValuesMatch(wallet: string | undefined, values: Array<string | un
   const target = normalizeWallet(wallet);
   if (!target) return true;
   return values.map(normalizeWallet).some((value) => value === target);
+}
+
+function uniqueWalletScope(values: Array<string | undefined>) {
+  return Array.from(new Set(values.map(normalizeWallet).filter(Boolean)));
 }
 
 function paymentWalletFields(payment: Pick<LedgerPayment, "sender" | "owner" | "payer" | "walletAddress" | "createdBy" | "unifiedBalanceOwner" | "batchSender" | "recipient" | "recipients">) {
@@ -280,6 +341,8 @@ function assertPaymentIsTruthful(input: LedgerPaymentInput) {
 }
 
 async function readLedger(): Promise<Ledger> {
+  if (isSupabaseLedgerEnabled()) return await readSupabaseLedger();
+
   try {
     const raw = await readFile(ledgerPath(), "utf8");
     return ledgerSchema.parse(JSON.parse(raw));
@@ -293,6 +356,11 @@ async function readLedger(): Promise<Ledger> {
 }
 
 async function writeLedger(ledger: Ledger) {
+  if (isSupabaseLedgerEnabled()) {
+    await writeSupabaseLedger(ledger);
+    return;
+  }
+
   const parsed = ledgerSchema.parse(ledger);
   const file = ledgerPath();
   const dir = path.dirname(file);
@@ -301,6 +369,127 @@ async function writeLedger(ledger: Ledger) {
   await mkdir(dir, { recursive: true });
   await writeFile(tmp, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
   await rename(tmp, file);
+}
+
+function supabaseHeaders(prefer?: string) {
+  const { serviceRoleKey } = getSupabaseConfig();
+  return {
+    apikey: serviceRoleKey,
+    authorization: `Bearer ${serviceRoleKey}`,
+    "content-type": "application/json",
+    ...(prefer ? { prefer } : {}),
+  };
+}
+
+async function supabaseRequest<T>(pathAndQuery: string, init: RequestInit = {}): Promise<T> {
+  const { url } = getSupabaseConfig();
+  const response = await fetch(`${url}/rest/v1/${pathAndQuery}`, {
+    ...init,
+    headers: {
+      ...supabaseHeaders(),
+      ...(init.headers || {}),
+    },
+  });
+
+  const payload = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`Supabase ledger request failed with HTTP ${response.status}: ${payload || response.statusText}`);
+  }
+
+  if (!payload) return undefined as T;
+  return JSON.parse(payload) as T;
+}
+
+async function readSupabasePayloads<T>(table: string, schema: z.ZodType<T>) {
+  const rows: Array<z.infer<typeof supabasePayloadRowSchema>> = [];
+
+  for (let offset = 0; ; offset += SUPABASE_PAGE_SIZE) {
+    const page = supabasePayloadRowsSchema.parse(
+      await supabaseRequest<unknown>(`${table}?select=payload&limit=${SUPABASE_PAGE_SIZE}&offset=${offset}`)
+    );
+
+    rows.push(...page);
+
+    if (page.length < SUPABASE_PAGE_SIZE) break;
+  }
+
+  return rows.map((row) => schema.parse(row.payload));
+}
+
+async function readSupabaseLedger(): Promise<Ledger> {
+  const [payments, confidentialRecords, disclosureAccess, auditTrail] = await Promise.all([
+    readSupabasePayloads("veil_payments", paymentSchema),
+    readSupabasePayloads("veil_confidential_records", confidentialRecordSchema),
+    readSupabasePayloads("veil_disclosure_access", disclosureAccessSchema),
+    readSupabasePayloads("veil_audit_events", auditEventSchema),
+  ]);
+
+  return ledgerSchema.parse({
+    version: 1,
+    payments,
+    confidentialRecords,
+    disclosureAccess,
+    auditTrail,
+  });
+}
+
+async function upsertSupabaseRows(table: string, rows: unknown[]) {
+  if (rows.length === 0) return;
+
+  for (let offset = 0; offset < rows.length; offset += SUPABASE_PAGE_SIZE) {
+    await supabaseRequest(`${table}?on_conflict=id`, {
+      method: "POST",
+      headers: supabaseHeaders("resolution=merge-duplicates"),
+      body: JSON.stringify(rows.slice(offset, offset + SUPABASE_PAGE_SIZE)),
+    });
+  }
+}
+
+async function writeSupabaseLedger(ledger: Ledger) {
+  const parsed = ledgerSchema.parse(ledger);
+
+  await Promise.all([
+    upsertSupabaseRows(
+      "veil_payments",
+      parsed.payments.map((payment) => ({
+        id: payment.id,
+        external_id: payment.externalId || null,
+        created_at: payment.createdAt,
+        wallet_scope: uniqueWalletScope(paymentWalletFields(payment)),
+        payload: payment,
+      }))
+    ),
+    upsertSupabaseRows(
+      "veil_confidential_records",
+      parsed.confidentialRecords.map((record) => ({
+        id: record.id,
+        payment_id: record.paymentId,
+        created_at: record.createdAt,
+        wallet_scope: uniqueWalletScope([record.owner, record.walletAddress, record.createdBy, ...record.authorizedViewers]),
+        payload: record,
+      }))
+    ),
+    upsertSupabaseRows(
+      "veil_disclosure_access",
+      parsed.disclosureAccess.map((access) => ({
+        id: access.id,
+        record_id: access.recordId,
+        granted_at: access.grantedAt,
+        wallet_scope: uniqueWalletScope([access.viewer, access.grantedBy]),
+        payload: access,
+      }))
+    ),
+    upsertSupabaseRows(
+      "veil_audit_events",
+      parsed.auditTrail.map((audit) => ({
+        id: audit.id,
+        timestamp: audit.timestamp,
+        wallet_scope: uniqueWalletScope([audit.actor, audit.target]),
+        payload: audit,
+      }))
+    ),
+  ]);
 }
 
 async function mutateLedger<T>(mutator: (ledger: Ledger) => T | Promise<T>): Promise<T> {

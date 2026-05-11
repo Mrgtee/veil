@@ -7,6 +7,7 @@ import {
   getConfidentialRecords,
   getDashboardStats,
   getDisclosureAccess,
+  getLedgerBackendInfo,
   getPayments,
   grantAccess,
   grantAccessSchema,
@@ -109,10 +110,7 @@ export default async function handler(req: ServerlessRequest, res: ServerlessRes
           rpcUrl: process.env.VITE_ARC_RPC_URL || "https://rpc.testnet.arc.network",
           explorer: "https://testnet.arcscan.app",
         },
-        ledger: {
-          model: process.env.VERCEL ? "temporary-vercel-preview-json-ledger" : "temporary-testnet-json-ledger",
-          productionDirection: "database/indexer with VeilHub indexing and Arc Private Kit integration",
-        },
+        ledger: getLedgerBackendInfo(),
       });
       return;
     }

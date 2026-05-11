@@ -30,13 +30,18 @@ Arc is the settlement target because it is designed around stablecoin payments a
 - VeilHub contract architecture for live Open Payments.
 - Experimental VeilShield research contracts, Noir prototype circuits, generated verifiers, and CLI proof tooling for developer preview only.
 
-## Temporary Testnet Ledger
+## Durable Ledger
 
-The API JSON ledger is temporary testnet infrastructure. It is server-owned and more reliable than browser-only `localStorage`, but it is not the final production source of truth.
+The API ledger supports two backends:
+
+- `supabase`: production-ready Supabase/Postgres storage for hosted deployments
+- `json`: local development fallback only
+
+Supabase is the production path. It keeps the existing API contract while storing payment, disclosure, and audit records in durable Postgres tables. The JSON backend remains useful for local smoke tests, but it is not production storage.
 
 Production direction:
 
-- database or indexed storage for app records
+- Supabase/Postgres storage for app records
 - VeilHub event indexing for open payments and Unified USDC Balance references
 - Arc Private Kit indexing/integration when user-facing private payments are live
 - VeilShield event indexing only for experimental research records if that layer continues beyond prototype work
@@ -157,7 +162,16 @@ VITE_ARC_USDC_ADDRESS=0x3600000000000000000000000000000000000000
 VITE_ARC_CHAIN_ID=5042002
 VITE_ARC_RPC_URL=https://rpc.testnet.arc.network
 VITE_WALLETCONNECT_PROJECT_ID=<walletconnect project id>
+VEIL_LEDGER_BACKEND=json
 VEIL_LEDGER_PATH=./data/veil-ledger.json
+```
+
+Production Supabase API env:
+
+```bash
+VEIL_LEDGER_BACKEND=supabase
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<server-only service role key>
 ```
 
 Optional experimental research env only:
@@ -207,8 +221,8 @@ Run `forge test` only when Foundry is installed.
 
 1. Use the current Arc Testnet VeilHub deployment above, or redeploy with `contracts/script/DeployVeilHub.s.sol`.
 2. Configure frontend env values for VeilHub and Arc USDC.
-3. Run the API with a durable `VEIL_LEDGER_PATH` for testnet.
-4. Move production records to database/indexer infrastructure before mainnet use.
+3. Run `supabase/migrations/001_veilarc_ledger.sql` in Supabase.
+4. Set `VEIL_LEDGER_BACKEND=supabase`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` in Vercel.
 5. User-facing Private Payment should prioritize Arc Private Kit integration when the native Arc privacy stack is available.
 6. Keep VeilShield under Experimental Research / Developer Preview unless the product direction explicitly changes after audits.
 
@@ -218,7 +232,7 @@ Veilarc can be deployed to Vercel as a Vite frontend with serverless API routes 
 
 The checked-in `vercel.json` configures the public Arc Testnet values for the current VeilHub deployment. Add a real `VITE_WALLETCONNECT_PROJECT_ID` in the Vercel project settings for WalletConnect and mobile wallet support.
 
-The Vercel serverless JSON ledger uses `/tmp/veil-ledger.json` for preview deployments. That is useful for smoke testing, but it is not durable production storage. Use a database or indexer-backed API before relying on hosted payment history.
+For hosted production preview, configure Supabase env values in Vercel. If Supabase is not configured and the backend is left as `json`, Vercel uses temporary `/tmp` JSON storage, which can reset and should not be used for real hosted payment history. Do not set `VEIL_LEDGER_BACKEND=supabase` until both Supabase env values are present.
 
 ## Experimental Research / Developer Preview
 
@@ -246,7 +260,7 @@ The submitter simulates the contract call, checks note/nullifier state, submits 
 
 ## Known Limitations
 
-- The JSON ledger is temporary testnet infrastructure, not production storage.
+- Supabase is the production ledger backend; JSON is local/dev fallback only.
 - Arc Direct is disabled until VeilHub env values are configured in `.env.local`.
 - Browser Private Payment settlement is blocked until Arc Private Kit integration is available, wired, tested, and audited.
 - VeilShield developer CLI proof submission exists for testnet research only and is not the user-facing private-payment path.
@@ -260,7 +274,7 @@ The submitter simulates the contract call, checks note/nullifier state, submits 
 ## Roadmap
 
 - Add production monitoring and event indexing for the deployed Arc Testnet VeilHub.
-- Add database/indexer-backed ledger storage.
+- Continue hardening Supabase/Postgres ledger storage.
 - Index VeilHub events for open payments and Unified USDC Balance references.
 - Integrate Arc Private Kit for user-facing hidden/private payment support.
 - Keep VeilShield research isolated unless it is explicitly revisited after audits.

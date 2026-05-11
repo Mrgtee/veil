@@ -54,10 +54,26 @@ With these values, Arc Direct single payments call `VeilHub.payOpen`, and Arc Di
 
 ## API Env
 
-The local API ledger can use the default path or a local override. Do not commit API env files.
+The local API ledger can use the default JSON fallback. Do not commit API env files.
 
 ```bash
+VEIL_LEDGER_BACKEND=json
 VEIL_LEDGER_PATH=./data/veil-ledger.json
+```
+
+Hosted production preview should use Supabase:
+
+```bash
+VEIL_LEDGER_BACKEND=supabase
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<server-only service role key>
+```
+
+Run the SQL migration first:
+
+```sql
+-- Supabase SQL editor
+-- paste and run supabase/migrations/001_veilarc_ledger.sql
 ```
 
 ## Vercel Preview Deployment
@@ -77,16 +93,18 @@ VITE_VEIL_HUB_ADDRESS=0x30c77c1C20A5cBB171DE9090789F3dB98aA9734b
 VITE_ARC_USDC_ADDRESS=0x3600000000000000000000000000000000000000
 VITE_ARC_CHAIN_ID=5042002
 VITE_ARC_RPC_URL=https://rpc.testnet.arc.network
-VEIL_LEDGER_PATH=/tmp/veil-ledger.json
 ```
 
-Set this value in Vercel project settings for production-quality wallet support:
+Set these values in Vercel project settings:
 
 ```bash
 VITE_WALLETCONNECT_PROJECT_ID=<walletconnect project id>
+VEIL_LEDGER_BACKEND=supabase
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<server-only service role key>
 ```
 
-The Vercel JSON ledger is preview infrastructure only. Serverless `/tmp` storage can be reset by platform lifecycle events and is not a durable source of truth. A production Vercel deployment should point `VITE_API_BASE_URL` at a durable API or replace the JSON ledger with database/indexer storage.
+Do not expose `SUPABASE_SERVICE_ROLE_KEY` in browser code or any `VITE_*` variable. If Supabase is not configured and the backend is left as `json`, Vercel uses `/tmp` JSON storage, which can reset and is not production storage. Do not set `VEIL_LEDGER_BACKEND=supabase` until both Supabase env values are present.
 
 ## VeilShield Prototype Env
 

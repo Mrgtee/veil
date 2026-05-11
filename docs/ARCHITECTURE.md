@@ -3,9 +3,9 @@
 Veilarc has four layers:
 
 1. Vite React wallet app
-2. API-owned temporary testnet ledger
+2. API-owned Supabase/Postgres ledger with local JSON fallback
 3. Arc contracts for VeilHub identity and experimental privacy research
-4. Future Supabase/Postgres and indexer infrastructure for production truth
+4. Future VeilHub and Arc Private Kit indexer infrastructure for production reconciliation
 
 ## Frontend
 
@@ -91,7 +91,7 @@ Veilarc should not implement this escrow path until the contract design and test
 
 ## API Ledger
 
-The API JSON ledger is temporary testnet infrastructure. It uses Zod validation, server-side IDs, `createdAt` timestamps, and atomic writes.
+The API ledger uses Zod validation, server-side IDs, and `createdAt` timestamps. In production it stores records in Supabase/Postgres through the Vercel serverless API. Local development can still use the JSON fallback.
 
 Ledger statuses:
 
@@ -113,7 +113,7 @@ Ledger operations:
 - `shield_transfer`
 - `shield_withdraw`
 
-Production direction is a Supabase/Postgres API ledger plus an indexer stack with VeilHub event indexing and Arc Private Kit event/indexing integration when user-facing private payments are live. The migration plan is documented in `docs/DURABLE_STORAGE_PLAN.md`.
+Production reconciliation direction is a VeilHub event indexer plus Arc Private Kit event/indexing integration when user-facing private payments are live. Supabase setup and indexing next steps are documented in `docs/DURABLE_STORAGE_PLAN.md`.
 
 ## Private Payment Positioning
 

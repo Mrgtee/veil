@@ -10,6 +10,7 @@ import {
   getConfidentialRecords,
   getDashboardStats,
   getDisclosureAccess,
+  getLedgerBackendInfo,
   getPayments,
   grantAccess,
   grantAccessSchema,
@@ -71,10 +72,7 @@ app.get("/api/config", (_req, res) => {
       rpcUrl: process.env.VITE_ARC_RPC_URL || "https://rpc.testnet.arc.network",
       explorer: "https://testnet.arcscan.app",
     },
-    ledger: {
-      model: "temporary-testnet-json-ledger",
-      productionDirection: "database/indexer with VeilHub indexing and Arc Private Kit integration",
-    },
+    ledger: getLedgerBackendInfo(),
   });
 });
 

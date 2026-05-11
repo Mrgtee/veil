@@ -1,40 +1,54 @@
 # Durable Storage Plan
 
-Veilarc's current JSON ledger is temporary preview/testnet infrastructure. It is useful for local development and Vercel smoke tests, but it is not durable enough for production payment history.
+Veilarc now supports Supabase/Postgres as the durable API ledger. The JSON ledger remains a local development fallback only.
 
-## Target Stack
+## Current Production Stack
 
-- Supabase Postgres or managed Postgres as the API ledger database.
-- Wallet-scoped payment, batch, activity, disclosure, and audit tables.
+- Supabase Postgres as the API ledger database.
+- Vercel serverless API routes write to Supabase through server-only `SUPABASE_SERVICE_ROLE_KEY`.
+- Wallet-scoped payment, disclosure, and audit rows include a normalized `wallet_scope` array.
+- The public API shape remains unchanged for the frontend.
+
+## Migration
+
+1. Create a Supabase project.
+2. Open the Supabase SQL editor.
+3. Paste and run `supabase/migrations/001_veilarc_ledger.sql`.
+4. Add these Vercel env vars:
+   - `VEIL_LEDGER_BACKEND=supabase`
+   - `SUPABASE_URL=https://your-project-ref.supabase.co`
+   - `SUPABASE_SERVICE_ROLE_KEY=<server-only service role key>`
+5. Redeploy Vercel.
+6. Visit `/api/config`; `ledger.model` should be `supabase-postgres-ledger`.
+
+## Indexing Roadmap
+
 - VeilHub event indexer for Open Payment and Unified USDC Balance references.
 - Arc Private Kit event/indexing integration when user-facing Private Payment is available.
 - Optional VeilShield research indexing only if that experimental layer remains useful after audits.
 
 ## Data Model
 
-Core tables:
+Current Supabase tables:
 
-- `payments`: id, type, mode, source, operation, status, sender, owner, payer, wallet_address, recipient, recipients, amount, token, tx_hash, payment_id, batch_id, created_at.
-- `payment_events`: immutable status transitions, wallet actor, tx hash, block number, source system, created_at.
-- `batches`: batch id, sender, total amount, recipient count, status, tx hash, created_at.
-- `ledger_audit`: API write actor, target id, action, created_at.
-- `private_records`: future Arc Private Kit disclosure metadata only; never note secrets.
+- `veil_payments`: canonical payment payloads, server IDs, timestamps, `external_id`, and indexed `wallet_scope`.
+- `veil_confidential_records`: Closed/Private disclosure metadata only; never note secrets.
+- `veil_disclosure_access`: disclosure/access records scoped by wallet.
+- `veil_audit_events`: API ledger audit payloads scoped by wallet.
 
-All wallet address comparisons should be case-insensitive and backed by normalized lowercase columns.
+The first production schema stores the existing Zod-validated ledger payload in `jsonb` plus normalized wallet scope indexes. Future event-indexer tables can add block number, log index, contract event name, and reconciliation status without changing the frontend API.
 
-## API Migration Path
+## API Compatibility
 
-1. Keep the current JSON ledger shape as the external API contract.
-2. Add a repository interface behind the API routes.
-3. Implement a Postgres repository with Zod validation at the API boundary.
-4. Add a one-time JSON import script for testnet preview records.
-5. Switch `VITE_API_BASE_URL` to the hosted durable API.
-6. Keep wallet-scoped endpoint behavior:
-   - `GET /api/payments?wallet=0x...`
-   - `GET /api/dashboard?wallet=0x...`
-   - `GET /api/activity?wallet=0x...`
-   - `GET /api/confidential-records?wallet=0x...`
-   - `GET /api/audit?wallet=0x...`
+The frontend keeps using:
+
+- `GET /api/payments?wallet=0x...`
+- `GET /api/dashboard?wallet=0x...`
+- `GET /api/activity?wallet=0x...`
+- `GET /api/confidential-records?wallet=0x...`
+- `GET /api/audit?wallet=0x...`
+
+The API validates the same Zod schemas before writing to Supabase.
 
 ## VeilHub Indexing
 
@@ -53,6 +67,6 @@ The indexer should read Arc Testnet events from `VeilHub` and reconcile them wit
 - Keep failed wallet rejections out of successful payment history.
 - Make every dashboard/history query wallet-scoped by default.
 
-## Vercel Preview Limitation
+## JSON Fallback Limitation
 
-The Vercel serverless JSON ledger currently uses `/tmp/veil-ledger.json`. That can reset across deployments or platform lifecycle events. Treat it as smoke-test state only.
+If Supabase is not configured and the backend is left as `json`, Vercel serverless uses `/tmp/veil-ledger.json`. That can reset across deployments or platform lifecycle events. Treat it as smoke-test state only. If `VEIL_LEDGER_BACKEND=supabase` is set without `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`, API writes will fail fast instead of silently using temporary storage.
